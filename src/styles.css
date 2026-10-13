@@ -6,6 +6,11 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --landing-primary: #6b18a5;
+  --landing-primary-foreground: #ffffff;
+  --landing-accent: #c403a7;
+  --landing-secondary: #6b4379;
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -77,6 +82,10 @@
 }
 
 @theme inline {
+  --color-landing-primary: var(--landing-primary);
+  --color-landing-primary-foreground: var(--landing-primary-foreground);
+  --color-landing-accent: var(--landing-accent);
+  --color-landing-secondary: var(--landing-secondary);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

@@ -1,4 +1,4 @@
-import { PrismaClient } from '../src/generated/prisma/client.js'
+import { PrismaClient } from '@prisma/client'
 
 import { getDatabaseUrl } from '../src/database-url.js'
 

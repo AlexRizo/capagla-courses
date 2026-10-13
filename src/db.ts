@@ -1,11 +1,11 @@
-import { PrismaClient } from './generated/prisma/client.js'
+import { PrismaClient } from '@prisma/client'
 
-import { getDatabaseUrl } from './database-url.js'
+import { env } from './env.js'
 
 import { PrismaPg } from '@prisma/adapter-pg'
 
 const adapter = new PrismaPg({
-  connectionString: getDatabaseUrl(),
+  connectionString: env.DATABASE_URL,
 })
 
 declare global {

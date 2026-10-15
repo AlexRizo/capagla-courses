@@ -10,12 +10,78 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as EntrarRouteImport } from './routes/entrar'
+import { Route as GraciasRouteImport } from './routes/gracias'
+import { Route as MisCursosRouteImport } from './routes/mis-cursos'
+import { Route as PagoPruebaRouteImport } from './routes/pago-prueba'
+import { Route as RevisaTuCorreoRouteImport } from './routes/revisa-tu-correo'
+import { Route as CursosSlugRouteImport } from './routes/cursos/$slug'
+import { Route as MisCursosIndexRouteImport } from './routes/mis-cursos/index'
+import { Route as AdminCursosIndexRouteImport } from './routes/admin/cursos/index'
+import { Route as AdminCursosSlugRouteImport } from './routes/admin/cursos/$slug'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntrarRoute = EntrarRouteImport.update({
+  id: '/entrar',
+  path: '/entrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GraciasRoute = GraciasRouteImport.update({
+  id: '/gracias',
+  path: '/gracias',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MisCursosRoute = MisCursosRouteImport.update({
+  id: '/mis-cursos',
+  path: '/mis-cursos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagoPruebaRoute = PagoPruebaRouteImport.update({
+  id: '/pago-prueba',
+  path: '/pago-prueba',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RevisaTuCorreoRoute = RevisaTuCorreoRouteImport.update({
+  id: '/revisa-tu-correo',
+  path: '/revisa-tu-correo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CursosSlugRoute = CursosSlugRouteImport.update({
+  id: '/cursos/$slug',
+  path: '/cursos/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MisCursosIndexRoute = MisCursosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MisCursosRoute,
+} as any)
+const AdminCursosIndexRoute = AdminCursosIndexRouteImport.update({
+  id: '/cursos/',
+  path: '/cursos/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCursosSlugRoute = AdminCursosSlugRouteImport.update({
+  id: '/cursos/$slug',
+  path: '/cursos/$slug',
+  getParentRoute: () => AdminRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -25,27 +91,106 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/checkout': typeof CheckoutRoute
+  '/entrar': typeof EntrarRoute
+  '/gracias': typeof GraciasRoute
+  '/mis-cursos': typeof MisCursosRouteWithChildren
+  '/pago-prueba': typeof PagoPruebaRoute
+  '/revisa-tu-correo': typeof RevisaTuCorreoRoute
+  '/cursos/$slug': typeof CursosSlugRoute
+  '/mis-cursos/': typeof MisCursosIndexRoute
+  '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/admin/cursos/': typeof AdminCursosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/checkout': typeof CheckoutRoute
+  '/entrar': typeof EntrarRoute
+  '/gracias': typeof GraciasRoute
+  '/pago-prueba': typeof PagoPruebaRoute
+  '/revisa-tu-correo': typeof RevisaTuCorreoRoute
+  '/cursos/$slug': typeof CursosSlugRoute
+  '/mis-cursos': typeof MisCursosIndexRoute
+  '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/admin/cursos': typeof AdminCursosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/checkout': typeof CheckoutRoute
+  '/entrar': typeof EntrarRoute
+  '/gracias': typeof GraciasRoute
+  '/mis-cursos': typeof MisCursosRouteWithChildren
+  '/pago-prueba': typeof PagoPruebaRoute
+  '/revisa-tu-correo': typeof RevisaTuCorreoRoute
+  '/cursos/$slug': typeof CursosSlugRoute
+  '/mis-cursos/': typeof MisCursosIndexRoute
+  '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/admin/cursos/': typeof AdminCursosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/checkout'
+    | '/entrar'
+    | '/gracias'
+    | '/mis-cursos'
+    | '/pago-prueba'
+    | '/revisa-tu-correo'
+    | '/cursos/$slug'
+    | '/mis-cursos/'
+    | '/admin/cursos/$slug'
+    | '/api/auth/$'
+    | '/admin/cursos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/auth/$'
-  id: '__root__' | '/' | '/api/auth/$'
+  to:
+    | '/'
+    | '/admin'
+    | '/checkout'
+    | '/entrar'
+    | '/gracias'
+    | '/pago-prueba'
+    | '/revisa-tu-correo'
+    | '/cursos/$slug'
+    | '/mis-cursos'
+    | '/admin/cursos/$slug'
+    | '/api/auth/$'
+    | '/admin/cursos'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/checkout'
+    | '/entrar'
+    | '/gracias'
+    | '/mis-cursos'
+    | '/pago-prueba'
+    | '/revisa-tu-correo'
+    | '/cursos/$slug'
+    | '/mis-cursos/'
+    | '/admin/cursos/$slug'
+    | '/api/auth/$'
+    | '/admin/cursos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  CheckoutRoute: typeof CheckoutRoute
+  EntrarRoute: typeof EntrarRoute
+  GraciasRoute: typeof GraciasRoute
+  MisCursosRoute: typeof MisCursosRouteWithChildren
+  PagoPruebaRoute: typeof PagoPruebaRoute
+  RevisaTuCorreoRoute: typeof RevisaTuCorreoRoute
+  CursosSlugRoute: typeof CursosSlugRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -58,6 +203,83 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entrar': {
+      id: '/entrar'
+      path: '/entrar'
+      fullPath: '/entrar'
+      preLoaderRoute: typeof EntrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gracias': {
+      id: '/gracias'
+      path: '/gracias'
+      fullPath: '/gracias'
+      preLoaderRoute: typeof GraciasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mis-cursos': {
+      id: '/mis-cursos'
+      path: '/mis-cursos'
+      fullPath: '/mis-cursos'
+      preLoaderRoute: typeof MisCursosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pago-prueba': {
+      id: '/pago-prueba'
+      path: '/pago-prueba'
+      fullPath: '/pago-prueba'
+      preLoaderRoute: typeof PagoPruebaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/revisa-tu-correo': {
+      id: '/revisa-tu-correo'
+      path: '/revisa-tu-correo'
+      fullPath: '/revisa-tu-correo'
+      preLoaderRoute: typeof RevisaTuCorreoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cursos/$slug': {
+      id: '/cursos/$slug'
+      path: '/cursos/$slug'
+      fullPath: '/cursos/$slug'
+      preLoaderRoute: typeof CursosSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mis-cursos/': {
+      id: '/mis-cursos/'
+      path: '/'
+      fullPath: '/mis-cursos/'
+      preLoaderRoute: typeof MisCursosIndexRouteImport
+      parentRoute: typeof MisCursosRoute
+    }
+    '/admin/cursos/': {
+      id: '/admin/cursos/'
+      path: '/cursos'
+      fullPath: '/admin/cursos/'
+      preLoaderRoute: typeof AdminCursosIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/cursos/$slug': {
+      id: '/admin/cursos/$slug'
+      path: '/cursos/$slug'
+      fullPath: '/admin/cursos/$slug'
+      preLoaderRoute: typeof AdminCursosSlugRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -68,8 +290,40 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminCursosSlugRoute: typeof AdminCursosSlugRoute
+  AdminCursosIndexRoute: typeof AdminCursosIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminCursosSlugRoute: AdminCursosSlugRoute,
+  AdminCursosIndexRoute: AdminCursosIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface MisCursosRouteChildren {
+  MisCursosIndexRoute: typeof MisCursosIndexRoute
+}
+
+const MisCursosRouteChildren: MisCursosRouteChildren = {
+  MisCursosIndexRoute: MisCursosIndexRoute,
+}
+
+const MisCursosRouteWithChildren = MisCursosRoute._addFileChildren(
+  MisCursosRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
+  CheckoutRoute: CheckoutRoute,
+  EntrarRoute: EntrarRoute,
+  GraciasRoute: GraciasRoute,
+  MisCursosRoute: MisCursosRouteWithChildren,
+  PagoPruebaRoute: PagoPruebaRoute,
+  RevisaTuCorreoRoute: RevisaTuCorreoRoute,
+  CursosSlugRoute: CursosSlugRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "CourseItem" ALTER COLUMN "status" SET DEFAULT 'PUBLISHED';

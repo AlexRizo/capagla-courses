@@ -11,3 +11,200 @@ model Todo {
   title     String
   createdAt DateTime @default(now())
 }
+
+enum Role {
+  ADMIN
+  STUDENT
+}
+
+model User {
+  id            String       @id
+  name          String
+  email         String
+  emailVerified Boolean      @default(false)
+  image         String?
+  role          Role         @default(STUDENT)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  orders        Order[]
+  enrollments   Enrollment[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+enum ProductKind {
+  COURSE
+  TOOL
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum ItemKind {
+  BLOCK
+  CHAPTER
+  LESSON
+}
+
+enum LessonType {
+  VIDEO
+  TEXT
+}
+
+model Product {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  kind        ProductKind
+  priceMxn    Int
+  // Ajustes del curso (panel). Los usa solo el contenido de tipo COURSE.
+  description String?
+  coverUrl    String?
+  accessDays  Int           @default(365)
+  status      ContentStatus @default(DRAFT)
+  orderItems  OrderItem[]
+  enrollments Enrollment[]
+  items       CourseItem[]
+}
+
+// Árbol del curso en una sola tabla: Bloque > Capítulo | Lección, y Capítulo > Lección.
+// Capítulo y lección se convierten entre sí cambiando `kind`; las reglas de
+// anidación (qué cuelga de qué) las valida la aplicación, no la base.
+model CourseItem {
+  id          String        @id @default(cuid())
+  productId   String
+  product     Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      CourseItem?   @relation("ItemTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    CourseItem[]  @relation("ItemTree")
+  kind        ItemKind
+  position    Int
+  title       String
+  // Hoy no se gestiona por elemento: lo público o borrador es el curso (`Product.status`).
+  status      ContentStatus @default(PUBLISHED)
+  // Bloque: visible sin comprar para quien se registre con su correo (origen de los leads).
+  isFree      Boolean       @default(false)
+  // Capítulo: receta compartida por todas sus lecciones. Texto enriquecido (JSON de Tiptap).
+  recipe      Json?
+  // Lección.
+  lessonType  LessonType?
+  // Lección tipo TEXT (receta): texto enriquecido (JSON de Tiptap).
+  body        Json?
+  videoUrl    String?
+  durationSec Int?
+  notes       String?
+  // Una parte por línea: "2:10 Derretir el chocolate".
+  videoParts  String?
+  resources   Resource[]
+
+  @@index([productId, parentId, position])
+}
+
+// Archivos de un capítulo o una lección. La subida real está pendiente (UploadThing).
+model Resource {
+  id       String     @id @default(cuid())
+  itemId   String
+  item     CourseItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  name     String
+  url      String
+  position Int
+}
+
+// La orden guarda nombre y correo porque el usuario no existe hasta que se paga.
+// amountMxn es el total; cada producto (curso, bono, herramienta) va en un item.
+model Order {
+  id        String      @id @default(cuid())
+  email     String
+  name      String
+  status    OrderStatus @default(PENDING)
+  amountMxn Int
+  createdAt DateTime    @default(now())
+  paidAt    DateTime?
+  items     OrderItem[]
+  userId    String?
+  user      User?       @relation(fields: [userId], references: [id])
+
+  @@index([email])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  amountMxn Int
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@unique([orderId, productId])
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@unique([userId, productId])
+}

@@ -81,6 +81,166 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Panel de la chef: tema propio de la maqueta (magenta, Inter), solo dentro de .admin */
+.admin {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0.008 326);
+  --card: oklch(1 0 0);
+  --primary: oklch(0.525 0.223 3.958);
+  --primary-foreground: oklch(0.971 0.014 343.198);
+  --secondary: oklch(0.967 0.001 286.375);
+  --muted: oklch(0.96 0.003 325.6);
+  --muted-foreground: oklch(0.542 0.034 322.5);
+  --accent: oklch(0.96 0.003 325.6);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0.005 325.62);
+  --input: oklch(0.922 0.005 325.62);
+  --ring: oklch(0.711 0.019 323.02);
+  --chart-3: oklch(0.435 0.029 321.78);
+  --chart-4: oklch(0.364 0.029 323.89);
+  --chart-5: oklch(0.263 0.024 320.12);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.592 0.249 0.584);
+}
+
+.admin.dark {
+  --background: oklch(0.145 0.008 326);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.212 0.019 322.12);
+  --primary: oklch(0.459 0.187 3.815);
+  --primary-foreground: oklch(0.971 0.014 343.198);
+  --muted: oklch(0.263 0.024 320.12);
+  --muted-foreground: oklch(0.711 0.019 323.02);
+  --accent: oklch(0.263 0.024 320.12);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.542 0.034 322.5);
+  --chart-3: oklch(0.78 0.015 323);
+  --chart-4: oklch(0.72 0.02 323);
+  --chart-5: oklch(0.9 0.01 325);
+  --sidebar: oklch(0.212 0.019 322.12);
+}
+
+/* Valores de la maqueta que no existen en la escala de Tailwind */
+@theme {
+  --font-sans: 'Lato', system-ui, sans-serif;
+  --font-admin: 'Inter', system-ui, sans-serif;
+
+  --color-landing-ink: #2a1233;
+  --color-landing-muted: #5b4663;
+  --color-landing-page: #fdf7fc;
+  --color-landing-line: #ead9ee;
+  --color-landing-field: #c9a6d3;
+  --color-landing-tint: #f6e3f9;
+  --color-landing-soft: #f6edf8;
+  --color-landing-track: #f0e2f4;
+  --color-landing-cover: #f3dff7;
+  --color-landing-dropzone: #fbf4fc;
+  --color-landing-pink: #fff0fb;
+  --color-landing-pink-line: #ef39b6;
+  --color-landing-neon: #ff8ee0;
+  --color-landing-ok: #eaf7ee;
+  --color-landing-ok-line: #bfe3c9;
+  --color-landing-ok-ink: #1a5a2e;
+  --color-landing-ok-soft: #e4f5e8;
+  --color-landing-lock: #1a7a3a;
+  --color-landing-warn: #fff6e5;
+  --color-landing-warn-line: #d98a00;
+  --color-landing-strike: #6e5a76;
+  --color-landing-black: #111111;
+  --color-landing-nav: #f6ecf8;
+  --color-landing-stripe: #fbeefd;
+  --color-landing-lilac: #e6cdee;
+  --color-landing-promo: #fcf0fa;
+  --color-landing-promo-line: #f1d6ee;
+  --color-landing-deep: #3d1b4d;
+  --color-landing-lavender: #ecd6f3;
+  --color-landing-grape: #b83bcc;
+  --color-landing-grape-dark: #8a2088;
+
+  --text-10: 10px;
+  --text-11: 11px;
+  --text-13: 13px;
+  --text-19: 19px;
+  --text-21: 21px;
+  --text-26: 26px;
+  --text-34: 34px;
+  --text-36: 36px;
+  --text-40: 40px;
+  --text-15: 15px;
+  --text-17: 17px;
+  --text-22: 22px;
+  --text-28: 28px;
+  --text-32: 32px;
+  --text-52: 52px;
+
+  --leading-115: 1.15;
+  --leading-110: 1.1;
+  --leading-120: 1.2;
+  --leading-140: 1.4;
+  --leading-145: 1.45;
+  --leading-105: 1.05;
+  --leading-106: 1.06;
+  --leading-108: 1.08;
+  --leading-130: 1.3;
+  --leading-135: 1.35;
+  --leading-155: 1.55;
+  --leading-160: 1.6;
+  --leading-170: 1.7;
+
+  --tracking-grip: -2px;
+  --tracking-landing-logo: -0.5px;
+  --tracking-landing-title: -0.7px;
+  --tracking-landing-caps: 0.6px;
+  --tracking-landing-title-sm: -0.4px;
+  --tracking-landing-title-md: -0.8px;
+  --tracking-landing-title-xl: -0.9px;
+  --tracking-landing-title-2xl: -1px;
+  --tracking-landing-title-3xl: -1.5px;
+  --tracking-landing-title-4xl: -1.1px;
+  --tracking-landing-title-2xs: -0.6px;
+  --tracking-landing-title-3xs: -0.3px;
+  --tracking-landing-caps-lg: 0.8px;
+
+  --radius-12: 12px;
+  --radius-16: 16px;
+  --radius-18: 18px;
+  --radius-20: 20px;
+
+  --shadow-landing-card: 0 10px 28px rgba(107, 24, 165, 0.08);
+  --shadow-landing-menu: 0 12px 32px rgba(107, 24, 165, 0.14);
+  --shadow-landing-play: 0 8px 24px rgba(42, 18, 51, 0.3);
+  --shadow-landing-card-lg: 0 12px 32px rgba(107, 24, 165, 0.08);
+}
+
+@utility bg-stripes-sm {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--color-landing-cover) 0 8px,
+    var(--color-landing-stripe) 8px 16px
+  );
+}
+
+@utility bg-stripes-lg {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--color-landing-cover) 0 14px,
+    var(--color-landing-stripe) 14px 28px
+  );
+}
+
+@utility object-hero {
+  object-position: 50% 30%;
+}
+
+@utility object-face {
+  object-position: 50% 25%;
+}
+
+@utility border-1.5 {
+  border-width: 1.5px;
+}
+
 @theme inline {
   --color-landing-primary: var(--landing-primary);
   --color-landing-primary-foreground: var(--landing-primary-foreground);

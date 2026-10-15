@@ -111,19 +111,57 @@ enum LessonType {
 }
 
 model Product {
-  id          String        @id @default(cuid())
-  slug        String        @unique
+  id          String             @id @default(cuid())
+  slug        String             @unique
   name        String
   kind        ProductKind
   priceMxn    Int
-  // Ajustes del curso (panel). Los usa solo el contenido de tipo COURSE.
+  // Descripción corta y portada: se ven en la tarjeta del producto (Home).
   description String?
   coverUrl    String?
-  accessDays  Int           @default(365)
-  status      ContentStatus @default(DRAFT)
+  accessDays  Int                @default(365)
+  // Borrador = no es público: no sale en la Home, su landing da 404 y no se vende.
+  status      ContentStatus      @default(DRAFT)
+  // Orden en que se muestran los productos en la Home (de menor a mayor).
+  position    Int                @default(0)
   orderItems  OrderItem[]
   enrollments Enrollment[]
   items       CourseItem[]
+  promotions  PromotionProduct[]
+}
+
+// Promoción (modo pro): una landing con URL propia (`/navidad`) que vende un curso
+// principal y hasta 2 adicionales con precio especial. Los precios especiales solo
+// aplican dentro de `startsAt`–`endsAt` (zona America/Mexico_City); sin fecha de inicio
+// no empieza y sin fecha de fin no termina.
+model Promotion {
+  id            String             @id @default(cuid())
+  // Parte de la URL sin "/": `navidad` → `/navidad`.
+  slug          String             @unique
+  name          String
+  startsAt      DateTime?
+  endsAt        DateTime?
+  introTitle    String?
+  introText     String?
+  introVideoUrl String?
+  paused        Boolean            @default(false)
+  createdAt     DateTime           @default(now())
+  products      PromotionProduct[]
+  orders        Order[]
+}
+
+// Producto de una promoción. `position` 0 = curso principal; 1 y 2 = adicionales.
+// `priceMxn` es el precio especial (0 = regalo).
+model PromotionProduct {
+  id          String    @id @default(cuid())
+  promotionId String
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  position    Int
+  priceMxn    Int
+
+  @@unique([promotionId, productId])
 }
 
 // Árbol del curso en una sola tabla: Bloque > Capítulo | Lección, y Capítulo > Lección.
@@ -172,18 +210,22 @@ model Resource {
 // La orden guarda nombre y correo porque el usuario no existe hasta que se paga.
 // amountMxn es el total; cada producto (curso, bono, herramienta) va en un item.
 model Order {
-  id        String      @id @default(cuid())
-  email     String
-  name      String
-  status    OrderStatus @default(PENDING)
-  amountMxn Int
-  createdAt DateTime    @default(now())
-  paidAt    DateTime?
-  items     OrderItem[]
-  userId    String?
-  user      User?       @relation(fields: [userId], references: [id])
+  id          String      @id @default(cuid())
+  email       String
+  name        String
+  status      OrderStatus @default(PENDING)
+  amountMxn   Int
+  createdAt   DateTime    @default(now())
+  paidAt      DateTime?
+  items       OrderItem[]
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id])
+  // Promoción desde la que llegó la compra (atribución); null si fue por un enlace simple.
+  promotionId String?
+  promotion   Promotion?  @relation(fields: [promotionId], references: [id], onDelete: SetNull)
 
   @@index([email])
+  @@index([promotionId])
 }
 
 model OrderItem {

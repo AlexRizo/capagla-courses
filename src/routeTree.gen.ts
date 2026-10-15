@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PromoRouteImport } from './routes/$promo'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as EntrarRouteImport } from './routes/entrar'
@@ -21,11 +22,18 @@ import { Route as CursosSlugRouteImport } from './routes/cursos/$slug'
 import { Route as MisCursosIndexRouteImport } from './routes/mis-cursos/index'
 import { Route as AdminCursosIndexRouteImport } from './routes/admin/cursos/index'
 import { Route as AdminCursosSlugRouteImport } from './routes/admin/cursos/$slug'
+import { Route as AdminPromocionesIndexRouteImport } from './routes/admin/promociones/index'
+import { Route as AdminPromocionesIdRouteImport } from './routes/admin/promociones/$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PromoRoute = PromoRouteImport.update({
+  id: '/$promo',
+  path: '/$promo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -83,6 +91,16 @@ const AdminCursosSlugRoute = AdminCursosSlugRouteImport.update({
   path: '/cursos/$slug',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPromocionesIndexRoute = AdminPromocionesIndexRouteImport.update({
+  id: '/promociones/',
+  path: '/promociones/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPromocionesIdRoute = AdminPromocionesIdRouteImport.update({
+  id: '/promociones/$id',
+  path: '/promociones/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -91,6 +109,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$promo': typeof PromoRoute
   '/admin': typeof AdminRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/entrar': typeof EntrarRoute
@@ -101,11 +120,14 @@ export interface FileRoutesByFullPath {
   '/cursos/$slug': typeof CursosSlugRoute
   '/mis-cursos/': typeof MisCursosIndexRoute
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
+  '/admin/promociones/$id': typeof AdminPromocionesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/admin/cursos/': typeof AdminCursosIndexRoute
+  '/admin/promociones/': typeof AdminPromocionesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$promo': typeof PromoRoute
   '/admin': typeof AdminRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/entrar': typeof EntrarRoute
@@ -115,12 +137,15 @@ export interface FileRoutesByTo {
   '/cursos/$slug': typeof CursosSlugRoute
   '/mis-cursos': typeof MisCursosIndexRoute
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
+  '/admin/promociones/$id': typeof AdminPromocionesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/admin/cursos': typeof AdminCursosIndexRoute
+  '/admin/promociones': typeof AdminPromocionesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$promo': typeof PromoRoute
   '/admin': typeof AdminRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/entrar': typeof EntrarRoute
@@ -131,13 +156,16 @@ export interface FileRoutesById {
   '/cursos/$slug': typeof CursosSlugRoute
   '/mis-cursos/': typeof MisCursosIndexRoute
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
+  '/admin/promociones/$id': typeof AdminPromocionesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/admin/cursos/': typeof AdminCursosIndexRoute
+  '/admin/promociones/': typeof AdminPromocionesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$promo'
     | '/admin'
     | '/checkout'
     | '/entrar'
@@ -148,11 +176,14 @@ export interface FileRouteTypes {
     | '/cursos/$slug'
     | '/mis-cursos/'
     | '/admin/cursos/$slug'
+    | '/admin/promociones/$id'
     | '/api/auth/$'
     | '/admin/cursos/'
+    | '/admin/promociones/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$promo'
     | '/admin'
     | '/checkout'
     | '/entrar'
@@ -162,11 +193,14 @@ export interface FileRouteTypes {
     | '/cursos/$slug'
     | '/mis-cursos'
     | '/admin/cursos/$slug'
+    | '/admin/promociones/$id'
     | '/api/auth/$'
     | '/admin/cursos'
+    | '/admin/promociones'
   id:
     | '__root__'
     | '/'
+    | '/$promo'
     | '/admin'
     | '/checkout'
     | '/entrar'
@@ -177,12 +211,15 @@ export interface FileRouteTypes {
     | '/cursos/$slug'
     | '/mis-cursos/'
     | '/admin/cursos/$slug'
+    | '/admin/promociones/$id'
     | '/api/auth/$'
     | '/admin/cursos/'
+    | '/admin/promociones/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PromoRoute: typeof PromoRoute
   AdminRoute: typeof AdminRouteWithChildren
   CheckoutRoute: typeof CheckoutRoute
   EntrarRoute: typeof EntrarRoute
@@ -201,6 +238,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$promo': {
+      id: '/$promo'
+      path: '/$promo'
+      fullPath: '/$promo'
+      preLoaderRoute: typeof PromoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -280,6 +324,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCursosSlugRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/promociones/': {
+      id: '/admin/promociones/'
+      path: '/promociones'
+      fullPath: '/admin/promociones/'
+      preLoaderRoute: typeof AdminPromocionesIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/promociones/$id': {
+      id: '/admin/promociones/$id'
+      path: '/promociones/$id'
+      fullPath: '/admin/promociones/$id'
+      preLoaderRoute: typeof AdminPromocionesIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -292,12 +350,16 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminCursosSlugRoute: typeof AdminCursosSlugRoute
+  AdminPromocionesIdRoute: typeof AdminPromocionesIdRoute
   AdminCursosIndexRoute: typeof AdminCursosIndexRoute
+  AdminPromocionesIndexRoute: typeof AdminPromocionesIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCursosSlugRoute: AdminCursosSlugRoute,
+  AdminPromocionesIdRoute: AdminPromocionesIdRoute,
   AdminCursosIndexRoute: AdminCursosIndexRoute,
+  AdminPromocionesIndexRoute: AdminPromocionesIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -316,6 +378,7 @@ const MisCursosRouteWithChildren = MisCursosRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PromoRoute: PromoRoute,
   AdminRoute: AdminRouteWithChildren,
   CheckoutRoute: CheckoutRoute,
   EntrarRoute: EntrarRoute,

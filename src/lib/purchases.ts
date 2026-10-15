@@ -1,45 +1,29 @@
 import { prisma } from '#/db'
 import { auth } from '#/lib/auth'
-import {
-  COURSE_SLUG,
-  FREE_COURSE_SLUG,
-  TOOL_BUMP_PRICE_MXN,
-  TOOL_SLUG,
-} from '#/lib/catalog'
+import { resolveOffer } from '#/lib/offers'
 
-// Curso + curso de costos gratis (bono) + herramienta si se marcó la casilla.
+// Orden con lo que dice la oferta del momento (precios del servidor, nunca del cliente):
+// el curso, los cursos adicionales de la promoción y la herramienta si se marcó la casilla.
+// Guarda la promoción de origen para atribuir la compra, aunque ya no aplique su precio.
 export async function createOrder(input: {
   email: string
   name: string
   withTool: boolean
+  promo?: string
 }) {
-  const slugs = [
-    COURSE_SLUG,
-    FREE_COURSE_SLUG,
-    ...(input.withTool ? [TOOL_SLUG] : []),
-  ]
-  const products = await prisma.product.findMany({
-    where: { slug: { in: slugs } },
-  })
-  const bySlug = new Map(products.map((p) => [p.slug, p]))
-
-  const items = slugs.map((slug) => {
-    const product = bySlug.get(slug)
-    if (!product) throw new Error(`Producto no encontrado: ${slug}`)
-    const amountMxn =
-      slug === COURSE_SLUG
-        ? product.priceMxn
-        : slug === TOOL_SLUG
-          ? TOOL_BUMP_PRICE_MXN
-          : 0
-    return { productId: product.id, amountMxn }
-  })
+  const offer = await resolveOffer(input.promo, true)
+  if (!offer.main.published) throw new Error('El curso no está a la venta.')
+  const items = [
+    offer.main,
+    ...offer.extras.filter((e) => e.isCourse || input.withTool),
+  ].map((p) => ({ productId: p.productId, amountMxn: p.priceMxn }))
 
   return prisma.order.create({
     data: {
       email: input.email.trim().toLowerCase(),
       name: input.name.trim(),
       amountMxn: items.reduce((sum, item) => sum + item.amountMxn, 0),
+      promotionId: offer.promotion?.id,
       items: { create: items },
     },
   })

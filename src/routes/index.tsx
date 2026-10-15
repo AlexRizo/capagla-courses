@@ -1,13 +1,12 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 
 import { MobileMenu } from '#/components/mobile-menu'
-import {
-  COSTS_COURSE_PRICE_MXN,
-  COURSE_LIST_PRICE_MXN,
-  TOOL_PRICE_MXN,
-} from '#/lib/catalog'
+import { getHomeProducts } from '#/lib/home'
 
-export const Route = createFileRoute('/')({ component: Home })
+export const Route = createFileRoute('/')({
+  loader: () => getHomeProducts(),
+  component: Home,
+})
 
 const nav =
   'inline-flex min-h-10 items-center rounded-full px-4.5 text-15 font-bold text-landing-ink no-underline hover:bg-white hover:text-landing-primary'
@@ -16,47 +15,15 @@ const solid =
 const outline =
   'flex items-center justify-center rounded-12 border-1.5 border-landing-primary font-black text-landing-primary no-underline'
 
-type Course = {
-  name: string
-  desc: string
-  descMobile: string
-  price: number
-  cta: string
-  to: string
-  media: 'image' | 'stripes' | 'tool'
-}
+type HomeProduct = Awaited<ReturnType<typeof getHomeProducts>>[number]
 
-const courses: Course[] = [
-  {
-    name: 'Postres para vender en Navidad',
-    desc: '11 recetas rendidoras con medidas exactas, decoración y consejos para empacar y cobrar.',
-    descMobile: '11 recetas rendidoras, decoración y cómo empacar y cobrar.',
-    price: COURSE_LIST_PRICE_MXN,
-    cta: 'Ver el curso',
-    to: '/cursos/postres-navidad',
-    media: 'image',
-  },
-  {
-    name: 'Cómo calcular costos de tus postres',
-    desc: '[Descripción por definir cuando el curso esté terminado]',
-    descMobile: '[Descripción por definir]',
-    price: COSTS_COURSE_PRICE_MXN,
-    cta: 'Ver detalles',
-    to: '#',
-    media: 'stripes',
-  },
-  {
-    name: 'Herramienta de costos',
-    desc: 'Calcula el costo por porción y el precio sugerido de cada receta.',
-    descMobile: 'Costo por porción y precio sugerido de cada receta.',
-    price: TOOL_PRICE_MXN,
-    cta: 'Ver detalles',
-    to: '/checkout',
-    media: 'tool',
-  },
-]
+// Dónde lleva "Ver el curso" / "Ver detalles": la página de venta si existe; la herramienta
+// va al checkout (como en la maqueta) y el resto de detalles aún no tiene pantalla.
+const link = (p: HomeProduct) =>
+  p.hasPage ? `/cursos/${p.slug}` : p.isTool ? '/checkout' : '#'
 
 function Home() {
+  const products = Route.useLoaderData()
   return (
     <div className="min-h-screen bg-landing-page font-sans text-landing-ink">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-landing-line bg-white px-4 py-3 md:px-8 md:py-3.5">
@@ -125,10 +92,7 @@ function Home() {
         </div>
       </div>
 
-      <div
-        id="gratis"
-        className="mx-auto max-w-280 px-4 pb-6 md:px-8 md:pb-14"
-      >
+      <div id="gratis" className="mx-auto max-w-280 px-4 pb-6 md:px-8 md:pb-14">
         <div className="flex flex-col gap-2 rounded-16 bg-landing-ink p-5 text-white md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-6 md:rounded-20 md:p-8">
           <div className="flex flex-col gap-2 md:flex-1 md:basis-95">
             <div className="text-11 font-black tracking-landing-caps-lg text-landing-neon md:text-13">
@@ -161,26 +125,26 @@ function Home() {
           Cursos
         </h2>
         <div className="hidden gap-6 md:grid md:grid-cols-2 lg:grid-cols-3">
-          {courses.map((c) => (
+          {products.map((c) => (
             <div
-              key={c.name}
+              key={c.slug}
               className="flex flex-col overflow-hidden rounded-20 border border-landing-line bg-white"
             >
-              {c.media === 'image' && (
+              {c.coverUrl && (
                 <div className="flex aspect-video items-center justify-center overflow-hidden">
                   <img
-                    src="/images/postres-navidad.jpg"
+                    src={c.coverUrl}
                     alt={c.name}
                     className="block size-full object-cover"
                   />
                 </div>
               )}
-              {c.media === 'stripes' && (
+              {!c.coverUrl && !c.isTool && (
                 <div className="flex aspect-video items-center justify-center bg-stripes-lg font-bold text-landing-primary">
                   [Imagen del curso]
                 </div>
               )}
-              {c.media === 'tool' && (
+              {!c.coverUrl && c.isTool && (
                 <div className="flex aspect-video items-center justify-center bg-landing-ink p-5 text-center text-2xl font-black text-landing-neon">
                   Herramienta de costos
                 </div>
@@ -190,16 +154,16 @@ function Home() {
                   {c.name}
                 </div>
                 <div className="text-15 leading-normal text-landing-muted">
-                  {c.desc}
+                  {c.description}
                 </div>
                 <div className="flex-1" />
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="text-2xl font-black">${c.price} MXN</span>
+                  <span className="text-2xl font-black">${c.priceMxn} MXN</span>
                   <a
-                    href={c.to}
-                    className={`${c.media === 'image' ? solid : outline} min-h-11.5 px-5.5 text-base`}
+                    href={link(c)}
+                    className={`${c.hasPage ? solid : outline} min-h-11.5 px-5.5 text-base`}
                   >
-                    {c.cta}
+                    {c.hasPage ? 'Ver el curso' : 'Ver detalles'}
                   </a>
                 </div>
               </div>
@@ -207,42 +171,42 @@ function Home() {
           ))}
         </div>
         <div className="flex flex-col gap-3 md:hidden">
-          {courses.map((c) => (
+          {products.map((c) => (
             <div
-              key={c.name}
+              key={c.slug}
               className="flex gap-3 rounded-16 border border-landing-line bg-white p-3"
             >
-              {c.media === 'image' && (
+              {c.coverUrl && (
                 <div className="size-24 flex-none overflow-hidden rounded-12">
                   <img
-                    src="/images/postres-navidad.jpg"
+                    src={c.coverUrl}
                     alt={c.name}
                     className="block size-full object-cover"
                   />
                 </div>
               )}
-              {c.media === 'stripes' && (
+              {!c.coverUrl && !c.isTool && (
                 <div className="flex size-24 flex-none items-center justify-center overflow-hidden rounded-12 bg-stripes-sm text-center text-11 font-bold text-landing-primary">
                   [Imagen]
                 </div>
               )}
-              {c.media === 'tool' && (
+              {!c.coverUrl && c.isTool && (
                 <div className="box-border flex size-24 flex-none items-center justify-center rounded-12 bg-landing-ink p-2 text-center text-sm font-black text-landing-neon">
                   Herramienta de costos
                 </div>
               )}
               <div className="flex flex-1 flex-col gap-1">
                 <div className="text-base leading-120 font-black">{c.name}</div>
-                <div className="text-13 leading-135 text-landing-muted">
-                  {c.descMobile}
+                <div className="line-clamp-2 text-13 leading-135 text-landing-muted">
+                  {c.description}
                 </div>
                 <div className="mt-auto flex items-center justify-between">
-                  <span className="text-lg font-black">${c.price}</span>
+                  <span className="text-lg font-black">${c.priceMxn}</span>
                   <a
-                    href={c.to}
+                    href={link(c)}
                     className="text-sm font-black text-landing-primary no-underline"
                   >
-                    {c.cta} →
+                    {c.hasPage ? 'Ver el curso' : 'Ver detalles'} →
                   </a>
                 </div>
               </div>
@@ -251,10 +215,7 @@ function Home() {
         </div>
       </div>
 
-      <div
-        id="gladis"
-        className="border-y border-landing-line bg-white"
-      >
+      <div id="gladis" className="border-y border-landing-line bg-white">
         <div className="mx-auto flex max-w-280 flex-col items-center gap-3 px-4 py-7 text-center md:flex-row md:flex-wrap md:items-center md:gap-10 md:px-8 md:py-16 md:text-left">
           <div className="size-30 flex-none overflow-hidden rounded-full border border-landing-line md:aspect-square md:size-auto md:w-full md:max-w-70 md:flex-initial md:basis-70">
             <img

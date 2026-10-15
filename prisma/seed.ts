@@ -5,23 +5,30 @@ import { hashPassword } from 'better-auth/crypto'
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
 
-// Precios en MXN. El curso de costos es un bono gratis según la maqueta
-// (su "[valor real]" está sin definir); la promoción escalonada del curso
-// principal ($397 → $597 → $897) aún no se modela.
+// Productos con los datos de la maqueta. Precios normales en MXN: los especiales ($397, $100...)
+// viven en las promociones. El curso de costos usa el $347 que muestra la Home de la maqueta
+// (su "[valor real]" en el panel está sin definir) y es borrador hasta que esté terminado.
 const products = [
   {
     slug: 'postres-navidad',
     name: 'Postres para vender en Navidad',
     kind: 'COURSE',
-    priceMxn: 397,
+    priceMxn: 897,
     status: 'PUBLISHED',
+    position: 0,
+    description:
+      '11 recetas rendidoras con medidas exactas, decoración y consejos para empacar y cobrar.',
+    coverUrl: '/images/postres-navidad.jpg',
   },
   {
     slug: 'calcular-costos',
     name: 'Cómo calcular costos de tus postres',
     kind: 'COURSE',
-    priceMxn: 0,
+    priceMxn: 347,
     status: 'DRAFT',
+    position: 1,
+    description: null,
+    coverUrl: null,
   },
   {
     slug: 'herramienta-costos',
@@ -29,8 +36,38 @@ const products = [
     kind: 'TOOL',
     priceMxn: 200,
     status: 'PUBLISHED',
+    position: 2,
+    description:
+      'Calcula el costo por porción y el precio sugerido de cada receta.',
+    coverUrl: null,
   },
 ] as const
+
+// Idempotente: no pisa lo editado en el panel (nombre, precio, estado, descripción, portada).
+// Solo fija lo estructural (tipo y orden) y rellena la descripción y la portada si faltan.
+async function seedProducts() {
+  for (const { description, coverUrl, ...product } of products) {
+    const { kind, position } = product
+    await prisma.product.upsert({
+      where: { slug: product.slug },
+      update: { kind, position },
+      create: product,
+    })
+    if (description) {
+      await prisma.product.updateMany({
+        where: { slug: product.slug, description: null },
+        data: { description },
+      })
+    }
+    if (coverUrl) {
+      await prisma.product.updateMany({
+        where: { slug: product.slug, coverUrl: null },
+        data: { coverUrl },
+      })
+    }
+  }
+  console.log(`✅ ${products.length} productos`)
+}
 
 // Administradora de desarrollo (no hay registro: las cuentas nacen al comprar).
 const admin = { email: 'dev@alowee.com', name: 'Admin', password: 'Passwd123+' }
@@ -158,17 +195,49 @@ async function seedCourseTree() {
   console.log('✅ árbol de ejemplo de postres-navidad')
 }
 
+// Promoción de la maqueta del panel: precios del editor de ejemplo (curso $397, curso de
+// costos gratis, herramienta $100). Sin fecha de inicio (la maqueta pone "[inicio]"); termina
+// el 17 de noviembre al final del día en America/Mexico_City (UTC-6). La segunda promoción
+// de la lista (`/navidad-final`) no se siembra: la maqueta no define su contenido.
+async function seedPromotion() {
+  // Idempotente: no pisa lo que ya se haya editado en el panel.
+  if (await prisma.promotion.findUnique({ where: { slug: 'navidad' } })) return
+  const bySlug = async (slug: string) =>
+    (await prisma.product.findUniqueOrThrow({ where: { slug } })).id
+  await prisma.promotion.create({
+    data: {
+      slug: 'navidad',
+      name: 'Anuncio: 3 cursos en 1',
+      endsAt: new Date('2026-11-18T05:59:00Z'),
+      products: {
+        create: [
+          {
+            productId: await bySlug('postres-navidad'),
+            position: 0,
+            priceMxn: 897,
+          },
+          {
+            productId: await bySlug('calcular-costos'),
+            position: 1,
+            priceMxn: 0,
+          },
+          {
+            productId: await bySlug('herramienta-costos'),
+            position: 2,
+            priceMxn: 100,
+          },
+        ],
+      },
+    },
+  })
+  console.log('✅ promoción /navidad')
+}
+
 async function main() {
-  for (const product of products) {
-    await prisma.product.upsert({
-      where: { slug: product.slug },
-      update: product,
-      create: product,
-    })
-  }
-  console.log(`✅ ${products.length} productos`)
+  await seedProducts()
   await seedAdmin()
   await seedCourseTree()
+  await seedPromotion()
 }
 
 main()

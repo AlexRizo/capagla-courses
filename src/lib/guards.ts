@@ -1,7 +1,14 @@
-import { createMiddleware } from '@tanstack/react-start'
+import { createMiddleware, createServerOnlyFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
 
 import { auth } from '#/lib/auth'
+
+// ¿La petición viene de una admin? (por ejemplo, para que vea sus borradores).
+// `createServerOnlyFn` evita que el import del servidor llegue al bundle del navegador.
+export const isAdminRequest = createServerOnlyFn(async () => {
+  const session = await auth.api.getSession({ headers: getRequestHeaders() })
+  return session?.user.role === 'ADMIN'
+})
 
 // Para las server functions del panel: `.middleware([requireAdmin])`.
 // El `beforeLoad` de /admin solo protege la pantalla; esto protege los datos.

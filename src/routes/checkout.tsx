@@ -1,11 +1,15 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
-import { COURSE_LIST_PRICE_MXN, TOOL_BUMP_PRICE_MXN, mxn } from '#/lib/catalog'
+import { z } from 'zod'
+
+import { mxn } from '#/lib/catalog'
 import { getCheckoutData, startCheckout } from '#/lib/checkout'
 
 export const Route = createFileRoute('/checkout')({
-  loader: () => getCheckoutData(),
+  validateSearch: z.object({ promo: z.string().optional() }),
+  loaderDeps: ({ search }) => ({ promo: search.promo }),
+  loader: ({ deps }) => getCheckoutData({ data: { promo: deps.promo } }),
   component: Checkout,
 })
 
@@ -32,7 +36,25 @@ function LockIcon({ className }: { className: string }) {
   )
 }
 
-function FreeCourse({ desktop }: { desktop?: boolean }) {
+type Line = { name: string; normalMxn: number; priceMxn: number }
+
+// "[valor real]" mientras el curso no tenga precio normal (como en la maqueta).
+const normalText = (line: Line) =>
+  line.normalMxn > 0 ? mxn(line.normalMxn) : '[valor real]'
+
+// Curso adicional de la promoción, con su precio especial (0 = incluido gratis).
+function IncludedCourse({
+  course,
+  until,
+  desktop,
+}: {
+  course: Line
+  until: string | null
+  desktop?: boolean
+}) {
+  const free = course.priceMxn === 0
+  const name = course.name.charAt(0).toLowerCase() + course.name.slice(1)
+  const when = until ? ` hasta el ${until}` : ''
   return (
     <div
       className={
@@ -44,37 +66,49 @@ function FreeCourse({ desktop }: { desktop?: boolean }) {
       <div
         className={`font-black tracking-landing-caps text-landing-accent ${desktop ? 'text-xs' : 'text-11'}`}
       >
-        INCLUIDO GRATIS
+        {free ? 'INCLUIDO GRATIS' : 'CURSO ADICIONAL'}
       </div>
       <div
         className={`flex justify-between gap-2 ${desktop ? 'items-baseline text-15' : 'text-sm'}`}
       >
-        <span className="font-bold">
-          {desktop
-            ? 'Curso: cómo calcular costos de tus postres'
-            : 'Curso: cómo calcular costos'}
-        </span>
+        <span className="font-bold">Curso: {name}</span>
         <span
           className={`flex flex-none gap-1.5 ${desktop ? 'items-baseline md:gap-2' : ''}`}
         >
-          <span className={strike}>[valor real]</span>
-          <span className="font-black">Gratis</span>
+          <span className={strike}>{normalText(course)}</span>
+          <span className="font-black">
+            {free ? 'Gratis' : mxn(course.priceMxn)}
+          </span>
         </span>
       </div>
-      <div className={`text-landing-muted ${desktop ? 'text-13' : 'text-xs'}`}>
-        Gratis solo hasta el 17 de noviembre.
-      </div>
+      {until && (
+        <div
+          className={`text-landing-muted ${desktop ? 'text-13' : 'text-xs'}`}
+        >
+          {free ? 'Gratis solo' : 'Precio especial'}
+          {when}.
+        </div>
+      )}
     </div>
   )
 }
 
 function Checkout() {
-  const { course, tool } = Route.useLoaderData()
+  const { course, bonuses, tool, special, until } = Route.useLoaderData()
+  const { promo } = Route.useSearch()
   const navigate = useNavigate()
   const [withTool, setWithTool] = useState(true)
   const [loading, setLoading] = useState(false)
 
-  const total = course.priceMxn + (withTool ? TOOL_BUMP_PRICE_MXN : 0)
+  const addTool = tool !== null && withTool
+  const courseStrike = course.priceMxn < course.normalMxn
+  const toolDiscount = tool
+    ? Math.round((1 - tool.priceMxn / tool.normalMxn) * 100)
+    : 0
+  const total =
+    course.priceMxn +
+    bonuses.reduce((sum, b) => sum + b.priceMxn, 0) +
+    (addTool ? tool.priceMxn : 0)
   const payText = `Pagar ${mxn(total)}`
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -82,7 +116,12 @@ function Checkout() {
     const form = e.currentTarget
     setLoading(true)
     const orderId = await startCheckout({
-      data: { email: form.correo.value, name: form.nombre.value, withTool },
+      data: {
+        email: form.correo.value,
+        name: form.nombre.value,
+        withTool: addTool,
+        promo,
+      },
     })
     navigate({ to: '/pago-prueba', search: { orden: orderId } })
   }
@@ -109,23 +148,32 @@ function Checkout() {
         {/* Resumen compacto (móvil) */}
         <div className="flex flex-col gap-2.5 rounded-xl border border-landing-line bg-white p-3.5 md:hidden">
           <div className="flex items-center gap-3">
-            <div className="h-13 w-16 flex-none overflow-hidden rounded-md">
-              <img
-                src="/images/postres-navidad.jpg"
-                alt=""
-                className="block size-full object-cover"
-              />
-            </div>
+            {course.image && (
+              <div className="h-13 w-16 flex-none overflow-hidden rounded-md">
+                <img
+                  src={course.image}
+                  alt=""
+                  className="block size-full object-cover"
+                />
+              </div>
+            )}
             <div className="flex flex-1 flex-col gap-0.5 text-sm">
               <span className="font-black">{course.name}</span>
-              <span className="text-landing-muted">11 recetas · 365 días</span>
+              <span className="text-landing-muted">
+                {course.recipes && `${course.recipes} recetas · `}
+                {course.accessDays} días
+              </span>
             </div>
             <div className="flex flex-col items-end text-sm">
-              <span className={strike}>${COURSE_LIST_PRICE_MXN}</span>
+              {courseStrike && (
+                <span className={strike}>${course.normalMxn}</span>
+              )}
               <span className="text-base font-black">${course.priceMxn}</span>
             </div>
           </div>
-          <FreeCourse />
+          {bonuses.map((b) => (
+            <IncludedCourse key={b.name} course={b} until={until} />
+          ))}
         </div>
 
         <div className="flex flex-col gap-4 md:grow md:basis-110 md:gap-5.5">
@@ -164,64 +212,66 @@ function Checkout() {
             />
           </div>
 
-          <div
-            className={`flex items-start gap-3 rounded-xl border-1.5 p-3.5 md:gap-3.5 md:p-4.5 ${
-              withTool
-                ? 'border-landing-pink-line bg-landing-pink'
-                : 'border-landing-warn-line bg-landing-warn'
-            }`}
-          >
-            <input
-              id="bump"
-              type="checkbox"
-              checked={withTool}
-              onChange={() => setWithTool(!withTool)}
-              className="mt-0.5 size-5.5 flex-none accent-landing-primary md:mt-0.75"
-            />
-            <label
-              htmlFor="bump"
-              className="flex flex-col gap-1 text-sm leading-145 md:gap-1.5 md:text-15 md:leading-normal"
+          {tool && (
+            <div
+              className={`flex items-start gap-3 rounded-xl border-1.5 p-3.5 md:gap-3.5 md:p-4.5 ${
+                withTool
+                  ? 'border-landing-pink-line bg-landing-pink'
+                  : 'border-landing-warn-line bg-landing-warn'
+              }`}
             >
-              <span className="text-15 font-black md:text-base">
-                {withTool
-                  ? 'Agrega la herramienta de costos con 50% de descuento'
-                  : '¿Seguro que no la quieres?'}
-              </span>
-              <span className="text-landing-muted">
-                {withTool ? (
-                  <>
-                    <span className="md:hidden">
-                      Normalmente cuesta más. Si la agregas ahora, te llevas un
-                      descuento especial.
-                    </span>
-                    <span className="hidden md:inline">
-                      Normalmente cuesta más, pero si la agregas ahora te llevas
-                      un descuento especial. Se suma a tu compra.
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="md:hidden">
-                      Esta promoción no se repite: después cuesta $
-                      {tool.priceMxn}. Marca la casilla para conservar tu
-                      descuento.
-                    </span>
-                    <span className="hidden md:inline">
-                      Esta promoción no se repite: después la herramienta cuesta
-                      ${tool.priceMxn}. Marca la casilla para conservar tu
-                      descuento.
-                    </span>
-                  </>
-                )}
-              </span>
-              <span className="flex items-baseline gap-2">
-                <span className={strike}>{mxn(tool.priceMxn)}</span>
-                <span className="text-base font-black md:text-lg">
-                  {mxn(TOOL_BUMP_PRICE_MXN)}
+              <input
+                id="bump"
+                type="checkbox"
+                checked={withTool}
+                onChange={() => setWithTool(!withTool)}
+                className="mt-0.5 size-5.5 flex-none accent-landing-primary md:mt-0.75"
+              />
+              <label
+                htmlFor="bump"
+                className="flex flex-col gap-1 text-sm leading-145 md:gap-1.5 md:text-15 md:leading-normal"
+              >
+                <span className="text-15 font-black md:text-base">
+                  {withTool
+                    ? `Agrega la herramienta de costos${toolDiscount > 0 ? ` con ${toolDiscount}% de descuento` : ''}`
+                    : '¿Seguro que no la quieres?'}
                 </span>
-              </span>
-            </label>
-          </div>
+                <span className="text-landing-muted">
+                  {withTool ? (
+                    <>
+                      <span className="md:hidden">
+                        Normalmente cuesta más. Si la agregas ahora, te llevas
+                        un descuento especial.
+                      </span>
+                      <span className="hidden md:inline">
+                        Normalmente cuesta más, pero si la agregas ahora te
+                        llevas un descuento especial. Se suma a tu compra.
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="md:hidden">
+                        Esta promoción no se repite: después cuesta $
+                        {tool.normalMxn}. Marca la casilla para conservar tu
+                        descuento.
+                      </span>
+                      <span className="hidden md:inline">
+                        Esta promoción no se repite: después la herramienta
+                        cuesta ${tool.normalMxn}. Marca la casilla para
+                        conservar tu descuento.
+                      </span>
+                    </>
+                  )}
+                </span>
+                <span className="flex items-baseline gap-2">
+                  <span className={strike}>{mxn(tool.normalMxn)}</span>
+                  <span className="text-base font-black md:text-lg">
+                    {mxn(tool.priceMxn)}
+                  </span>
+                </span>
+              </label>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -251,36 +301,43 @@ function Checkout() {
         <div className="hidden max-w-100 grow basis-80 flex-col gap-4 rounded-18 border border-landing-line bg-white p-6 md:flex">
           <div className="text-lg font-black">Resumen</div>
           <div className="flex items-center gap-3.5">
-            <div className="h-16 w-21 flex-none overflow-hidden rounded-lg">
-              <img
-                src="/images/postres-navidad.jpg"
-                alt=""
-                className="block size-full object-cover"
-              />
-            </div>
+            {course.image && (
+              <div className="h-16 w-21 flex-none overflow-hidden rounded-lg">
+                <img
+                  src={course.image}
+                  alt=""
+                  className="block size-full object-cover"
+                />
+              </div>
+            )}
             <div className="flex flex-1 flex-col gap-0.5 text-15">
               <span className="font-bold">{course.name}</span>
               <span className="text-landing-muted">
-                11 recetas · acceso por 365 días
+                {course.recipes && `${course.recipes} recetas · `}acceso por{' '}
+                {course.accessDays} días
               </span>
             </div>
           </div>
           <div className="flex items-baseline justify-between text-15">
-            <span>Curso</span>
+            <span>{course.label}</span>
             <span className="flex items-baseline gap-2">
-              <span className={strike}>{mxn(COURSE_LIST_PRICE_MXN)}</span>
+              {courseStrike && (
+                <span className={strike}>{mxn(course.normalMxn)}</span>
+              )}
               <span className="font-bold">{mxn(course.priceMxn)}</span>
             </span>
           </div>
 
-          <FreeCourse desktop />
+          {bonuses.map((b) => (
+            <IncludedCourse key={b.name} course={b} until={until} desktop />
+          ))}
 
-          {withTool && (
+          {addTool && (
             <div className="flex items-baseline justify-between text-15">
               <span>Herramienta de costos</span>
               <span className="flex items-baseline gap-2">
-                <span className={strike}>{mxn(tool.priceMxn)}</span>
-                <span className="font-bold">{mxn(TOOL_BUMP_PRICE_MXN)}</span>
+                <span className={strike}>{mxn(tool.normalMxn)}</span>
+                <span className="font-bold">{mxn(tool.priceMxn)}</span>
               </span>
             </div>
           )}
@@ -291,7 +348,8 @@ function Checkout() {
             <span>{mxn(total)}</span>
           </div>
           <div className="text-13 leading-normal text-landing-muted">
-            Precio especial hasta el 17 de noviembre. Acceso inmediato.
+            {special && `Precio especial${until ? ` hasta el ${until}` : ''}. `}
+            Acceso inmediato.
           </div>
         </div>
       </div>

@@ -1,13 +1,7 @@
-import {
-  COURSE_LIST_PRICE_MXN,
-  TOOL_BUMP_PRICE_MXN,
-  TOOL_PRICE_MXN,
-  mxn,
-} from '#/lib/catalog'
-
-// Contenido de la landing de venta de cada curso (/cursos/$slug).
+// Contenido de la landing de venta de cada curso (/cursos/$slug y las promociones).
 // Datos en duro por ahora; más adelante saldrán del panel.
-export type CoursePage = {
+// Los precios y el recuadro de promoción no están aquí: salen de `lib/offers.ts`.
+export type CourseContent = {
   slug: string
   badge: string
   title: string
@@ -15,15 +9,6 @@ export type CoursePage = {
   introShort: string
   heroImage: string
   heroAlt: string
-  price: string
-  strike: string
-  strikeShort: string
-  priceNote: string
-  promo: {
-    title: string
-    left: Offer
-    right: Offer
-  } | null
   forWhom: string[]
   recipesTitle: string
   recipes: { name: string; desc: string; descShort: string; image: string }[]
@@ -40,7 +25,7 @@ export type CoursePage = {
   faq: { q: string; a: string; aShort: string }[]
 }
 
-type Offer = {
+export type Offer = {
   tag: string
   title: string
   old: string
@@ -48,9 +33,18 @@ type Offer = {
   note: string
 }
 
-const until = '17 de noviembre'
+// La landing lista para mostrar: contenido + precios y promoción del momento.
+export type CoursePage = CourseContent & {
+  price: string
+  strike: string
+  strikeShort: string
+  priceNote: string
+  promo: { title: string; offers: Offer[] } | null
+  // Promoción desde la que se entró; los botones de compra la llevan al checkout.
+  promoSlug?: string
+}
 
-export const coursePages: Record<string, CoursePage> = {
+export const courseContents: Partial<Record<string, CourseContent>> = {
   'postres-navidad': {
     slug: 'postres-navidad',
     badge: 'Curso en línea · 11 recetas · a tu ritmo',
@@ -61,27 +55,6 @@ export const coursePages: Record<string, CoursePage> = {
       '11 recetas rendidoras con medidas exactas, decoración y consejos para empacar y cobrar. Desde cero, a tu ritmo.',
     heroImage: '/images/postres-navidad.jpg',
     heroAlt: 'Gladis con sus postres navideños',
-    price: mxn(397),
-    strike: mxn(COURSE_LIST_PRICE_MXN),
-    strikeShort: `$${COURSE_LIST_PRICE_MXN}`,
-    priceNote: `pago único · precio especial hasta el ${until}`,
-    promo: {
-      title: 'Llévate más con tu curso, por tiempo limitado',
-      left: {
-        tag: 'CURSO ADICIONAL',
-        title: 'Cómo calcular costos de tus postres',
-        old: '[valor real]',
-        now: 'Gratis',
-        note: `Gratis solo hasta el ${until}.`,
-      },
-      right: {
-        tag: 'HERRAMIENTA',
-        title: 'Herramienta de costos',
-        old: mxn(TOOL_PRICE_MXN),
-        now: mxn(TOOL_BUMP_PRICE_MXN),
-        note: `50% de descuento hasta el ${until}.`,
-      },
-    },
     forWhom: [
       'Quieres vender postres en temporada y no sabes por dónde empezar.',
       'Ya horneas, pero quieres decorar como en pastelería.',

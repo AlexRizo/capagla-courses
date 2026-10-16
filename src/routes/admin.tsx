@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router'
 
 import { AdminLayout } from '#/components/admin/admin-layout'
+import { getPendingQuestions } from '#/lib/admin-questions'
 import { getSession } from '#/lib/session'
 
 // Panel de la chef: todo lo que cuelga de /admin comparte este layout y esta guarda.
@@ -25,13 +26,15 @@ export const Route = createFileRoute('/admin')({
     if (session.user.role !== 'ADMIN') throw notFound()
     return { userName: session.user.name }
   },
+  loader: () => getPendingQuestions(),
   component: Admin,
 })
 
 function Admin() {
   const { userName } = Route.useRouteContext()
+  const pendingQuestions = Route.useLoaderData()
   return (
-    <AdminLayout userName={userName}>
+    <AdminLayout userName={userName} pendingQuestions={pendingQuestions}>
       <Outlet />
     </AdminLayout>
   )

@@ -6,7 +6,8 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
 import { prisma } from '#/db'
-import { normalizeParts, parseDuration } from '#/lib/duration'
+import { normalizeParts } from '#/lib/duration'
+import { getBunnyVideo } from '#/lib/bunny'
 import { requireAdmin } from '#/lib/guards'
 import { resolveMove } from '#/lib/course-tree'
 import { parseRichText } from '#/lib/rich-text'
@@ -65,6 +66,7 @@ function flatten(items: CourseItem[]) {
     recipe: JSONContent | null
     lessonType: 'VIDEO' | 'TEXT' | null
     videoUrl: string | null
+    bunnyVideoId: string | null
     durationSec: number | null
     body: JSONContent | null
     notes: string | null
@@ -112,6 +114,7 @@ function flatten(items: CourseItem[]) {
         recipe: i.kind === 'CHAPTER' ? (i.recipe as JSONContent | null) : null,
         lessonType: i.lessonType,
         videoUrl: i.videoUrl,
+        bunnyVideoId: i.bunnyVideoId,
         durationSec: i.durationSec,
         body: i.kind === 'LESSON' ? (i.body as JSONContent | null) : null,
         notes: i.notes,
@@ -210,7 +213,7 @@ export const updateChapter = createServerFn({ method: 'POST' })
     })
   })
 
-// Lección: título, tipo, video (URL en texto, duración y partes) o texto enriquecido,
+// Lección: título, tipo, video (de Bunny, con sus partes) o texto enriquecido,
 // y notas (de cualquier tipo).
 // Del tipo que no se elige no se borra nada: se conserva por si se vuelve a él.
 export const updateLesson = createServerFn({ method: 'POST' })
@@ -220,15 +223,8 @@ export const updateLesson = createServerFn({ method: 'POST' })
       id: z.string(),
       title: z.string().trim().min(1).max(120),
       lessonType: z.enum(['VIDEO', 'TEXT']),
-      videoUrl: z
-        .string()
-        .trim()
-        .max(500)
-        .refine((v) => v === '' || /^https?:\/\//.test(v)),
-      duration: z
-        .string()
-        .trim()
-        .refine((v) => v === '' || parseDuration(v) !== null),
+      // Video de Bunny: sin enviar no cambia; vacío lo quita; un GUID lo asigna y toma su duración.
+      bunnyVideoId: z.string().trim().optional(),
       body: z.unknown(),
       notes: z.string().trim().max(5000),
       videoParts: z.string().refine((v) => normalizeParts(v) !== null),
@@ -240,13 +236,18 @@ export const updateLesson = createServerFn({ method: 'POST' })
       lessonType: data.lessonType,
       notes: data.notes || null,
     }
+    let video: object = {}
+    if (data.bunnyVideoId === '') {
+      video = { bunnyVideoId: null, durationSec: null }
+    } else if (data.bunnyVideoId) {
+      const found = await getBunnyVideo(data.bunnyVideoId).catch(() => null)
+      if (!found)
+        throw new Error('Ese video no está en la biblioteca de Bunny.')
+      video = { bunnyVideoId: found.id, durationSec: found.durationSec }
+    }
     const content =
       data.lessonType === 'VIDEO'
-        ? {
-            videoUrl: data.videoUrl || null,
-            durationSec: data.duration ? parseDuration(data.duration) : null,
-            videoParts: normalizeParts(data.videoParts) || null,
-          }
+        ? { ...video, videoParts: normalizeParts(data.videoParts) || null }
         : { body: parseRichText(data.body) ?? Prisma.DbNull }
     await prisma.courseItem.update({
       where: { id: data.id, kind: 'LESSON' },

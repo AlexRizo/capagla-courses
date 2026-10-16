@@ -86,6 +86,9 @@ importers:
       dotenv:
         specifier: ^18.0.7
         version: 18.0.7
+      hls.js:
+        specifier: ^1.7.3
+        version: 1.7.3
       lucide-react:
         specifier: ^0.577.0
         version: 0.577.0(react@19.3.0)
@@ -3355,6 +3358,9 @@ packages:
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
     engines: {node: '>=8'}
+
+  hls.js@1.7.3:
+    resolution: {integrity: sha512-MsPlx6yVW4Qv4C7mEVou4/gk/5cN2dVxOTnrNjPSmyH2f0Ln+/UkG10Ax1PE6OvrmTVPKgQYozTtBaPOuCzq7A==}
 
   hookable@6.1.2:
     resolution: {integrity: sha512-+abwxtiEA52GCVIsQqut3S/uKTbUwYIp4Pe/vv+6py5XiXBCqMZHg6pA6Y5qhgLSEys0/cYuPbO0z1QFj5ZCmg==}
@@ -7645,6 +7651,8 @@ snapshots:
       crossws: 0.4.15(srvx@0.11.22)
 
   has-flag@4.0.0: {}
+
+  hls.js@1.7.3: {}
 
   hookable@6.1.2: {}
 

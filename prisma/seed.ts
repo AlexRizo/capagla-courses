@@ -1,6 +1,10 @@
+import { existsSync, readFileSync } from 'node:fs'
+
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { hashPassword } from 'better-auth/crypto'
+
+import { courseTreeFromIndex, createItems } from './course-tree'
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
@@ -107,92 +111,22 @@ async function seedAdmin() {
   console.log(`✅ admin ${admin.email}`)
 }
 
-type SeedItem = {
-  kind: 'BLOCK' | 'CHAPTER' | 'LESSON'
-  title: string
-  isFree?: boolean
-  lessonType?: 'VIDEO' | 'TEXT'
-  durationSec?: number
-  children?: SeedItem[]
-}
-
-// Árbol de ejemplo de la maqueta del panel (solo lo que nombra; sin videos
-// ni las lecciones que la maqueta no detalla).
-const tree: SeedItem[] = [
-  {
-    kind: 'BLOCK',
-    title: 'Introducción',
-    isFree: true,
-    children: [
-      {
-        kind: 'LESSON',
-        title: 'Introducción y consejos básicos',
-        lessonType: 'VIDEO',
-        durationSec: 260,
-      },
-      {
-        kind: 'LESSON',
-        title: '¿Quién soy?',
-        lessonType: 'VIDEO',
-        durationSec: 130,
-      },
-    ],
-  },
-  {
-    kind: 'BLOCK',
-    title: 'Postres de snack para Navidad',
-    children: [
-      {
-        kind: 'CHAPTER',
-        title: 'Enjambre de chocolate',
-        children: [
-          { kind: 'LESSON', title: 'Receta', lessonType: 'TEXT' },
-          {
-            kind: 'LESSON',
-            title: 'Preparación',
-            lessonType: 'VIDEO',
-            durationSec: 1064,
-          },
-          {
-            kind: 'LESSON',
-            title: 'Resultado',
-            lessonType: 'VIDEO',
-            durationSec: 38,
-          },
-        ],
-      },
-      { kind: 'CHAPTER', title: 'Turrón de chocolate' },
-    ],
-  },
-  {
-    kind: 'BLOCK',
-    title: 'Hora de hornear',
-    children: [{ kind: 'CHAPTER', title: 'Brownie de cheesecake' }],
-  },
-]
-
-async function createItems(
-  productId: string,
-  items: SeedItem[],
-  parentId: string | null,
-) {
-  for (const [position, { children, ...item }] of items.entries()) {
-    const created = await prisma.courseItem.create({
-      data: { ...item, productId, parentId, position, status: 'PUBLISHED' },
-    })
-    if (children) await createItems(productId, children, created.id)
-  }
-}
-
+// Árbol del curso desde el índice de contenido (`contenido/curso-principal.json`).
 async function seedCourseTree() {
   const course = await prisma.product.findUniqueOrThrow({
     where: { slug: 'postres-navidad' },
   })
-  // Idempotente: no pisa lo que ya se haya editado en el panel.
+  // Idempotente: no pisa lo que ya se haya editado en el panel (para reemplazarlo: pnpm db:import-course).
   if ((await prisma.courseItem.count({ where: { productId: course.id } })) > 0)
     return
-  await createItems(course.id, tree, null)
-  console.log('✅ árbol de ejemplo de postres-navidad')
+  const file = new URL('../../contenido/curso-principal.json', import.meta.url)
+  if (!existsSync(file)) {
+    console.log('⚠️ sin contenido/curso-principal.json: curso sin árbol')
+    return
+  }
+  const tree = courseTreeFromIndex(JSON.parse(readFileSync(file, 'utf8')))
+  await createItems(prisma, course.id, tree, null)
+  console.log('✅ árbol de postres-navidad desde el índice de contenido')
 }
 
 // Promoción de la maqueta del panel: precios del editor de ejemplo (curso $397, curso de

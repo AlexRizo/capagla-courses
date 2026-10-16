@@ -4,9 +4,12 @@ import { Link } from '@tanstack/react-router'
 export function AuthShell({
   children,
   logoLink = true,
+  enterLink = false,
 }: {
   children: React.ReactNode
   logoLink?: boolean
+  // Enlace "Entrar" a la derecha (lo tiene la pantalla de Clase gratis).
+  enterLink?: boolean
 }) {
   const logo =
     'text-22 font-black tracking-landing-logo text-landing-primary no-underline md:text-2xl'
@@ -20,6 +23,14 @@ export function AuthShell({
           </Link>
         ) : (
           <div className={logo}>Capagla</div>
+        )}
+        {enterLink && (
+          <Link
+            to="/entrar"
+            className="px-1 py-2 text-sm font-bold text-landing-primary no-underline md:py-2.5 md:text-15"
+          >
+            Entrar
+          </Link>
         )}
       </div>
       {children}

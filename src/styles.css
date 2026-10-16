@@ -121,6 +121,59 @@
   --sidebar: oklch(0.212 0.019 322.12);
 }
 
+/* Reproductor del curso (vista de alumna): paleta clara y oscura de la maqueta, solo dentro de .player */
+.player {
+  /* La maqueta no fija interlineado: es el natural de la fuente (Tailwind trae 1.5 y uno propio por tamaño). */
+  line-height: normal;
+  --text-xs--line-height: normal;
+  --text-sm--line-height: normal;
+  --text-base--line-height: normal;
+  --text-lg--line-height: normal;
+  --text-xl--line-height: normal;
+  --text-2xl--line-height: normal;
+  --player-bg: #fdf7fc;
+  --player-side: #ffffff;
+  --player-surface: #ffffff;
+  --player-control: #f1e4f5;
+  --player-border: #ead9ee;
+  --player-text: #2a1233;
+  --player-muted: #5b4663;
+  --player-accent: #6b18a5;
+  --player-on-accent: #ffffff;
+  --player-track: #f0e2f4;
+  --player-open: #f6e3f9;
+  --player-btn: #6b18a5;
+  --player-btn-text: #ffffff;
+  --player-todo: #c9a6d3;
+  --player-toggle: #ffffff;
+  --player-toggle-text: #6b18a5;
+  --player-ok: #eaf7ee;
+  --player-ok-line: #bfe3c9;
+  --player-ok-text: #1a5a2e;
+}
+
+.player.dark {
+  --player-bg: #241c2b;
+  --player-side: #2b2233;
+  --player-surface: #2f2638;
+  --player-control: #352b40;
+  --player-border: #40344b;
+  --player-text: #ddd2e5;
+  --player-muted: #a393b0;
+  --player-accent: #bd94e3;
+  --player-on-accent: #2a1f33;
+  --player-track: #3a2f45;
+  --player-open: #352b40;
+  --player-btn: #8a5cbf;
+  --player-btn-text: #f3ecf8;
+  --player-todo: #6e5a7c;
+  --player-toggle: #4a3d57;
+  --player-toggle-text: #f3ecf8;
+  --player-ok: #1f3a2a;
+  --player-ok-line: #2f5a3f;
+  --player-ok-text: #bfe9cd;
+}
+
 /* Valores de la maqueta que no existen en la escala de Tailwind */
 @theme {
   --font-sans: 'Lato', system-ui, sans-serif;
@@ -144,6 +197,8 @@
   --color-landing-ok-ink: #1a5a2e;
   --color-landing-ok-soft: #e4f5e8;
   --color-landing-lock: #1a7a3a;
+  --color-landing-disabled: #e4d3ea;
+  --color-landing-disabled-text: #7a6683;
   --color-landing-warn: #fff6e5;
   --color-landing-warn-line: #d98a00;
   --color-landing-strike: #6e5a76;
@@ -157,6 +212,10 @@
   --color-landing-lavender: #ecd6f3;
   --color-landing-grape: #b83bcc;
   --color-landing-grape-dark: #8a2088;
+  --color-player-video: #1b0f22;
+  --color-player-seen: #1f8a4c;
+  --color-player-fill: #bd94e3;
+  --color-player-moment: #ffd166;
 
   --text-10: 10px;
   --text-11: 11px;
@@ -173,12 +232,15 @@
   --text-28: 28px;
   --text-32: 32px;
   --text-52: 52px;
+  --text-46: 46px;
+  --text-30: 30px;
 
   --leading-115: 1.15;
   --leading-110: 1.1;
   --leading-120: 1.2;
   --leading-140: 1.4;
   --leading-145: 1.45;
+  --leading-natural: normal;
   --leading-105: 1.05;
   --leading-106: 1.06;
   --leading-108: 1.08;
@@ -195,20 +257,29 @@
   --tracking-landing-title-sm: -0.4px;
   --tracking-landing-title-md: -0.8px;
   --tracking-landing-title-xl: -0.9px;
+  --tracking-landing-title-5xl: -1.3px;
   --tracking-landing-title-2xl: -1px;
   --tracking-landing-title-3xl: -1.5px;
   --tracking-landing-title-4xl: -1.1px;
   --tracking-landing-title-2xs: -0.6px;
   --tracking-landing-title-3xs: -0.3px;
   --tracking-landing-caps-lg: 0.8px;
+  --tracking-player-caps: 1px;
+  --tracking-player-caps-lg: 1.1px;
 
+  --radius-10: 10px;
   --radius-12: 12px;
+  --radius-14: 14px;
   --radius-16: 16px;
   --radius-18: 18px;
   --radius-20: 20px;
 
   --shadow-landing-card: 0 10px 28px rgba(107, 24, 165, 0.08);
   --shadow-landing-menu: 0 12px 32px rgba(107, 24, 165, 0.14);
+  --shadow-player-menu: 0 12px 32px rgba(0, 0, 0, 0.18);
+  --shadow-player-menu-mobile: 0 12px 32px rgba(0, 0, 0, 0.25);
+  --shadow-player-drawer: 8px 0 32px rgba(0, 0, 0, 0.3);
+  --shadow-admin-dialog: 0 24px 64px rgba(0, 0, 0, 0.3);
   --shadow-landing-play: 0 8px 24px rgba(42, 18, 51, 0.3);
   --shadow-landing-card-lg: 0 12px 32px rgba(107, 24, 165, 0.08);
 }
@@ -229,6 +300,15 @@
   );
 }
 
+/* Punto de la lección que se está viendo (anillo con centro lleno) */
+@utility bg-lesson-current {
+  background: radial-gradient(
+    circle,
+    var(--player-accent) 38%,
+    transparent 42%
+  );
+}
+
 @utility object-hero {
   object-position: 50% 30%;
 }
@@ -242,6 +322,25 @@
 }
 
 @theme inline {
+  --color-player-bg: var(--player-bg);
+  --color-player-side: var(--player-side);
+  --color-player-surface: var(--player-surface);
+  --color-player-control: var(--player-control);
+  --color-player-border: var(--player-border);
+  --color-player-text: var(--player-text);
+  --color-player-muted: var(--player-muted);
+  --color-player-accent: var(--player-accent);
+  --color-player-on-accent: var(--player-on-accent);
+  --color-player-track: var(--player-track);
+  --color-player-open: var(--player-open);
+  --color-player-btn: var(--player-btn);
+  --color-player-btn-text: var(--player-btn-text);
+  --color-player-todo: var(--player-todo);
+  --color-player-toggle: var(--player-toggle);
+  --color-player-toggle-text: var(--player-toggle-text);
+  --color-player-ok: var(--player-ok);
+  --color-player-ok-line: var(--player-ok-line);
+  --color-player-ok-text: var(--player-ok-text);
   --color-landing-primary: var(--landing-primary);
   --color-landing-primary-foreground: var(--landing-primary-foreground);
   --color-landing-accent: var(--landing-accent);

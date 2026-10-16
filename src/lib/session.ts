@@ -24,6 +24,26 @@ export const getMyCourses = createServerFn().handler(async () => {
     }),
   ])
 
+  const courses = enrollments.filter((e) => e.product.kind === 'COURSE')
+  const ids = courses.map((e) => e.productId)
+  const [lessons, seen] = await Promise.all([
+    prisma.courseItem.groupBy({
+      by: ['productId'],
+      where: { productId: { in: ids }, kind: 'LESSON' },
+      _count: true,
+    }),
+    prisma.lessonProgress.findMany({
+      where: { userId: session.user.id, item: { productId: { in: ids } } },
+      select: { item: { select: { productId: true } } },
+    }),
+  ])
+  const lessonCount = new Map(lessons.map((l) => [l.productId, l._count]))
+  const seenCount = new Map<string, number>()
+  for (const s of seen) {
+    const id = s.item.productId
+    seenCount.set(id, (seenCount.get(id) ?? 0) + 1)
+  }
+
   return {
     user: {
       name: session.user.name,
@@ -31,15 +51,16 @@ export const getMyCourses = createServerFn().handler(async () => {
       isAdmin: session.user.role === 'ADMIN',
     },
     hasPassword: credential !== null,
-    courses: enrollments
-      .filter((e) => e.product.kind === 'COURSE')
-      .map((e) => ({
-        slug: e.product.slug,
-        name: e.product.name,
-        expiresAt: e.expiresAt.toISOString(),
-        // Pasada la fecha, el curso queda bloqueado.
-        active: e.expiresAt > new Date(),
-      })),
+    courses: courses.map((e) => ({
+      slug: e.product.slug,
+      name: e.product.name,
+      expiresAt: e.expiresAt.toISOString(),
+      // Pasada la fecha, el curso queda bloqueado.
+      active: e.expiresAt > new Date(),
+      // Avance real: lecciones del curso y cuántas marcó como vistas.
+      lessons: lessonCount.get(e.productId) ?? 0,
+      seen: seenCount.get(e.productId) ?? 0,
+    })),
   }
 })
 

@@ -7,6 +7,11 @@ export const env = createEnv({
     DATABASE_URL: z.string().url().startsWith('postgres'),
     BETTER_AUTH_URL: z.string().url(),
     BETTER_AUTH_SECRET: z.string().min(32),
+    // Bunny Stream (videos del curso). Sin ellas los videos de Bunny no se reproducen.
+    BUNNY_LIBRARY_ID: z.string().optional(),
+    BUNNY_API_KEY: z.string().optional(),
+    BUNNY_CDN_HOSTNAME: z.string().optional(),
+    BUNNY_TOKEN_KEY: z.string().optional(),
   },
 
   /**

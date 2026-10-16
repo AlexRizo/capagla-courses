@@ -10,10 +10,6 @@ export const Route = createFileRoute('/mis-cursos/')({
   component: MisCursos,
 })
 
-// Totales de la maqueta; el avance real llegará con el modelo de lecciones.
-const TOTAL_LECCIONES = 83
-const LECCIONES_VISTAS = 0
-
 const primaryBtn =
   'min-h-12 cursor-pointer rounded-12 border-none bg-landing-primary px-6 text-base font-black text-white'
 const textBtn =
@@ -48,7 +44,9 @@ function MisCursos() {
       })
     : ''
   const active = course?.active ?? false
-  const pct = Math.round((LECCIONES_VISTAS / TOTAL_LECCIONES) * 100)
+  const lessons = course?.lessons ?? 0
+  const seen = course?.seen ?? 0
+  const pct = lessons ? Math.round((seen / lessons) * 100) : 0
 
   function openTicket() {
     setTicket('form')
@@ -353,13 +351,13 @@ function MisCursos() {
                     />
                   </div>
                   <div className="text-13 text-landing-muted md:text-sm">
-                    {LECCIONES_VISTAS} de {TOTAL_LECCIONES} lecciones vistas ·{' '}
-                    {pct}%
+                    {seen} de {lessons} lecciones vistas · {pct}%
                   </div>
                 </div>
                 <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
-                  <a
-                    href={active ? '#' : undefined}
+                  <Link
+                    to="/mis-cursos/$slug"
+                    params={{ slug: course.slug }}
                     aria-disabled={!active}
                     className={cn(
                       'flex min-h-13 items-center justify-center rounded-12 bg-landing-primary text-17 font-black text-white no-underline md:inline-flex md:min-h-12.5 md:px-7',
@@ -367,7 +365,7 @@ function MisCursos() {
                     )}
                   >
                     Continuar progreso
-                  </a>
+                  </Link>
                   <a
                     href={active ? '#' : undefined}
                     aria-disabled={!active}

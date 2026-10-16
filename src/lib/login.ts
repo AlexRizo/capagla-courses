@@ -4,23 +4,7 @@ import { z } from 'zod'
 
 import { prisma } from '#/db'
 import { auth } from '#/lib/auth'
-
-// Límite simple en memoria (por correo + IP) para que el paso "solo correo"
-// no sirva para sondear cuentas ni para mandar correos en masa.
-const MAX_ATTEMPTS = 5
-const WINDOW_MS = 15 * 60 * 1000
-const attempts = new Map<string, { count: number; resetAt: number }>()
-
-function tooManyAttempts(key: string) {
-  const now = Date.now()
-  const entry = attempts.get(key)
-  if (!entry || entry.resetAt < now) {
-    attempts.set(key, { count: 1, resetAt: now + WINDOW_MS })
-    return false
-  }
-  entry.count += 1
-  return entry.count > MAX_ATTEMPTS
-}
+import { tooManyAttempts } from '#/lib/rate-limit'
 
 // Primer paso de "Entrar". Devuelve 'password' solo si el correo tiene
 // contraseña; en cualquier otro caso (sin contraseña o sin cuenta) responde

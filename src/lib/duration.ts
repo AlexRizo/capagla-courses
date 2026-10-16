@@ -28,3 +28,34 @@ export function normalizeParts(text: string) {
   })
   return valid && lines.length <= 100 ? lines.join('\n') : null
 }
+
+export type VideoPart = { seconds: number; title: string }
+
+// Las partes guardadas ("2:10 Mezcla" por línea) como lista ordenada por minuto.
+export function parseParts(text: string | null): VideoPart[] {
+  if (!text) return []
+  return text
+    .split('\n')
+    .flatMap((line) => {
+      const [time = '', ...title] = line.trim().split(/\s+/)
+      const seconds = parseDuration(time)
+      return seconds === null || title.length === 0
+        ? []
+        : [{ seconds, title: title.join(' ') }]
+    })
+    .sort((a, b) => a.seconds - b.seconds)
+}
+
+// La parte en la que va el video: la última que ya empezó.
+export function partAt(parts: VideoPart[], seconds: number) {
+  return parts.filter((p) => p.seconds <= seconds).at(-1)
+}
+
+// Minuto de reproducción como "7:12" (o "1:02:03"); acepta decimales y los trunca.
+export function clock(sec: number) {
+  const total = Math.max(0, Math.floor(sec))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = String(total % 60).padStart(2, '0')
+  return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`
+}

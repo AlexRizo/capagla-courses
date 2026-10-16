@@ -18,18 +18,22 @@ enum Role {
 }
 
 model User {
-  id            String       @id
-  name          String
-  email         String
-  emailVerified Boolean      @default(false)
-  image         String?
-  role          Role         @default(STUDENT)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  orders        Order[]
-  enrollments   Enrollment[]
+  id             String           @id
+  name           String
+  email          String
+  emailVerified  Boolean          @default(false)
+  image          String?
+  role           Role             @default(STUDENT)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  sessions       Session[]
+  accounts       Account[]
+  orders         Order[]
+  enrollments    Enrollment[]
+  lessonProgress LessonProgress[]
+  lessonMoments  LessonMoment[]
+  questions      LessonQuestion[]
+  lead           Lead?
 
   @@unique([email])
   @@map("user")
@@ -105,6 +109,12 @@ enum ItemKind {
   LESSON
 }
 
+enum QuestionStatus {
+  PENDING
+  ANSWERED
+  HIDDEN
+}
+
 enum LessonType {
   VIDEO
   TEXT
@@ -168,33 +178,108 @@ model PromotionProduct {
 // Capítulo y lección se convierten entre sí cambiando `kind`; las reglas de
 // anidación (qué cuelga de qué) las valida la aplicación, no la base.
 model CourseItem {
-  id          String        @id @default(cuid())
-  productId   String
-  product     Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  parentId    String?
-  parent      CourseItem?   @relation("ItemTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children    CourseItem[]  @relation("ItemTree")
-  kind        ItemKind
-  position    Int
-  title       String
+  id           String           @id @default(cuid())
+  productId    String
+  product      Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  parentId     String?
+  parent       CourseItem?      @relation("ItemTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children     CourseItem[]     @relation("ItemTree")
+  kind         ItemKind
+  position     Int
+  title        String
   // Hoy no se gestiona por elemento: lo público o borrador es el curso (`Product.status`).
-  status      ContentStatus @default(PUBLISHED)
+  status       ContentStatus    @default(PUBLISHED)
   // Bloque: visible sin comprar para quien se registre con su correo (origen de los leads).
-  isFree      Boolean       @default(false)
+  isFree       Boolean          @default(false)
   // Capítulo: receta compartida por todas sus lecciones. Texto enriquecido (JSON de Tiptap).
-  recipe      Json?
+  recipe       Json?
   // Lección.
-  lessonType  LessonType?
+  lessonType   LessonType?
   // Lección tipo TEXT (receta): texto enriquecido (JSON de Tiptap).
-  body        Json?
-  videoUrl    String?
-  durationSec Int?
-  notes       String?
+  body         Json?
+  videoUrl     String?
+  // Video en Bunny Stream (GUID). Si existe, manda sobre `videoUrl`: la reproducción va firmada.
+  bunnyVideoId String?
+  durationSec  Int?
+  notes        String?
   // Una parte por línea: "2:10 Derretir el chocolate".
-  videoParts  String?
-  resources   Resource[]
+  videoParts   String?
+  resources    Resource[]
+  progress     LessonProgress[]
+  moments      LessonMoment[]
+  questions    LessonQuestion[]
 
   @@index([productId, parentId, position])
+}
+
+// Lecciones que una alumna marcó como vistas (botón "Marcar como vista"). Si existe la fila, está vista.
+model LessonProgress {
+  id        String     @id @default(cuid())
+  createdAt DateTime   @default(now())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId    String
+  item      CourseItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemId])
+}
+
+// "Mis momentos": marcadores que una alumna pone en el video de una lección (minuto y nombre).
+model LessonMoment {
+  id        String     @id @default(cuid())
+  createdAt DateTime   @default(now())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId    String
+  item      CourseItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  seconds   Int
+  name      String
+
+  @@index([userId, itemId])
+}
+
+// Quien se registró con su correo en "Clase gratis": ve los bloques gratis de los cursos sin comprar.
+// Guarda cuándo aceptó el aviso de privacidad y recibir correos (el permiso no se pierde si luego compra).
+model Lead {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  email     String   @unique
+  consentAt DateTime
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Datos de conexión de Marketing (una sola fila, id "main"). Solo se guardan: ningún píxel ni
+// evento se envía todavía a Meta, TikTok o Google Analytics.
+model MarketingSettings {
+  id               String   @id @default("main")
+  updatedAt        DateTime @updatedAt
+  metaPixelId      String   @default("")
+  metaToken        String   @default("")
+  metaTestCode     String   @default("")
+  tiktokPixelId    String   @default("")
+  tiktokToken      String   @default("")
+  tiktokTestCode   String   @default("")
+  ga4MeasurementId String   @default("")
+}
+
+// Pregunta de una alumna a la chef sobre una lección. Mientras está PENDING solo la ve ella;
+// al publicar la respuesta (ANSWERED) queda visible para todas las alumnas del curso;
+// HIDDEN la saca de la lección sin borrarla.
+model LessonQuestion {
+  id         String         @id @default(cuid())
+  createdAt  DateTime       @default(now())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId     String
+  item       CourseItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  text       String
+  status     QuestionStatus @default(PENDING)
+  answer     String?
+  answeredAt DateTime?
+
+  @@index([itemId, status])
+  @@index([status, createdAt])
 }
 
 // Archivos de un capítulo o una lección. La subida real está pendiente (UploadThing).

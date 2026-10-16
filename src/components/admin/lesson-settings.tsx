@@ -8,9 +8,9 @@ import {
   label,
   primaryButton,
 } from '#/components/admin/form-styles'
+import { BunnyVideoField } from '#/components/admin/bunny-video-field'
 import { RichTextEditor } from '#/components/admin/rich-text-editor'
 import { updateLesson } from '#/lib/admin-courses'
-import { formatDuration } from '#/lib/duration'
 import { cn } from '#/lib/utils'
 
 type Lesson = {
@@ -18,8 +18,7 @@ type Lesson = {
   title: string
   published: boolean
   lessonType: 'VIDEO' | 'TEXT' | null
-  videoUrl: string | null
-  durationSec: number | null
+  bunnyVideoId: string | null
   body: JSONContent | null
   notes: string | null
   videoParts: string | null
@@ -40,6 +39,7 @@ export function LessonSettings({
   const router = useRouter()
   const [type, setType] = useState(lesson.lessonType ?? 'VIDEO')
   const [doc, setDoc] = useState<JSONContent | null>(lesson.body)
+  const [videoId, setVideoId] = useState(lesson.bunnyVideoId)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
@@ -54,8 +54,7 @@ export function LessonSettings({
           id: lesson.id,
           title: String(form.get('title')),
           lessonType: type,
-          videoUrl: String(form.get('videoUrl') ?? ''),
-          duration: String(form.get('duration') ?? ''),
+          bunnyVideoId: videoId ?? '',
           body: doc,
           notes: String(form.get('notes') ?? ''),
           videoParts: String(form.get('videoParts') ?? ''),
@@ -65,7 +64,7 @@ export function LessonSettings({
       setMessage('Guardado')
     } catch {
       setMessage(
-        'No se pudo guardar. Revisa los datos (video con URL http o https, duración m:ss y una parte por línea como "2:10 Título").',
+        'No se pudo guardar. Revisa los datos (una parte por línea como "2:10 Título", y que el video siga en la biblioteca de Bunny).',
       )
     } finally {
       setSaving(false)
@@ -128,32 +127,7 @@ export function LessonSettings({
       </div>
 
       {type === 'VIDEO' ? (
-        <div className="flex flex-wrap gap-3">
-          <div className={cn(field, 'flex-3 basis-48')}>
-            <label htmlFor="videoUrl" className={label}>
-              Video
-            </label>
-            <input
-              id="videoUrl"
-              name="videoUrl"
-              defaultValue={lesson.videoUrl ?? ''}
-              placeholder="URL del video"
-              className={input}
-            />
-          </div>
-          <div className={cn(field, 'flex-1 basis-24')}>
-            <label htmlFor="duration" className={label}>
-              Duración
-            </label>
-            <input
-              id="duration"
-              name="duration"
-              defaultValue={formatDuration(lesson.durationSec)}
-              placeholder="17:44"
-              className={input}
-            />
-          </div>
-        </div>
+        <BunnyVideoField value={videoId} onChange={setVideoId} />
       ) : (
         <div className={field}>
           <span className={label}>Texto de la lección</span>

@@ -99,6 +99,7 @@ export function VideoPlayer({
 }) {
   const { time, setTime, duration, setDuration, videoRef, seek } = useVideo()
   const box = useRef<HTMLDivElement>(null)
+  const bar = useRef<HTMLDivElement>(null)
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(false)
   const [volume, setVolume] = useState(1)
@@ -396,14 +397,20 @@ export function VideoPlayer({
       ref={box}
       onPointerMove={(e) => {
         // Un toque también genera `pointermove`; ese se maneja en `onPointerDown`.
-        if (e.pointerType === 'mouse') wake()
+        if (e.pointerType !== 'mouse') return
+        wake()
+        // Se revisa en cada movimiento (y no con entrar/salir de la barra) porque al cambiar el
+        // ícono de un botón el ratón "sale" de un elemento que ya no existe y no se avisa.
+        setOverBar(!!bar.current?.contains(e.target as Node))
       }}
       onPointerDown={(e) => {
         tapOnlyShows.current = e.pointerType !== 'mouse' && hidden
         wake()
       }}
       onPointerLeave={(e) => {
-        if (e.pointerType === 'mouse') setIdle(true)
+        if (e.pointerType !== 'mouse') return
+        setOverBar(false)
+        setIdle(true)
       }}
       className={cn(
         'relative aspect-video flex-none overflow-hidden bg-player-video',
@@ -444,8 +451,7 @@ export function VideoPlayer({
         </div>
       ) : (
         <div
-          onPointerEnter={(e) => e.pointerType === 'mouse' && setOverBar(true)}
-          onPointerLeave={() => setOverBar(false)}
+          ref={bar}
           // Solo el foco del teclado (Tab) la mantiene visible: un clic también deja el foco en
           // el botón, y entonces la barra no se ocultaría hasta hacer clic en otro lado.
           onFocus={(e) => setFocusInBar(e.target.matches(':focus-visible'))}

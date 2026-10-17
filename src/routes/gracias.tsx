@@ -3,13 +3,17 @@ import { z } from 'zod'
 
 import { AuthShell } from '#/components/auth-shell'
 import { mxn } from '#/lib/catalog'
-import { getOrder } from '#/lib/checkout'
+import { getThanksOrder } from '#/lib/checkout'
 
 export const Route = createFileRoute('/gracias')({
-  validateSearch: z.object({ orden: z.string() }),
+  // Sin orden, con una que no existe o que no inició este navegador → inicio (sin error).
+  // La orden propia que aún no está pagada → de vuelta al checkout.
+  validateSearch: z.object({ orden: z.string().optional().catch(undefined) }),
   loaderDeps: ({ search }) => ({ orderId: search.orden }),
   loader: async ({ deps }) => {
-    const order = await getOrder({ data: { orderId: deps.orderId } })
+    if (!deps.orderId) throw redirect({ to: '/' })
+    const order = await getThanksOrder({ data: { orderId: deps.orderId } })
+    if (!order) throw redirect({ to: '/' })
     if (order.status !== 'PAID') throw redirect({ to: '/checkout' })
     return order
   },

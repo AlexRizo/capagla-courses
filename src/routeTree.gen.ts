@@ -17,10 +17,10 @@ import { Route as ClaseGratisRouteImport } from './routes/clase-gratis'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as GraciasRouteImport } from './routes/gracias'
 import { Route as MisCursosRouteImport } from './routes/mis-cursos'
-import { Route as PagoPruebaRouteImport } from './routes/pago-prueba'
 import { Route as RevisaTuCorreoRouteImport } from './routes/revisa-tu-correo'
 import { Route as AdminMarketingRouteImport } from './routes/admin/marketing'
 import { Route as AdminPreguntasRouteImport } from './routes/admin/preguntas'
+import { Route as ApiUploadsRouteImport } from './routes/api/uploads'
 import { Route as CursosSlugRouteImport } from './routes/cursos/$slug'
 import { Route as MisCursosIndexRouteImport } from './routes/mis-cursos/index'
 import { Route as AdminCursosIndexRouteImport } from './routes/admin/cursos/index'
@@ -28,6 +28,7 @@ import { Route as AdminCursosSlugRouteImport } from './routes/admin/cursos/$slug
 import { Route as AdminPromocionesIndexRouteImport } from './routes/admin/promociones/index'
 import { Route as AdminPromocionesIdRouteImport } from './routes/admin/promociones/$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
 import { Route as MisCursosSlugIndexRouteImport } from './routes/mis-cursos/$slug/index'
 import { Route as MisCursosSlugLessonIdRouteImport } from './routes/mis-cursos/$slug/$lessonId'
 
@@ -71,11 +72,6 @@ const MisCursosRoute = MisCursosRouteImport.update({
   path: '/mis-cursos',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PagoPruebaRoute = PagoPruebaRouteImport.update({
-  id: '/pago-prueba',
-  path: '/pago-prueba',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const RevisaTuCorreoRoute = RevisaTuCorreoRouteImport.update({
   id: '/revisa-tu-correo',
   path: '/revisa-tu-correo',
@@ -90,6 +86,11 @@ const AdminPreguntasRoute = AdminPreguntasRouteImport.update({
   id: '/preguntas',
   path: '/preguntas',
   getParentRoute: () => AdminRoute,
+} as any)
+const ApiUploadsRoute = ApiUploadsRouteImport.update({
+  id: '/api/uploads',
+  path: '/api/uploads',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CursosSlugRoute = CursosSlugRouteImport.update({
   id: '/cursos/$slug',
@@ -126,6 +127,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
+  id: '/api/stripe/webhook',
+  path: '/api/stripe/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MisCursosSlugIndexRoute = MisCursosSlugIndexRouteImport.update({
   id: '/$slug/',
   path: '/$slug/',
@@ -146,15 +152,16 @@ export interface FileRoutesByFullPath {
   '/entrar': typeof EntrarRoute
   '/gracias': typeof GraciasRoute
   '/mis-cursos': typeof MisCursosRouteWithChildren
-  '/pago-prueba': typeof PagoPruebaRoute
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
+  '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
   '/mis-cursos/': typeof MisCursosIndexRoute
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
   '/admin/cursos/': typeof AdminCursosIndexRoute
   '/admin/promociones/': typeof AdminPromocionesIndexRoute
@@ -168,15 +175,16 @@ export interface FileRoutesByTo {
   '/clase-gratis': typeof ClaseGratisRoute
   '/entrar': typeof EntrarRoute
   '/gracias': typeof GraciasRoute
-  '/pago-prueba': typeof PagoPruebaRoute
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
+  '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
   '/mis-cursos': typeof MisCursosIndexRoute
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
   '/admin/cursos': typeof AdminCursosIndexRoute
   '/admin/promociones': typeof AdminPromocionesIndexRoute
@@ -192,15 +200,16 @@ export interface FileRoutesById {
   '/entrar': typeof EntrarRoute
   '/gracias': typeof GraciasRoute
   '/mis-cursos': typeof MisCursosRouteWithChildren
-  '/pago-prueba': typeof PagoPruebaRoute
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
+  '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
   '/mis-cursos/': typeof MisCursosIndexRoute
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
   '/admin/cursos/': typeof AdminCursosIndexRoute
   '/admin/promociones/': typeof AdminPromocionesIndexRoute
@@ -217,15 +226,16 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/gracias'
     | '/mis-cursos'
-    | '/pago-prueba'
     | '/revisa-tu-correo'
     | '/admin/marketing'
     | '/admin/preguntas'
+    | '/api/uploads'
     | '/cursos/$slug'
     | '/mis-cursos/'
     | '/admin/cursos/$slug'
     | '/admin/promociones/$id'
     | '/api/auth/$'
+    | '/api/stripe/webhook'
     | '/mis-cursos/$slug/$lessonId'
     | '/admin/cursos/'
     | '/admin/promociones/'
@@ -239,15 +249,16 @@ export interface FileRouteTypes {
     | '/clase-gratis'
     | '/entrar'
     | '/gracias'
-    | '/pago-prueba'
     | '/revisa-tu-correo'
     | '/admin/marketing'
     | '/admin/preguntas'
+    | '/api/uploads'
     | '/cursos/$slug'
     | '/mis-cursos'
     | '/admin/cursos/$slug'
     | '/admin/promociones/$id'
     | '/api/auth/$'
+    | '/api/stripe/webhook'
     | '/mis-cursos/$slug/$lessonId'
     | '/admin/cursos'
     | '/admin/promociones'
@@ -262,15 +273,16 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/gracias'
     | '/mis-cursos'
-    | '/pago-prueba'
     | '/revisa-tu-correo'
     | '/admin/marketing'
     | '/admin/preguntas'
+    | '/api/uploads'
     | '/cursos/$slug'
     | '/mis-cursos/'
     | '/admin/cursos/$slug'
     | '/admin/promociones/$id'
     | '/api/auth/$'
+    | '/api/stripe/webhook'
     | '/mis-cursos/$slug/$lessonId'
     | '/admin/cursos/'
     | '/admin/promociones/'
@@ -286,10 +298,11 @@ export interface RootRouteChildren {
   EntrarRoute: typeof EntrarRoute
   GraciasRoute: typeof GraciasRoute
   MisCursosRoute: typeof MisCursosRouteWithChildren
-  PagoPruebaRoute: typeof PagoPruebaRoute
   RevisaTuCorreoRoute: typeof RevisaTuCorreoRoute
+  ApiUploadsRoute: typeof ApiUploadsRoute
   CursosSlugRoute: typeof CursosSlugRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -350,13 +363,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MisCursosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/pago-prueba': {
-      id: '/pago-prueba'
-      path: '/pago-prueba'
-      fullPath: '/pago-prueba'
-      preLoaderRoute: typeof PagoPruebaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/revisa-tu-correo': {
       id: '/revisa-tu-correo'
       path: '/revisa-tu-correo'
@@ -377,6 +383,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/preguntas'
       preLoaderRoute: typeof AdminPreguntasRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/api/uploads': {
+      id: '/api/uploads'
+      path: '/api/uploads'
+      fullPath: '/api/uploads'
+      preLoaderRoute: typeof ApiUploadsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/cursos/$slug': {
       id: '/cursos/$slug'
@@ -425,6 +438,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stripe/webhook': {
+      id: '/api/stripe/webhook'
+      path: '/api/stripe/webhook'
+      fullPath: '/api/stripe/webhook'
+      preLoaderRoute: typeof ApiStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mis-cursos/$slug/': {
@@ -489,10 +509,11 @@ const rootRouteChildren: RootRouteChildren = {
   EntrarRoute: EntrarRoute,
   GraciasRoute: GraciasRoute,
   MisCursosRoute: MisCursosRouteWithChildren,
-  PagoPruebaRoute: PagoPruebaRoute,
   RevisaTuCorreoRoute: RevisaTuCorreoRoute,
+  ApiUploadsRoute: ApiUploadsRoute,
   CursosSlugRoute: CursosSlugRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiStripeWebhookRoute: ApiStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -11,9 +11,11 @@ type Library = Awaited<ReturnType<typeof getBunnyVideos>>
 export function BunnyVideoField({
   value,
   onChange,
+  label: title = 'Video',
 }: {
   value: string | null
   onChange: (id: string | null) => void
+  label?: string
 }) {
   const [library, setLibrary] = useState<Library | null>(null)
   const [open, setOpen] = useState(false)
@@ -40,7 +42,7 @@ export function BunnyVideoField({
 
   return (
     <div className={field}>
-      <span className={label}>Video</span>
+      <span className={label}>{title}</span>
       <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5">
         <span className="min-w-0 truncate">{text}</span>
         <button

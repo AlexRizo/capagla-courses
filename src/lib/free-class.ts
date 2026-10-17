@@ -4,7 +4,9 @@ import { getRequestHeaders } from '@tanstack/react-start/server'
 import { z } from 'zod'
 
 import { prisma } from '#/db'
+import { placeholderName } from '#/lib/account-name'
 import { auth } from '#/lib/auth'
+import { withLinkPurpose } from '#/lib/mailer'
 import { buildPlayerTree, onlyFreeBlocks } from '#/lib/player-tree'
 import { tooManyAttempts } from '#/lib/rate-limit'
 
@@ -53,7 +55,7 @@ export const joinFreeClass = createServerFn({ method: 'POST' })
     const user =
       existing?.user ??
       (await ctx.internalAdapter.createUser(
-        { email, name: email.split('@')[0], emailVerified: false },
+        { email, name: placeholderName(email), emailVerified: false },
         { method: 'free-class' },
       ))
     await prisma.lead.upsert({
@@ -62,12 +64,14 @@ export const joinFreeClass = createServerFn({ method: 'POST' })
       update: {},
     })
 
-    await auth.api.signInMagicLink({
-      body: {
-        email,
-        callbackURL: `/mis-cursos/${lesson.slug}/${lesson.lessonId}`,
-      },
-      headers,
-    })
+    await withLinkPurpose({ kind: 'free-class' }, () =>
+      auth.api.signInMagicLink({
+        body: {
+          email,
+          callbackURL: `/mis-cursos/${lesson.slug}/${lesson.lessonId}`,
+        },
+        headers,
+      }),
+    )
     return { next: 'link' as const }
   })

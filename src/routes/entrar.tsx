@@ -1,17 +1,23 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
+import { z } from 'zod'
 
 import { AuthShell } from '#/components/auth-shell'
 import { authClient } from '#/lib/auth-client'
 import { startLogin } from '#/lib/login'
 
-export const Route = createFileRoute('/entrar')({ component: Entrar })
+// `?correo=` precarga el correo (p. ej. desde el checkout, cuando ese correo ya tiene el curso).
+export const Route = createFileRoute('/entrar')({
+  validateSearch: z.object({ correo: z.string().optional().catch(undefined) }),
+  component: Entrar,
+})
 
 const label = 'text-sm font-bold md:text-15'
 const input =
   'box-border h-12.5 rounded-12 border-1.5 border-landing-field bg-white px-3.5 text-base text-landing-ink md:h-13 md:px-4 md:text-17'
 
 function Entrar() {
+  const { correo } = Route.useSearch()
   const navigate = useNavigate()
   const [step, setStep] = useState<'email' | 'password'>('email')
   const [loading, setLoading] = useState(false)
@@ -73,6 +79,7 @@ function Entrar() {
                 autoComplete="username"
                 placeholder="tucorreo@ejemplo.com"
                 required
+                defaultValue={correo}
                 onInput={(e) => {
                   e.currentTarget.setCustomValidity('')
                   setStep('email')
@@ -87,7 +94,7 @@ function Entrar() {
                 </label>
                 <input
                   id="clave"
-                autoFocus
+                  autoFocus
                   name="password"
                   type="password"
                   autoComplete="current-password"

@@ -4,7 +4,9 @@ import { z } from 'zod'
 
 import { prisma } from '#/db'
 import { agoCapitalized } from '#/lib/ago'
+import { answerMail } from '#/lib/emails'
 import { requireAdmin } from '#/lib/guards'
+import { sendMail } from '#/lib/mailer'
 
 export const MAX_ANSWER_LENGTH = 2000
 
@@ -57,7 +59,10 @@ export const answerQuestion = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const question = await prisma.lessonQuestion.findUnique({
       where: { id: data.id },
-      include: { user: { select: { email: true } } },
+      include: {
+        user: { select: { email: true } },
+        item: { select: { title: true, product: { select: { slug: true } } } },
+      },
     })
     if (!question) throw notFound()
     if (question.status === 'ANSWERED') {
@@ -71,9 +76,15 @@ export const answerQuestion = createServerFn({ method: 'POST' })
         answeredAt: new Date(),
       },
     })
-    // Sin servicio de correo todavía: igual que el enlace de acceso, solo se deja en el registro.
-    console.log(
-      `[correo] Respuesta de la chef para ${question.user.email}: ${data.answer}`,
+    // Aviso a la alumna (Brevo; sin configurar, en la consola).
+    await sendMail(
+      answerMail({
+        to: question.user.email,
+        lesson: question.item.title,
+        question: question.text,
+        answer: data.answer,
+        lessonPath: `/mis-cursos/${question.item.product.slug}/${question.itemId}`,
+      }),
     )
     return {}
   })

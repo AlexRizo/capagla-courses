@@ -7,6 +7,7 @@ import type { VideoPart } from '#/lib/duration'
 import { cn } from '#/lib/utils'
 
 import { useVideo } from './video'
+import { usePreview } from './preview'
 
 type Moment = { id: string; seconds: number; name: string }
 
@@ -15,12 +16,13 @@ const label = 'text-11 font-black tracking-player-caps text-player-accent'
 // Marca el minuto en el que va el video. Devuelve un aviso si no se pudo.
 export function useMarkMoment(lessonId: string, hasVideo: boolean) {
   const router = useRouter()
+  const preview = usePreview()
   const { time } = useVideo()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function mark() {
-    if (!hasVideo || saving) return
+    if (!hasVideo || saving || preview) return
     setSaving(true)
     setError(null)
     try {
@@ -33,7 +35,7 @@ export function useMarkMoment(lessonId: string, hasVideo: boolean) {
       setSaving(false)
     }
   }
-  return { mark, saving, error, time, canMark: hasVideo }
+  return { mark, saving, error, time, canMark: hasVideo && !preview }
 }
 
 function MomentRow({ moment }: { moment: Moment }) {

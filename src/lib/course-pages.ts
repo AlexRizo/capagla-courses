@@ -42,6 +42,10 @@ export type CoursePage = CourseContent & {
   promo: { title: string; offers: Offer[] } | null
   // Promoción desde la que se entró; los botones de compra la llevan al checkout.
   promoSlug?: string
+  // Clave del enlace de prueba (solo admin); se pasa al checkout.
+  promoTest?: string
+  // Video de intro de la promoción (URL firmada de Bunny): lo abre el botón de reproducir.
+  introVideo?: string | null
 }
 
 export const courseContents: Partial<Record<string, CourseContent>> = {

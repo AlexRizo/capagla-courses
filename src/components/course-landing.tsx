@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { useEffect, useRef, useState } from 'react'
 
 import { MobileMenu } from '#/components/mobile-menu'
 import type { CoursePage } from '#/lib/course-pages'
@@ -9,27 +10,112 @@ const footerLink = 'text-landing-muted'
 
 // Landing de venta de un curso: la usan /cursos/$slug (precio normal) y las promociones.
 export function CourseLanding({ page }: { page: CoursePage }) {
+  const [playing, setPlaying] = useState(false)
+  // Sin video de intro el botón queda como en la maqueta (sin acción).
+  const onPlay = page.introVideo ? () => setPlaying(true) : undefined
+
   return (
     <div className="min-h-screen bg-landing-page font-sans text-landing-ink">
-      <Desktop page={page} />
-      <Mobile page={page} />
+      <Desktop page={page} onPlay={onPlay} />
+      <Mobile page={page} onPlay={onPlay} />
+      {playing && page.introVideo && (
+        <IntroVideo src={page.introVideo} onClose={() => setPlaying(false)} />
+      )}
     </div>
   )
 }
 
-function Play({ mobile }: { mobile?: boolean }) {
+function Play({ mobile, onPlay }: { mobile?: boolean; onPlay?: () => void }) {
+  const className = `relative flex items-center justify-center rounded-full bg-landing-primary/92 shadow-landing-play ${mobile ? 'size-16' : 'size-21'}`
+  const triangle = (
+    <div
+      className={`size-0 border-y-transparent border-l-white ${mobile ? 'ml-1.25 border-y-12 border-l-19' : 'ml-1.5 border-y-15 border-l-25'}`}
+    />
+  )
+  if (!onPlay) return <div className={className}>{triangle}</div>
+  return (
+    <button
+      type="button"
+      onClick={onPlay}
+      aria-label="Ver el video de presentación"
+      className={`${className} cursor-pointer border-0 p-0`}
+    >
+      {triangle}
+    </button>
+  )
+}
+
+// Video de intro de la promoción en una ventana sobre la página (Bunny, por HLS).
+// Se cierra con ✕, con Escape o tocando fuera del video.
+function IntroVideo({ src, onClose }: { src: string; onClose: () => void }) {
+  const video = useRef<HTMLVideoElement>(null)
+  const close = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    const el = video.current
+    if (!el) return
+    let hls: { destroy: () => void } | undefined
+    let cancelled = false
+    void import('hls.js').then(({ default: Hls }) => {
+      if (cancelled) return
+      if (Hls.isSupported()) {
+        const player = new Hls()
+        player.loadSource(src)
+        player.attachMedia(el)
+        hls = player
+      } else {
+        el.src = src
+      }
+      void el.play().catch(() => {})
+    })
+    close.current?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      cancelled = true
+      hls?.destroy()
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = overflow
+    }
+  }, [src, onClose])
+
   return (
     <div
-      className={`relative flex items-center justify-center rounded-full bg-landing-primary/92 shadow-landing-play ${mobile ? 'size-16' : 'size-21'}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Video de presentación"
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-landing-ink/85 p-4"
     >
       <div
-        className={`size-0 border-y-transparent border-l-white ${mobile ? 'ml-1.25 border-y-12 border-l-19' : 'ml-1.5 border-y-15 border-l-25'}`}
-      />
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-5xl"
+      >
+        <button
+          ref={close}
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar video"
+          className="absolute -top-12 right-0 flex size-10 cursor-pointer items-center justify-center rounded-full border-0 bg-white text-lg font-black text-landing-ink"
+        >
+          ✕
+        </button>
+        <video
+          ref={video}
+          controls
+          playsInline
+          className="block aspect-video w-full rounded-16 bg-black"
+        />
+      </div>
     </div>
   )
 }
 
-function Desktop({ page }: { page: CoursePage }) {
+function Desktop({ page, onPlay }: { page: CoursePage; onPlay?: () => void }) {
   const link = 'text-15 text-landing-ink no-underline'
   const h2 = 'm-0 text-34 font-black tracking-landing-title-md'
 
@@ -75,7 +161,7 @@ function Desktop({ page }: { page: CoursePage }) {
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <Link
               to="/checkout"
-              search={{ promo: page.promoSlug }}
+              search={{ promo: page.promoSlug, prueba: page.promoTest }}
               className={`${solid} min-h-14 px-7 text-lg`}
             >
               Quiero empezar ahora
@@ -97,7 +183,7 @@ function Desktop({ page }: { page: CoursePage }) {
             alt={page.heroAlt}
             className="absolute inset-0 size-full object-cover"
           />
-          <Play />
+          <Play onPlay={onPlay} />
         </div>
       </div>
 
@@ -272,7 +358,7 @@ function Desktop({ page }: { page: CoursePage }) {
           </div>
           <Link
             to="/checkout"
-            search={{ promo: page.promoSlug }}
+            search={{ promo: page.promoSlug, prueba: page.promoTest }}
             className="flex min-h-14 items-center justify-center rounded-12 bg-white px-8 text-lg font-black text-landing-primary no-underline"
           >
             Quiero empezar ahora
@@ -299,7 +385,7 @@ function Desktop({ page }: { page: CoursePage }) {
   )
 }
 
-function Mobile({ page }: { page: CoursePage }) {
+function Mobile({ page, onPlay }: { page: CoursePage; onPlay?: () => void }) {
   const h2 = 'm-0 text-2xl font-black tracking-landing-logo'
 
   return (
@@ -336,7 +422,7 @@ function Mobile({ page }: { page: CoursePage }) {
             alt={page.heroAlt}
             className="absolute inset-0 size-full object-cover"
           />
-          <Play mobile />
+          <Play mobile onPlay={onPlay} />
         </div>
         <div className="mt-1 flex flex-wrap items-baseline justify-center gap-2.5">
           {page.strike && (
@@ -351,7 +437,7 @@ function Mobile({ page }: { page: CoursePage }) {
         </div>
         <Link
           to="/checkout"
-          search={{ promo: page.promoSlug }}
+          search={{ promo: page.promoSlug, prueba: page.promoTest }}
           className={`${solid} min-h-13.5 text-17`}
         >
           Quiero empezar ahora
@@ -503,7 +589,7 @@ function Mobile({ page }: { page: CoursePage }) {
         </div>
         <Link
           to="/checkout"
-          search={{ promo: page.promoSlug }}
+          search={{ promo: page.promoSlug, prueba: page.promoTest }}
           className="box-border flex min-h-13.5 w-full items-center justify-center rounded-12 bg-white text-17 font-black text-landing-primary no-underline"
         >
           Quiero empezar ahora

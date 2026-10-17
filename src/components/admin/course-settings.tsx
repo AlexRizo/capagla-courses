@@ -8,12 +8,14 @@ import {
   note,
   primaryButton,
 } from '#/components/admin/form-styles'
-import { updateCourseSettings } from '#/lib/admin-courses'
+import { UploadBox } from '#/components/admin/upload-field'
+import { removeCourseCover, updateCourseSettings } from '#/lib/admin-courses'
 import { cn } from '#/lib/utils'
 
 type Settings = {
   name: string
   description: string
+  coverUrl: string | null
   priceMxn: number
   accessDays: number
   published: boolean
@@ -99,9 +101,28 @@ export function CourseSettings({
 
       <div className={field}>
         <span className={label}>Portada</span>
-        <div className="rounded-md border border-dashed border-ring px-3 py-2.5 text-muted-foreground">
+        {settings.coverUrl && (
+          <div className="flex items-center justify-between gap-3">
+            <img
+              src={settings.coverUrl}
+              alt=""
+              className="h-16 rounded-md border border-border object-cover"
+            />
+            <button
+              type="button"
+              onClick={async () => {
+                await removeCourseCover({ data: { slug } })
+                await router.invalidate()
+              }}
+              className="cursor-pointer border-none bg-transparent p-0 text-13 text-muted-foreground underline"
+            >
+              Quitar
+            </button>
+          </div>
+        )}
+        <UploadBox target="cover" id={slug} accept=".jpg,.jpeg,.png,.webp">
           Arrastra una imagen o haz clic para subirla
-        </div>
+        </UploadBox>
       </div>
 
       <div className="flex flex-wrap gap-3">

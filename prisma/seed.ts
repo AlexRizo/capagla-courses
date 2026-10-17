@@ -142,13 +142,15 @@ async function seedPromotion() {
     data: {
       slug: 'navidad',
       name: 'Anuncio: 3 cursos en 1',
+      // Del 16 de octubre 00:00 al 17 de noviembre 23:59, hora de Ciudad de México (UTC-6).
+      startsAt: new Date('2026-10-16T06:00:00Z'),
       endsAt: new Date('2026-11-18T05:59:00Z'),
       products: {
         create: [
           {
             productId: await bySlug('postres-navidad'),
             position: 0,
-            priceMxn: 897,
+            priceMxn: 397,
           },
           {
             productId: await bySlug('calcular-costos'),
@@ -167,11 +169,51 @@ async function seedPromotion() {
   console.log('✅ promoción /navidad')
 }
 
+// Segunda promoción de la maqueta ("última semana"): precios de la "fecha 2" (curso $597,
+// herramienta con 25%) y el curso de costos gratis (decisión del cliente, 2026-10-16).
+async function seedFinalPromotion() {
+  if (await prisma.promotion.findUnique({ where: { slug: 'navidad-final' } })) {
+    return
+  }
+  const bySlug = async (slug: string) =>
+    (await prisma.product.findUniqueOrThrow({ where: { slug } })).id
+  await prisma.promotion.create({
+    data: {
+      slug: 'navidad-final',
+      name: 'Anuncio: 3 cursos en 1 (última semana)',
+      // Del 18 de noviembre 00:00 al 30 de noviembre 23:59, hora de Ciudad de México (UTC-6).
+      startsAt: new Date('2026-11-18T06:00:00Z'),
+      endsAt: new Date('2026-12-01T05:59:00Z'),
+      products: {
+        create: [
+          {
+            productId: await bySlug('postres-navidad'),
+            position: 0,
+            priceMxn: 597,
+          },
+          {
+            productId: await bySlug('calcular-costos'),
+            position: 1,
+            priceMxn: 0,
+          },
+          {
+            productId: await bySlug('herramienta-costos'),
+            position: 2,
+            priceMxn: 150,
+          },
+        ],
+      },
+    },
+  })
+  console.log('✅ promoción /navidad-final')
+}
+
 async function main() {
   await seedProducts()
   await seedAdmin()
   await seedCourseTree()
   await seedPromotion()
+  await seedFinalPromotion()
 }
 
 main()

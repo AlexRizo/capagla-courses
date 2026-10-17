@@ -10,6 +10,7 @@ import {
   primaryButton,
 } from '#/components/admin/form-styles'
 import { RichTextEditor } from '#/components/admin/rich-text-editor'
+import { ResourceFiles, UploadBox } from '#/components/admin/upload-field'
 import { updateChapter } from '#/lib/admin-courses'
 
 // Panel derecho del editor para un capítulo: nombre y receta.
@@ -18,6 +19,7 @@ export function ChapterSettings({
   title,
   published,
   recipe,
+  resources,
   convert,
   remove,
 }: {
@@ -25,6 +27,7 @@ export function ChapterSettings({
   title: string
   published: boolean
   recipe: JSONContent | null
+  resources: { id: string; name: string }[]
   convert: React.ReactNode
   remove: React.ReactNode
 }) {
@@ -93,9 +96,15 @@ export function ChapterSettings({
 
       <div className={field}>
         <span className={label}>Recursos del capítulo</span>
-        <div className="rounded-md border border-dashed border-ring px-3 py-2.5 text-muted-foreground">
+        <ResourceFiles resources={resources} />
+        <UploadBox
+          target="resource"
+          id={id}
+          multiple
+          accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,.xlsx,.pptx"
+        >
           Arrastra archivos o haz clic para subirlos (recetario PDF)
-        </div>
+        </UploadBox>
       </div>
 
       <div className="flex items-center gap-2.5">

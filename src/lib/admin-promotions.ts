@@ -6,7 +6,9 @@ import { z } from 'zod'
 import { prisma } from '#/db'
 import { courseContents } from '#/lib/course-pages'
 import { env } from '#/env'
+import { getBunnyVideo } from '#/lib/bunny'
 import { requireAdmin } from '#/lib/guards'
+import { promotionTestKey } from '#/lib/offers'
 import {
   MAX_PROMOTION_PRODUCTS,
   fromLocalInput,
@@ -77,10 +79,11 @@ export const getAdminPromotion = createServerFn()
       endsAt: toLocalInput(promotion.endsAt),
       introTitle: promotion.introTitle ?? '',
       introText: promotion.introText ?? '',
-      introVideoUrl: promotion.introVideoUrl ?? '',
+      introVideoId: promotion.introVideoId,
       purchases: paid._count,
       revenueMxn: paid._sum.amountMxn ?? 0,
       baseUrl: env.BETTER_AUTH_URL.replace(/\/$/, ''),
+      testKey: promotionTestKey(promotion.id),
       slots: promotion.products.map((p) => ({
         productId: p.productId,
         price: String(p.priceMxn),
@@ -136,12 +139,6 @@ export const createPromotion = createServerFn({ method: 'POST' })
     return { id: created.id }
   })
 
-const optionalUrl = z
-  .string()
-  .trim()
-  .max(500)
-  .refine((v) => v === '' || /^https?:\/\//.test(v))
-
 // Guarda datos, intro y productos. El cliente manda los productos en orden (el primero es
 // el principal, que puede ser cualquier producto); el servidor comprueba que existan y que no se repitan.
 export const updatePromotion = createServerFn({ method: 'POST' })
@@ -155,7 +152,8 @@ export const updatePromotion = createServerFn({ method: 'POST' })
       endsAt: z.string(),
       introTitle: z.string().trim().max(200),
       introText: z.string().trim().max(1000),
-      introVideoUrl: optionalUrl,
+      // Video de intro: id de Bunny; vacío lo quita.
+      introVideoId: z.string().trim(),
       products: z
         .array(
           z.object({
@@ -184,6 +182,13 @@ export const updatePromotion = createServerFn({ method: 'POST' })
       return { error: 'La promoción debe terminar después de empezar.' }
     }
 
+    if (
+      data.introVideoId &&
+      !(await getBunnyVideo(data.introVideoId).catch(() => null))
+    ) {
+      return { error: 'Ese video no está en la biblioteca de Bunny.' }
+    }
+
     const ids = data.products.map((p) => p.productId)
     if (new Set(ids).size !== ids.length) {
       return { error: 'Un producto no puede repetirse en la promoción.' }
@@ -203,7 +208,7 @@ export const updatePromotion = createServerFn({ method: 'POST' })
             endsAt,
             introTitle: data.introTitle || null,
             introText: data.introText || null,
-            introVideoUrl: data.introVideoUrl || null,
+            introVideoId: data.introVideoId || null,
             products: {
               create: data.products.map((p, position) => ({ ...p, position })),
             },

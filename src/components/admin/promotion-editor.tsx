@@ -8,6 +8,7 @@ import {
   note,
   primaryButton,
 } from '#/components/admin/form-styles'
+import { BunnyVideoField } from '#/components/admin/bunny-video-field'
 import { setPromotionPaused, updatePromotion } from '#/lib/admin-promotions'
 import { MAX_PROMOTION_PRODUCTS } from '#/lib/promotions'
 import { cn } from '#/lib/utils'
@@ -30,10 +31,11 @@ type Promotion = {
   endsAt: string
   introTitle: string
   introText: string
-  introVideoUrl: string
+  introVideoId: string | null
   purchases: number
   revenueMxn: number
   baseUrl: string
+  testKey: string
   slots: { productId: string; price: string }[]
   catalog: CatalogProduct[]
 }
@@ -70,10 +72,12 @@ function channelLinks(base: string, slug: string) {
 export function PromotionEditor({ promotion }: { promotion: Promotion }) {
   const router = useRouter()
   const [slots, setSlots] = useState(promotion.slots)
+  const [introVideoId, setIntroVideoId] = useState(promotion.introVideoId)
   const [open, setOpen] = useState(-1)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
+  const testUrl = `${promotion.baseUrl}/${promotion.slug}?prueba=${promotion.testKey}`
   const byId = new Map(promotion.catalog.map((p) => [p.id, p]))
 
   // El menú de productos se cierra al hacer clic fuera o con Escape.
@@ -128,7 +132,7 @@ export function PromotionEditor({ promotion }: { promotion: Promotion }) {
           endsAt: String(form.get('endsAt')),
           introTitle: String(form.get('introTitle')),
           introText: String(form.get('introText')),
-          introVideoUrl: String(form.get('introVideoUrl')),
+          introVideoId: introVideoId ?? '',
           products: slots.map((s) => ({
             productId: s.productId,
             priceMxn: Number(s.price),
@@ -271,18 +275,11 @@ export function PromotionEditor({ promotion }: { promotion: Promotion }) {
               className="box-border min-h-18 resize-y rounded-md border border-border bg-card px-3 py-2.5 text-sm"
             />
           </div>
-          <div className={field}>
-            <label htmlFor="introVideoUrl" className={label}>
-              URL del video de intro
-            </label>
-            <input
-              id="introVideoUrl"
-              name="introVideoUrl"
-              defaultValue={promotion.introVideoUrl}
-              placeholder="URL del video en Bunny.net"
-              className={input}
-            />
-          </div>
+          <BunnyVideoField
+            label="Video de intro"
+            value={introVideoId}
+            onChange={setIntroVideoId}
+          />
         </div>
 
         <div className={card}>
@@ -474,8 +471,15 @@ export function PromotionEditor({ promotion }: { promotion: Promotion }) {
           <div className="flex flex-wrap items-center gap-2.5 border-t border-accent py-2.5">
             <div className="w-35 flex-none font-medium">Enlace de prueba</div>
             <div className="min-w-0 flex-1 basis-75 font-mono text-xs break-all text-chart-3">
-              {`${promotion.baseUrl}/${promotion.slug}?prueba=[clave]  · aplica los precios sin importar la fecha; solo con sesión de admin`}
+              {`${testUrl}  · aplica los precios sin importar la fecha; solo con sesión de admin`}
             </div>
+            <button
+              type="button"
+              onClick={() => copy(testUrl)}
+              className="flex-none cursor-pointer rounded-md border border-border bg-card px-2.5 py-1 text-13 font-medium text-foreground"
+            >
+              {copied === testUrl ? 'Copiado' : 'Copiar'}
+            </button>
           </div>
         </div>
 

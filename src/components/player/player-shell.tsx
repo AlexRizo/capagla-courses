@@ -17,6 +17,7 @@ import {
 import type { PlayerResource } from './lesson-extras'
 import { Questions } from './questions'
 import { VideoPlayer, VideoProvider } from './video'
+import { PreviewBanner, PreviewContext, usePreview } from './preview'
 import { VideoSide, useMarkMoment } from './video-side'
 
 type Data = Awaited<ReturnType<typeof getPlayer>>
@@ -78,9 +79,11 @@ function SeenButton({
   compact?: boolean
 }) {
   const router = useRouter()
+  const preview = usePreview()
   const [saving, setSaving] = useState(false)
 
   async function toggle() {
+    if (preview) return
     setSaving(true)
     try {
       await setLessonSeen({ data: { lessonId: lesson.id, seen: !lesson.seen } })
@@ -94,9 +97,9 @@ function SeenButton({
     <button
       type="button"
       onClick={toggle}
-      disabled={saving}
+      disabled={saving || preview}
       className={cn(
-        'inline-flex cursor-pointer items-center rounded-full border-2 py-0 font-sans font-black disabled:opacity-60',
+        'inline-flex cursor-pointer items-center rounded-full border-2 py-0 font-sans font-black disabled:cursor-not-allowed disabled:opacity-60',
         compact
           ? 'min-h-8 gap-1.75 pr-3 pl-1.5 text-13'
           : 'min-h-10 gap-2.5 pr-4.5 pl-2.5 text-sm',
@@ -543,9 +546,11 @@ function MobileMaterial({ data, material }: { data: Data; material: boolean }) {
 export function PlayerShell({ data }: { data: Data }) {
   // Cada lección empieza con su video en 0.
   return (
-    <VideoProvider key={data.lesson.id}>
-      <PlayerLayout data={data} />
-    </VideoProvider>
+    <PreviewContext.Provider value={data.preview}>
+      <VideoProvider key={data.lesson.id}>
+        <PlayerLayout data={data} />
+      </VideoProvider>
+    </PreviewContext.Provider>
   )
 }
 
@@ -655,6 +660,7 @@ function PlayerLayout({ data }: { data: Data }) {
         dark && 'dark',
       )}
     >
+      {data.preview && <PreviewBanner slug={course.slug} />}
       {/* ===== Escritorio ===== */}
       <div className="hidden h-screen md:flex">
         {left ? (

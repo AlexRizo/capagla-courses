@@ -1,24 +1,104 @@
+import {
+  CardCvcElement,
+  CardElement,
+  CardExpiryElement,
+  CardNumberElement,
+  Elements,
+  ExpressCheckoutElement,
+  useElements,
+  useStripe,
+} from '@stripe/react-stripe-js'
+import { loadStripe } from '@stripe/stripe-js'
+import type {
+  StripeCardElement,
+  StripeCardNumberElement,
+} from '@stripe/stripe-js'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { z } from 'zod'
 
 import { mxn } from '#/lib/catalog'
-import { getCheckoutData, startCheckout } from '#/lib/checkout'
+import { getCheckoutData, getThanksOrder, startCheckout } from '#/lib/checkout'
 
 export const Route = createFileRoute('/checkout')({
-  validateSearch: z.object({ promo: z.string().optional() }),
-  loaderDeps: ({ search }) => ({ promo: search.promo }),
-  loader: ({ deps }) => getCheckoutData({ data: { promo: deps.promo } }),
+  validateSearch: z.object({
+    promo: z.string().optional(),
+    prueba: z.string().optional().catch(undefined),
+    // Desde "Quiero el curso" de Mis cursos: al pagar vuelve a Mis cursos (no a /gracias).
+    desde: z.literal('mis-cursos').optional().catch(undefined),
+  }),
+  loaderDeps: ({ search }) => ({ promo: search.promo, prueba: search.prueba }),
+  loader: ({ deps }) =>
+    getCheckoutData({ data: { promo: deps.promo, prueba: deps.prueba } }),
   component: Checkout,
 })
 
 const label = 'text-sm font-bold md:text-15'
 const input =
-  'box-border h-12.5 rounded-12 border-1.5 border-landing-field bg-white px-3.5 text-base text-landing-ink md:h-13 md:px-4 md:text-17'
+  'box-border h-12.5 rounded-12 border-1.5 border-landing-field bg-white px-3.5 text-base text-landing-ink md:h-13 md:px-4 md:text-17 disabled:opacity-60'
 const payBtn =
-  'cursor-pointer items-center justify-center rounded-12 border-none bg-landing-primary font-black text-white no-underline'
+  'cursor-pointer items-center justify-center gap-2.5 rounded-12 border-none bg-landing-primary font-black text-white no-underline disabled:cursor-wait'
 const strike = 'text-landing-strike line-through'
+// Contacto para dudas del pago (pedido del cliente; no está en la maqueta).
+const SUPPORT_EMAIL = 'soporte@capagla.com'
+
+// Campos de Stripe con los colores de la maqueta (los dibuja Stripe en un iframe).
+const stripeFonts = [
+  {
+    cssSrc:
+      'https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap',
+  },
+]
+const stripeOptions = { locale: 'es-419' as const, fonts: stripeFonts }
+const cardStyle = (fontSize: string) => ({
+  base: {
+    color: '#2a1233',
+    fontFamily: 'Lato, sans-serif',
+    fontSize,
+    '::placeholder': { color: '#5b4663' },
+  },
+  invalid: { color: '#b42318' },
+})
+// Caja de cada campo de tarjeta en escritorio (la de móvil es `cardBox`).
+const cardField =
+  'flex h-11 items-center rounded-lg bg-landing-soft px-3.5 [&>*]:w-full'
+// Etapas del pago, para que la alumna vea qué está pasando después de dar clic.
+type Stage = 'idle' | 'preparing' | 'confirming' | 'activating'
+const stageText: Record<Exclude<Stage, 'idle'>, string> = {
+  preparing: 'Preparando tu pago…',
+  confirming: 'Confirmando con tu banco…',
+  activating: '¡Pago aprobado! Activando tu acceso…',
+}
+
+function Spinner({ className }: { className: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={`${className} flex-none motion-safe:animate-spin`}
+      aria-hidden="true"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+        stroke="currentColor"
+        strokeOpacity="0.3"
+        strokeWidth="3"
+      />
+      <path
+        d="M21 12a9 9 0 0 0-9-9"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+const cardBox =
+  'box-border flex h-12.5 items-center rounded-12 border-1.5 border-landing-field bg-white px-3.5 [&>*]:w-full'
 
 function LockIcon({ className }: { className: string }) {
   return (
@@ -93,12 +173,170 @@ function IncludedCourse({
   )
 }
 
+type Buyer = { email: string; name: string }
+
+// El correo ya tiene el curso vigente: el servidor no deja cobrarlo otra vez y la
+// alumna va a Entrar con su correo (no tiene nada que pagar).
+class AlreadyOwned extends Error {}
+
+// Apple Pay y Google Pay. Stripe solo los muestra si el navegador y el dispositivo los
+// admiten; si no hay ninguno no se ve nada (ni el separador "o paga con tarjeta").
+function Wallets({
+  getBuyer,
+  pay,
+  onPaid,
+  onOwned,
+  onError,
+}: {
+  getBuyer: () => Partial<Buyer>
+  pay: (buyer: Buyer) => Promise<{ orderId: string; clientSecret: string }>
+  onPaid: (orderId: string) => void
+  onOwned: (email: string) => void
+  onError: (message: string) => void
+}) {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [available, setAvailable] = useState(false)
+
+  return (
+    <div className={available ? 'flex flex-col gap-2.5 md:gap-2.5' : undefined}>
+      <ExpressCheckoutElement
+        options={{
+          buttonHeight: 48,
+          buttonTheme: { applePay: 'black', googlePay: 'white' },
+          layout: { maxColumns: 2, maxRows: 1 },
+          emailRequired: true,
+          paymentMethods: {
+            applePay: 'auto',
+            googlePay: 'auto',
+            link: 'never',
+            amazonPay: 'never',
+            paypal: 'never',
+          },
+        }}
+        onReady={({ availablePaymentMethods }) =>
+          setAvailable(
+            !!availablePaymentMethods &&
+              Object.values(availablePaymentMethods).some(Boolean),
+          )
+        }
+        onConfirm={async (event) => {
+          if (!stripe || !elements) return
+          const form = getBuyer()
+          const email = form.email || event.billingDetails?.email
+          const name = form.name || event.billingDetails?.name
+          if (!email || !name) {
+            event.paymentFailed({ reason: 'invalid_shipping_address' })
+            onError('Escribe tu correo y tu nombre para continuar.')
+            return
+          }
+          try {
+            const submitted = await elements.submit()
+            if (submitted.error) throw submitted.error
+            const { orderId, clientSecret } = await pay({ email, name })
+            const result = await stripe.confirmPayment({
+              elements,
+              clientSecret,
+              confirmParams: {
+                return_url: `${window.location.origin}/gracias?orden=${orderId}`,
+              },
+              redirect: 'if_required',
+            })
+            if (result.error) throw result.error
+            onPaid(orderId)
+          } catch (error) {
+            event.paymentFailed({ reason: 'fail' })
+            if (error instanceof AlreadyOwned) return onOwned(email)
+            onError(
+              error instanceof Error && error.message
+                ? error.message
+                : 'No se pudo procesar el pago. Intenta de nuevo.',
+            )
+          }
+        }}
+      />
+      {available && (
+        <div className="flex items-center gap-2.5 text-xs text-landing-muted md:gap-3 md:text-13">
+          <div className="h-px flex-1 bg-landing-line" />
+          o paga con tarjeta
+          <div className="h-px flex-1 bg-landing-line" />
+        </div>
+      )}
+    </div>
+  )
+}
+
+type CardGetters = {
+  mobile: (() => StripeCardElement | null) | null
+  desktop: (() => StripeCardNumberElement | null) | null
+}
+
+// Stripe no deja mezclar el campo único de tarjeta (móvil) con los campos separados
+// (escritorio) en un mismo grupo de Elements: cada versión va en el suyo y deja aquí un
+// getter para que el envío tome el campo de la versión visible.
+function CardGetter({
+  type,
+  getters,
+}: {
+  type: keyof CardGetters
+  getters: React.RefObject<CardGetters>
+}) {
+  const elements = useElements()
+  useEffect(() => {
+    if (type === 'mobile') {
+      getters.current.mobile = () => elements?.getElement(CardElement) ?? null
+    } else {
+      getters.current.desktop = () =>
+        elements?.getElement(CardNumberElement) ?? null
+    }
+  }, [elements, type, getters])
+  return null
+}
+
 function Checkout() {
-  const { course, bonuses, tool, special, until } = Route.useLoaderData()
-  const { promo } = Route.useSearch()
+  const { stripeKey } = Route.useLoaderData()
+  const stripePromise = useMemo(
+    () => (stripeKey ? loadStripe(stripeKey) : null),
+    [stripeKey],
+  )
+  return (
+    <Elements stripe={stripePromise} options={stripeOptions}>
+      <CheckoutForm stripePromise={stripePromise} />
+    </Elements>
+  )
+}
+
+function CheckoutForm({
+  stripePromise,
+}: {
+  stripePromise: ReturnType<typeof loadStripe> | null
+}) {
+  const { course, bonuses, tool, special, until, account } =
+    Route.useLoaderData()
+  const { promo, prueba, desde } = Route.useSearch()
   const navigate = useNavigate()
+  const stripe = useStripe()
+  const cardGetters = useRef<CardGetters>({ mobile: null, desktop: null })
+  const formRef = useRef<HTMLFormElement>(null)
+  const errorRef = useRef<HTMLDivElement>(null)
   const [withTool, setWithTool] = useState(true)
-  const [loading, setLoading] = useState(false)
+  const [stage, setStage] = useState<Stage>('idle')
+  const busy = stage !== 'idle'
+  const [error, setErrorText] = useState<string | null>(null)
+  // Estado de cada campo de Stripe (escritorio: number/expiry/cvc; móvil: card) y el
+  // mensaje del que tenga un error mientras se escribe.
+  const cardFields = useRef<Record<string, boolean>>({})
+  const [fieldError, setFieldError] = useState<{
+    field: string
+    message: string
+  } | null>(null)
+  // Orden y cobro del último intento: se reutilizan si los datos no cambian, para que
+  // reintentar con otra tarjeta no deje órdenes de más.
+  const attempt = useRef<{
+    key: string
+    orderId: string
+    clientSecret: string
+  } | null>(null)
 
   const addTool = tool !== null && withTool
   const courseStrike = course.priceMxn < course.normalMxn
@@ -110,27 +348,138 @@ function Checkout() {
     bonuses.reduce((sum, b) => sum + b.priceMxn, 0) +
     (addTool ? tool.priceMxn : 0)
   const payText = `Pagar ${mxn(total)}`
+  const payLabel =
+    stage === 'idle' ? (
+      payText
+    ) : (
+      <>
+        <Spinner className="size-5" />
+        {stageText[stage]}
+      </>
+    )
+  const shownError = error ?? fieldError?.message ?? null
+
+  function onCardChange(
+    field: string,
+    event: { complete: boolean; error?: { message: string } },
+  ) {
+    cardFields.current[field] = event.complete
+    setErrorText(null)
+    if (event.error) setFieldError({ field, message: event.error.message })
+    else if (fieldError?.field === field) setFieldError(null)
+  }
+
+  function setError(message: string | null) {
+    setErrorText(message)
+    if (message) {
+      setTimeout(() => errorRef.current?.scrollIntoView({ block: 'center' }), 0)
+    }
+  }
+
+  // Crea la orden y su cobro en el servidor (o reutiliza los del intento anterior).
+  async function startPayment(buyer: Buyer) {
+    const key = JSON.stringify([
+      buyer.email,
+      buyer.name,
+      addTool,
+      promo,
+      prueba,
+    ])
+    if (attempt.current?.key === key) return attempt.current
+    const result = await startCheckout({
+      data: {
+        // Con sesión el servidor usa el correo y el nombre de la cuenta (el nombre solo se
+        // manda si la cuenta aún no tiene uno real).
+        ...(!account ? buyer : account.nameLocked ? {} : { name: buyer.name }),
+        withTool: addTool,
+        promo,
+        prueba,
+        replaces: attempt.current?.orderId,
+      },
+    })
+    if ('error' in result) throw new AlreadyOwned()
+    if (!result.clientSecret) throw new Error('No se pudo iniciar el pago.')
+    attempt.current = {
+      key,
+      orderId: result.orderId,
+      clientSecret: result.clientSecret,
+    }
+    return attempt.current
+  }
+
+  const goToLogin = (email: string) =>
+    navigate({ to: '/entrar', search: { correo: email } })
+
+  async function goToThanks(orderId: string) {
+    if (desde === 'mis-cursos') {
+      // Confirma la orden (activa el acceso aunque el webhook no haya llegado) y vuelve.
+      const order = await getThanksOrder({ data: { orderId } })
+      if (order?.status === 'PAID') return navigate({ to: '/mis-cursos' })
+    }
+    return navigate({ to: '/gracias', search: { orden: orderId } })
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!stripe) return
     const form = e.currentTarget
-    setLoading(true)
-    const orderId = await startCheckout({
-      data: {
-        email: form.correo.value,
-        name: form.nombre.value,
-        withTool: addTool,
-        promo,
-      },
-    })
-    navigate({ to: '/pago-prueba', search: { orden: orderId } })
+    const buyer = {
+      email: String(form.correo.value).trim(),
+      name: String(form.nombre.value).trim(),
+    }
+    // Escritorio: tres campos; móvil: uno solo (la maqueta los muestra distinto). El corte es
+    // el `md` de Tailwind (48rem): con px no coincide si el navegador cambia el tamaño de letra.
+    const desktop = window.matchMedia('(min-width: 48rem)').matches
+    const card = desktop
+      ? cardGetters.current.desktop?.()
+      : cardGetters.current.mobile?.()
+    if (!card) return
+    // Sin la tarjeta completa no se crea la orden.
+    const fields = desktop ? ['number', 'expiry', 'cvc'] : ['card']
+    if (!fields.every((f) => cardFields.current[f])) {
+      setError(fieldError?.message ?? 'Completa los datos de tu tarjeta.')
+      card.focus()
+      return
+    }
+
+    setStage('preparing')
+    setError(null)
+    try {
+      const { orderId, clientSecret } = await startPayment(buyer)
+      setStage('confirming')
+      const result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card,
+          billing_details: { name: buyer.name, email: buyer.email },
+        },
+      })
+      if (result.error) {
+        setError(result.error.message ?? 'No se pudo procesar el pago.')
+        setStage('idle')
+        return
+      }
+      setStage('activating')
+      await goToThanks(orderId)
+    } catch (err) {
+      if (err instanceof AlreadyOwned) {
+        await goToLogin(buyer.email)
+        return
+      }
+      setError('No se pudo procesar el pago. Intenta de nuevo.')
+      setStage('idle')
+    }
   }
 
   return (
     <form
+      ref={formRef}
       onSubmit={onSubmit}
+      aria-busy={busy}
       className="flex min-h-screen flex-col bg-landing-page font-sans text-landing-ink"
     >
+      <span role="status" className="sr-only">
+        {stage === 'idle' ? '' : stageText[stage]}
+      </span>
       <div className="flex items-center justify-between border-b border-landing-line bg-white px-4 py-3.5 md:px-8 md:py-4">
         <Link
           to="/"
@@ -181,6 +530,35 @@ function Checkout() {
             Finaliza tu compra
           </h1>
 
+          {stripePromise && (
+            <Elements
+              stripe={stripePromise}
+              options={{
+                mode: 'payment',
+                amount: total * 100,
+                currency: 'mxn',
+                allowedPaymentMethodTypes: ['card'],
+                locale: 'es-419',
+                fonts: stripeFonts,
+                appearance: { variables: { borderRadius: '12px' } },
+              }}
+            >
+              <Wallets
+                getBuyer={() => ({
+                  email: formRef.current?.correo.value.trim(),
+                  name: formRef.current?.nombre.value.trim(),
+                })}
+                pay={startPayment}
+                onOwned={(email) => void goToLogin(email)}
+                onPaid={(orderId) => {
+                  setStage('activating')
+                  void goToThanks(orderId)
+                }}
+                onError={setError}
+              />
+            </Elements>
+          )}
+
           <div className="flex flex-col gap-1.5">
             <label htmlFor="correo" className={label}>
               Correo
@@ -190,7 +568,9 @@ function Checkout() {
               name="correo"
               type="email"
               placeholder="tucorreo@ejemplo.com"
+              defaultValue={account?.email}
               required
+              disabled={busy || !!account}
               className={input}
             />
             <div className="hidden text-13 text-landing-muted md:block">
@@ -207,9 +587,64 @@ function Checkout() {
               name="nombre"
               type="text"
               placeholder="Tu nombre completo"
+              defaultValue={account?.name}
               required
+              disabled={busy || !!account?.nameLocked}
               className={input}
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5 md:gap-2.5">
+            <div className={label}>Tarjeta de crédito o débito</div>
+            {/* Móvil: un solo campo de Stripe */}
+            <Elements stripe={stripePromise} options={stripeOptions}>
+              <div className={`${cardBox} md:hidden`}>
+                <CardElement
+                  options={{
+                    style: cardStyle('16px'),
+                    hidePostalCode: true,
+                    disabled: busy,
+                  }}
+                  onChange={(e) => onCardChange('card', e)}
+                />
+              </div>
+              <CardGetter type="mobile" getters={cardGetters} />
+            </Elements>
+            {/* Escritorio: número, MM / AA y CVC */}
+            <Elements stripe={stripePromise} options={stripeOptions}>
+              <div className="hidden flex-col gap-3.5 rounded-12 border-1.5 border-landing-field bg-white p-4.5 md:flex">
+                <div className={cardField}>
+                  <CardNumberElement
+                    options={{ style: cardStyle('14px'), disabled: busy }}
+                    onChange={(e) => onCardChange('number', e)}
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <div className={`${cardField} flex-1`}>
+                    <CardExpiryElement
+                      options={{ style: cardStyle('14px'), disabled: busy }}
+                      onChange={(e) => onCardChange('expiry', e)}
+                    />
+                  </div>
+                  <div className={`${cardField} flex-1`}>
+                    <CardCvcElement
+                      options={{ style: cardStyle('14px'), disabled: busy }}
+                      onChange={(e) => onCardChange('cvc', e)}
+                    />
+                  </div>
+                </div>
+              </div>
+              <CardGetter type="desktop" getters={cardGetters} />
+            </Elements>
+            {shownError && (
+              <div
+                ref={errorRef}
+                role="alert"
+                className="text-sm text-destructive"
+              >
+                {shownError}
+              </div>
+            )}
           </div>
 
           {tool && (
@@ -224,6 +659,7 @@ function Checkout() {
                 id="bump"
                 type="checkbox"
                 checked={withTool}
+                disabled={busy}
                 onChange={() => setWithTool(!withTool)}
                 className="mt-0.5 size-5.5 flex-none accent-landing-primary md:mt-0.75"
               />
@@ -275,10 +711,11 @@ function Checkout() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={busy || !stripe}
+            aria-busy={busy}
             className={`${payBtn} hidden min-h-14.5 text-19 md:flex`}
           >
-            {payText}
+            {payLabel}
           </button>
 
           <div className="hidden items-start justify-center gap-2.5 text-13 leading-normal text-landing-muted md:flex">
@@ -293,6 +730,17 @@ function Checkout() {
                 términos y condiciones
               </a>
               .
+            </span>
+          </div>
+          <div className="hidden justify-center text-13 text-landing-muted md:flex">
+            <span>
+              ¿Dudas o aclaraciones? Escríbenos a{' '}
+              <a
+                href={`mailto:${SUPPORT_EMAIL}`}
+                className="font-bold text-landing-primary"
+              >
+                {SUPPORT_EMAIL}
+              </a>
             </span>
           </div>
         </div>
@@ -362,15 +810,25 @@ function Checkout() {
         </div>
         <button
           type="submit"
-          disabled={loading}
+          disabled={busy || !stripe}
+          aria-busy={busy}
           className={`${payBtn} flex min-h-14 text-lg`}
         >
-          {payText}
+          {payLabel}
         </button>
         <div className="text-center text-xs leading-140 text-landing-muted">
           <strong className="text-landing-ink">Pago seguro con Stripe.</strong>{' '}
           No guardamos los datos de tu tarjeta. Al pagar aceptas los términos y
           condiciones.
+        </div>
+        <div className="text-center text-xs text-landing-muted">
+          ¿Dudas? Escríbenos a{' '}
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="font-bold text-landing-primary"
+          >
+            {SUPPORT_EMAIL}
+          </a>
         </div>
       </div>
     </form>

@@ -6,6 +6,7 @@ import { prisma } from '#/db'
 import { mxn } from '#/lib/catalog'
 import { courseContents } from '#/lib/course-pages'
 import type { CoursePage, Offer as OfferCard } from '#/lib/course-pages'
+import { signedPlaybackUrl } from '#/lib/bunny'
 import { isAdminRequest } from '#/lib/guards'
 import { resolveOffer } from '#/lib/offers'
 import type { Offer } from '#/lib/offers'
@@ -60,6 +61,7 @@ export function buildCoursePage(offer: Offer): CoursePage | null {
           }
         : null,
     promoSlug: offer.promotion?.slug,
+    promoTest: offer.testKey,
   }
 }
 
@@ -98,16 +100,19 @@ export const getCourseLanding = createServerFn()
 // /<url de la promoción>: la landing del anuncio. Los precios especiales se ven solo
 // dentro de las fechas; fuera de ellas (o pausada) se ven los precios normales.
 export const getPromotionLanding = createServerFn()
-  .validator(z.object({ promo: z.string() }))
+  .validator(z.object({ promo: z.string(), prueba: z.string().optional() }))
   .handler(async ({ data }) => {
     const exists = await prisma.promotion.findUnique({
       where: { slug: data.promo },
-      select: { id: true },
+      select: { id: true, introVideoId: true },
     })
     if (!exists) throw notFound()
-    const offer = await resolveOffer(data.promo, false)
+    const offer = await resolveOffer(data.promo, false, data.prueba)
     if (!offer.main.published && !(await isAdminRequest())) throw notFound()
     const page = buildCoursePage(offer)
     if (!page) throw notFound()
-    return page
+    const introVideo = exists.introVideoId
+      ? signedPlaybackUrl(exists.introVideoId)
+      : null
+    return { ...page, introVideo }
   })

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { MAX_QUESTION_LENGTH, createQuestion } from '#/lib/player'
 import type { getPlayer } from '#/lib/player'
 import { cn } from '#/lib/utils'
+import { usePreview } from './preview'
 
 type Question = Awaited<ReturnType<typeof getPlayer>>['lesson']['questions'][0]
 
@@ -47,6 +48,7 @@ export function Questions({
       ? questions
       : questions.slice(0, COLLAPSED)
   const hasText = text.trim().length > 0
+  const preview = usePreview()
 
   function change(value: string) {
     setText(value)
@@ -107,7 +109,7 @@ export function Questions({
         <button
           type="button"
           onClick={ask}
-          disabled={!hasText}
+          disabled={!hasText || preview}
           className={cn(
             'inline-flex h-12.5 cursor-pointer items-center justify-center gap-2.5 rounded-12 border-0 bg-player-btn px-5.5 font-sans text-base font-black text-player-btn-text',
             page ? 'w-full' : 'min-w-40',

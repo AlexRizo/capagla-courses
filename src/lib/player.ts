@@ -5,7 +5,7 @@ import { getRequestHeaders } from '@tanstack/react-start/server'
 import { z } from 'zod'
 
 import { prisma } from '#/db'
-import { auth } from '#/lib/auth'
+import { readSession } from '#/lib/auth'
 import { signedPlaybackUrl } from '#/lib/bunny'
 import { ago } from '#/lib/ago'
 import { parseParts, partAt } from '#/lib/duration'
@@ -20,14 +20,21 @@ import {
 // Con sesión pero sin acceso completo (una lead de "Clase gratis" o con el acceso vencido) solo
 // entra a los bloques gratis; si el curso no tiene, vuelve a Mis cursos (ahí se ve el curso
 // bloqueado). La comprobación es del servidor, no de la pantalla.
-async function requireAccess(slug: string) {
-  const session = await auth.api.getSession({ headers: getRequestHeaders() })
+// `preview` ("Ver como alumna" del panel): solo una admin; ve el curso completo aunque esté
+// en borrador, como una alumna recién inscrita (sin su avance) y sin guardar nada.
+async function requireAccess(slug: string, preview = false) {
+  const session = await readSession(getRequestHeaders())
   if (!session) throw redirect({ to: '/entrar' })
+  const asAdmin = preview && session.user.role === 'ADMIN'
 
   const course = await prisma.product.findUnique({ where: { slug } })
-  if (course?.kind !== 'COURSE' || course.status !== 'PUBLISHED') {
+  if (
+    course?.kind !== 'COURSE' ||
+    (course.status !== 'PUBLISHED' && !asAdmin)
+  ) {
     throw notFound()
   }
+  if (asAdmin) return { session, course, full: true, preview: true }
   const enrollment = await prisma.enrollment.findUnique({
     where: {
       userId_productId: { userId: session.user.id, productId: course.id },
@@ -40,19 +47,27 @@ async function requireAccess(slug: string) {
     })
     if (free === 0) throw redirect({ to: '/mis-cursos' })
   }
-  return { session, course, full }
+  return { session, course, full, preview: false }
 }
 
-async function loadTree(userId: string, productId: string, full: boolean) {
+// `fresh`: sin avance (vista previa de la admin).
+async function loadTree(
+  userId: string,
+  productId: string,
+  full: boolean,
+  fresh = false,
+) {
   const [allItems, progress] = await Promise.all([
     prisma.courseItem.findMany({
       where: { productId },
       orderBy: { position: 'asc' },
     }),
-    prisma.lessonProgress.findMany({
-      where: { userId, item: { productId } },
-      select: { itemId: true },
-    }),
+    fresh
+      ? []
+      : prisma.lessonProgress.findMany({
+          where: { userId, item: { productId } },
+          select: { itemId: true },
+        }),
   ])
   const items = full ? allItems : onlyFreeBlocks(allItems)
   const seen = new Set(progress.map((p) => p.itemId))
@@ -70,13 +85,23 @@ export const getResumeLesson = createServerFn()
 
 // Todo lo que necesita la pantalla de una lección.
 export const getPlayer = createServerFn()
-  .validator(z.object({ slug: z.string(), lessonId: z.string() }))
+  .validator(
+    z.object({
+      slug: z.string(),
+      lessonId: z.string(),
+      preview: z.boolean().optional(),
+    }),
+  )
   .handler(async ({ data }) => {
-    const { session, course, full } = await requireAccess(data.slug)
+    const { session, course, full, preview } = await requireAccess(
+      data.slug,
+      data.preview,
+    )
     const { items, seen, tree, order } = await loadTree(
       session.user.id,
       course.id,
       full,
+      preview,
     )
     const current = order.find((o) => o.lesson.id === data.lessonId)
     if (!current) throw notFound()
@@ -87,17 +112,21 @@ export const getPlayer = createServerFn()
       : undefined
     const block = tree.find((b) => b.id === current.blockId)
 
-    const moments = await prisma.lessonMoment.findMany({
-      where: { userId: session.user.id, itemId: data.lessonId },
-      orderBy: { seconds: 'asc' },
-    })
+    const moments = preview
+      ? []
+      : await prisma.lessonMoment.findMany({
+          where: { userId: session.user.id, itemId: data.lessonId },
+          orderBy: { seconds: 'asc' },
+        })
     // Las respondidas las ven todas; las que espera la chef, solo quien las hizo.
     const questions = await prisma.lessonQuestion.findMany({
       where: {
         itemId: data.lessonId,
         OR: [
           { status: 'ANSWERED' },
-          { status: 'PENDING', userId: session.user.id },
+          ...(preview
+            ? []
+            : [{ status: 'PENDING' as const, userId: session.user.id }]),
         ],
       },
       include: { user: { select: { name: true } } },
@@ -121,6 +150,7 @@ export const getPlayer = createServerFn()
     const total = order.length
     const seenCount = order.filter((o) => seen.has(o.lesson.id)).length
     return {
+      preview,
       course: { slug: course.slug, name: course.name },
       user: {
         name: session.user.name,

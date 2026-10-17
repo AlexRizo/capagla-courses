@@ -35,18 +35,6 @@ function MisCursos() {
 
   const { name, email, isAdmin } = data.user
   const initial = name.charAt(0).toUpperCase()
-  const course = data.courses.find((c) => c.slug === 'postres-navidad')
-  const expires = course
-    ? new Date(course.expiresAt).toLocaleDateString('es-MX', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      })
-    : ''
-  const active = course?.active ?? false
-  const lessons = course?.lessons ?? 0
-  const seen = course?.seen ?? 0
-  const pct = lessons ? Math.round((seen / lessons) * 100) : 0
 
   function openTicket() {
     setTicket('form')
@@ -326,71 +314,12 @@ function MisCursos() {
             </div>
           )}
 
-          {course && (
-            <div className="relative flex flex-col overflow-hidden rounded-2xl border border-landing-line bg-white md:flex-row md:flex-wrap md:rounded-20">
-              <div className="aspect-video overflow-hidden bg-landing-cover md:relative md:aspect-auto md:min-h-55 md:grow md:basis-70">
-                <img
-                  src="/images/postres-navidad.jpg"
-                  alt={course.name}
-                  className="block size-full object-cover md:absolute md:inset-0"
-                />
-              </div>
-              <div className="flex flex-col gap-3 p-4 md:grow-2 md:basis-100 md:justify-center md:gap-4 md:px-8 md:py-7">
-                <div className="text-21 leading-115 font-black tracking-landing-title-sm md:text-26 md:leading-normal md:tracking-landing-logo">
-                  {course.name}
-                </div>
-                <div className="text-sm text-landing-muted md:text-15">
-                  11 recetas · Tu acceso {active ? 'vence' : 'venció'} el{' '}
-                  {expires}
-                </div>
-                <div className="flex flex-col gap-1.5 md:gap-2">
-                  <div className="h-2.5 overflow-hidden rounded-full bg-landing-track">
-                    <div
-                      className="h-full rounded-full bg-landing-primary"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <div className="text-13 text-landing-muted md:text-sm">
-                    {seen} de {lessons} lecciones vistas · {pct}%
-                  </div>
-                </div>
-                <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
-                  <Link
-                    to="/mis-cursos/$slug"
-                    params={{ slug: course.slug }}
-                    aria-disabled={!active}
-                    className={cn(
-                      'flex min-h-13 items-center justify-center rounded-12 bg-landing-primary text-17 font-black text-white no-underline md:inline-flex md:min-h-12.5 md:px-7',
-                      !active && 'pointer-events-none opacity-50',
-                    )}
-                  >
-                    Continuar progreso
-                  </Link>
-                  <a
-                    href={active ? '#' : undefined}
-                    aria-disabled={!active}
-                    className={cn(
-                      'flex min-h-11.5 items-center justify-center gap-2 rounded-12 border-1.5 border-landing-field text-sm font-bold text-landing-primary no-underline md:inline-flex md:min-h-12.5 md:px-4 md:text-15',
-                      !active && 'pointer-events-none opacity-50',
-                    )}
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="size-4.5 fill-none stroke-landing-primary stroke-2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M12 4v11" />
-                      <path d="M7 11l5 5 5-5" />
-                      <path d="M5 20h14" />
-                    </svg>
-                    Descargar recetario (PDF)
-                  </a>
-                </div>
-              </div>
-            </div>
-          )}
+          {data.courses.map((course) => (
+            <CourseCard key={course.slug} course={course} />
+          ))}
+          {data.freeCourses.map((course) => (
+            <FreeCourseCard key={course.slug} course={course} />
+          ))}
 
           <div className="flex items-center gap-3 overflow-hidden rounded-2xl border border-landing-line bg-white p-3 md:flex-wrap md:items-stretch md:gap-0 md:rounded-20 md:p-0">
             <div className="flex size-21 shrink-0 items-center justify-center rounded-12 bg-landing-ink p-1.5 text-center text-13 font-black text-landing-neon md:size-auto md:min-h-35 md:grow md:basis-70 md:rounded-none md:p-5 md:text-2xl">
@@ -458,6 +387,151 @@ function MisCursos() {
               Términos y condiciones
             </a>
           </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+type MyCourse = NonNullable<
+  Awaited<ReturnType<typeof getMyCourses>>
+>['courses'][number]
+
+type FreeCourse = NonNullable<
+  Awaited<ReturnType<typeof getMyCourses>>
+>['freeCourses'][number]
+
+// Curso que la cuenta aún no tiene: la misma tarjeta, con su clase gratis y la compra
+// ("Quiero el curso" va al checkout y, al pagar, vuelve aquí).
+function FreeCourseCard({ course }: { course: FreeCourse }) {
+  const { lessons, seen } = course
+  const pct = lessons ? Math.round((seen / lessons) * 100) : 0
+
+  return (
+    <div className="relative flex flex-col overflow-hidden rounded-2xl border border-landing-line bg-white md:flex-row md:flex-wrap md:rounded-20">
+      <div className="aspect-video overflow-hidden bg-landing-cover md:relative md:aspect-auto md:min-h-55 md:grow md:basis-70">
+        {course.coverUrl && (
+          <img
+            src={course.coverUrl}
+            alt={course.name}
+            className="block size-full object-cover md:absolute md:inset-0"
+          />
+        )}
+      </div>
+      <div className="flex flex-col gap-3 p-4 md:grow-2 md:basis-100 md:justify-center md:gap-4 md:px-8 md:py-7">
+        <div className="text-21 leading-115 font-black tracking-landing-title-sm md:text-26 md:leading-normal md:tracking-landing-logo">
+          {course.name}
+        </div>
+        <div className="text-sm text-landing-muted md:text-15">
+          Clase gratis · {lessons} {lessons === 1 ? 'lección' : 'lecciones'}
+        </div>
+        <div className="flex flex-col gap-1.5 md:gap-2">
+          <div className="h-2.5 overflow-hidden rounded-full bg-landing-track">
+            <div
+              className="h-full rounded-full bg-landing-primary"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <div className="text-13 text-landing-muted md:text-sm">
+            {seen} de {lessons}{' '}
+            {lessons === 1 ? 'lección vista' : 'lecciones vistas'} · {pct}%
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
+          <Link
+            to="/mis-cursos/$slug"
+            params={{ slug: course.slug }}
+            className="flex min-h-13 items-center justify-center rounded-12 bg-landing-primary text-17 font-black text-white no-underline md:inline-flex md:min-h-12.5 md:px-7"
+          >
+            Ver clase gratis
+          </Link>
+          <Link
+            to="/checkout"
+            search={{ desde: 'mis-cursos' }}
+            className="flex min-h-11.5 items-center justify-center rounded-12 border-1.5 border-landing-field text-sm font-bold text-landing-primary no-underline md:inline-flex md:min-h-12.5 md:px-4 md:text-15"
+          >
+            Quiero el curso
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Tarjeta de un curso comprado: avance, vencimiento, "Continuar progreso" y recetario.
+function CourseCard({ course }: { course: MyCourse }) {
+  const expires = new Date(course.expiresAt).toLocaleDateString('es-MX', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+  const { active, lessons, seen } = course
+  const pct = lessons ? Math.round((seen / lessons) * 100) : 0
+
+  return (
+    <div className="relative flex flex-col overflow-hidden rounded-2xl border border-landing-line bg-white md:flex-row md:flex-wrap md:rounded-20">
+      <div className="aspect-video overflow-hidden bg-landing-cover md:relative md:aspect-auto md:min-h-55 md:grow md:basis-70">
+        {course.coverUrl && (
+          <img
+            src={course.coverUrl}
+            alt={course.name}
+            className="block size-full object-cover md:absolute md:inset-0"
+          />
+        )}
+      </div>
+      <div className="flex flex-col gap-3 p-4 md:grow-2 md:basis-100 md:justify-center md:gap-4 md:px-8 md:py-7">
+        <div className="text-21 leading-115 font-black tracking-landing-title-sm md:text-26 md:leading-normal md:tracking-landing-logo">
+          {course.name}
+        </div>
+        <div className="text-sm text-landing-muted md:text-15">
+          {course.recipes > 0 && `${course.recipes} recetas · `}Tu acceso{' '}
+          {active ? 'vence' : 'venció'} el {expires}
+        </div>
+        <div className="flex flex-col gap-1.5 md:gap-2">
+          <div className="h-2.5 overflow-hidden rounded-full bg-landing-track">
+            <div
+              className="h-full rounded-full bg-landing-primary"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <div className="text-13 text-landing-muted md:text-sm">
+            {seen} de {lessons}{' '}
+            {lessons === 1 ? 'lección vista' : 'lecciones vistas'} · {pct}%
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
+          <Link
+            to="/mis-cursos/$slug"
+            params={{ slug: course.slug }}
+            aria-disabled={!active}
+            className={cn(
+              'flex min-h-13 items-center justify-center rounded-12 bg-landing-primary text-17 font-black text-white no-underline md:inline-flex md:min-h-12.5 md:px-7',
+              !active && 'pointer-events-none opacity-50',
+            )}
+          >
+            Continuar progreso
+          </Link>
+          <a
+            href={active ? '#' : undefined}
+            aria-disabled={!active}
+            className={cn(
+              'flex min-h-11.5 items-center justify-center gap-2 rounded-12 border-1.5 border-landing-field text-sm font-bold text-landing-primary no-underline md:inline-flex md:min-h-12.5 md:px-4 md:text-15',
+              !active && 'pointer-events-none opacity-50',
+            )}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="size-4.5 fill-none stroke-landing-primary stroke-2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 4v11" />
+              <path d="M7 11l5 5 5-5" />
+              <path d="M5 20h14" />
+            </svg>
+            Descargar recetario (PDF)
+          </a>
         </div>
       </div>
     </div>

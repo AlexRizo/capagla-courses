@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { z } from 'zod'
 
 import { CourseLanding } from '#/components/course-landing'
 import { getPromotionLanding } from '#/lib/course-landing'
@@ -7,8 +8,15 @@ import { getPromotionLanding } from '#/lib/course-landing'
 // anuncio mientras estén vigentes. Las rutas fijas (/entrar, /checkout...) tienen prioridad
 // y sus nombres no se pueden usar como URL de promoción (`lib/promotions.ts`).
 export const Route = createFileRoute('/$promo')({
-  loader: ({ params }) =>
-    getPromotionLanding({ data: { promo: params.promo } }),
+  // `?prueba=`: enlace de prueba de la admin (ver `resolveOffer`).
+  validateSearch: z.object({
+    prueba: z.string().optional().catch(undefined),
+  }),
+  loaderDeps: ({ search }) => ({ prueba: search.prueba }),
+  loader: ({ params, deps }) =>
+    getPromotionLanding({
+      data: { promo: params.promo, prueba: deps.prueba },
+    }),
   component: PromoPage,
 })
 

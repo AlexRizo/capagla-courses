@@ -39,11 +39,13 @@ export type BlockNode = {
 export const minutes = (sec: number) =>
   `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
 
+type FreeCheck = Pick<Item, 'id' | 'kind' | 'parentId' | 'isFree'>
+
 // Solo los bloques gratis y lo que contienen: lo que ve quien aún no compró el curso.
-export function onlyFreeBlocks<T extends Item>(items: T[]) {
-  const byId = new Map(items.map((i) => [i.id, i]))
-  const blockOf = (item: Item) => {
-    let current: Item | undefined = item
+export function onlyFreeBlocks<T extends FreeCheck>(items: T[]) {
+  const byId = new Map<string, FreeCheck>(items.map((i) => [i.id, i]))
+  const blockOf = (item: FreeCheck) => {
+    let current: FreeCheck | undefined = item
     while (current && current.kind !== 'BLOCK') {
       current = current.parentId ? byId.get(current.parentId) : undefined
     }

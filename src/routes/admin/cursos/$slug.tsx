@@ -2,12 +2,18 @@ import {
   DndContext,
   KeyboardSensor,
   PointerSensor,
+  closestCenter,
+  pointerWithin,
   useDraggable,
   useDroppable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import type { DragEndEvent } from '@dnd-kit/core'
+import type {
+  CollisionDetection,
+  DragEndEvent,
+  DragMoveEvent,
+} from '@dnd-kit/core'
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 
@@ -23,6 +29,8 @@ import {
   getAdminCourse,
   moveCourseItem,
 } from '#/lib/admin-courses'
+import { resolveDrop, zoneFor } from '#/lib/course-tree'
+import type { DropZone, Placement } from '#/lib/course-tree'
 import { cn } from '#/lib/utils'
 
 export const Route = createFileRoute('/admin/cursos/$slug')({
@@ -50,6 +58,46 @@ const kinds = [
 
 // Sangría de la maqueta: 10px, 34px y 66px.
 const indent = ['pl-2.5', 'pl-8.5', 'pl-16.5']
+const indentPx = [10, 34, 66]
+
+// Fila sobre la que está el puntero; con teclado (sin puntero) la más cercana.
+const collisions: CollisionDetection = (args) => {
+  const hits = pointerWithin(args)
+  return hits.length ? hits : closestCenter(args)
+}
+
+type Drop = { overId: string; zone: DropZone }
+
+// Qué se resalta según dónde caerá lo arrastrado: la fila que lo recibe como primer hijo,
+// o una línea sobre/bajo una fila (bajo la última fila de lo que cuelga, si es "después").
+type Indicator =
+  | { kind: 'inside'; rowId: string }
+  | { kind: 'line'; rowId: string; edge: 'top' | 'bottom'; level: number }
+
+function indicatorFor(
+  items: { id: string; level: number }[],
+  placement: Placement,
+): Indicator | null {
+  if (placement.mode === 'first') {
+    return placement.parentId
+      ? { kind: 'inside', rowId: placement.parentId }
+      : null
+  }
+  const at = items.findIndex((i) => i.id === placement.anchorId)
+  if (at < 0) return null
+  const anchor = items[at]
+  if (placement.mode === 'before') {
+    return { kind: 'line', rowId: anchor.id, edge: 'top', level: anchor.level }
+  }
+  let end = at
+  while (items[end + 1] && items[end + 1].level > anchor.level) end++
+  return {
+    kind: 'line',
+    rowId: items[end].id,
+    edge: 'bottom',
+    level: anchor.level,
+  }
+}
 
 const pill =
   'rounded-full border border-border px-2 py-0.5 text-xs font-medium text-chart-4'
@@ -62,22 +110,51 @@ function EditarCurso() {
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor),
   )
+  const [drop, setDrop] = useState<Drop | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
   const [menu, setMenu] = useState(false)
   const [menuError, setMenuError] = useState<string | null>(null)
   // 'course' = Ajustes del curso; si no, el id del elemento seleccionado.
   const [selected, setSelected] = useState('course')
   const current = items.find((i) => i.id === selected)
 
-  async function onDragEnd({ active, over }: DragEndEvent) {
-    if (!over || active.id === over.id) return
-    const from = items.findIndex((i) => i.id === active.id)
-    const to = items.findIndex((i) => i.id === over.id)
+  const nodes = items.map((i) => ({
+    id: i.id,
+    parentId: i.parentId,
+    kind: i.kind,
+  }))
+
+  // Zona de la fila donde está el puntero (o, con teclado, el centro de lo arrastrado).
+  function dropAt({ active, over, delta, activatorEvent }: DragMoveEvent) {
+    if (!over || active.id === over.id) return null
+    const translated = active.rect.current.translated
+    const y =
+      'clientY' in activatorEvent
+        ? Number(activatorEvent.clientY) + delta.y
+        : translated
+          ? translated.top + translated.height / 2
+          : over.rect.top
+    const ratio = Math.min(
+      1,
+      Math.max(0, (y - over.rect.top) / over.rect.height),
+    )
+    const overId = String(over.id)
+    return { overId, zone: zoneFor(nodes, String(active.id), overId, ratio) }
+  }
+
+  const placement =
+    drop && activeId
+      ? resolveDrop(nodes, activeId, drop.overId, drop.zone)
+      : null
+  const indicator = placement ? indicatorFor(items, placement) : null
+
+  async function onDragEnd(event: DragEndEvent) {
+    const target = dropAt(event)
+    setDrop(null)
+    setActiveId(null)
+    if (!target) return
     await moveCourseItem({
-      data: {
-        id: String(active.id),
-        overId: String(over.id),
-        after: from < to,
-      },
+      data: { id: String(event.active.id), ...target },
     })
     await router.invalidate()
   }
@@ -200,7 +277,17 @@ function EditarCurso() {
               type="Curso"
               meta=""
             />
-            <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={collisions}
+              onDragStart={({ active }) => setActiveId(String(active.id))}
+              onDragMove={(event) => setDrop(dropAt(event))}
+              onDragEnd={onDragEnd}
+              onDragCancel={() => {
+                setDrop(null)
+                setActiveId(null)
+              }}
+            >
               {items.map((i) => (
                 <ItemRow
                   key={i.id}
@@ -212,6 +299,14 @@ function EditarCurso() {
                   title={i.title}
                   type={i.type}
                   meta={i.meta}
+                  inside={
+                    indicator?.kind === 'inside' && indicator.rowId === i.id
+                  }
+                  line={
+                    indicator?.kind === 'line' && indicator.rowId === i.id
+                      ? indicator
+                      : null
+                  }
                 />
               ))}
             </DndContext>
@@ -231,12 +326,14 @@ function EditarCurso() {
               title={current.title}
               published={current.published}
               recipe={current.recipe}
+              resources={current.resources}
               convert={convert}
               remove={remove}
             />
           ) : current?.kind === 'LESSON' ? (
             <LessonSettings
               key={current.id}
+              slug={slug}
               lesson={current}
               convert={convert}
               remove={remove}
@@ -253,7 +350,7 @@ function EditarCurso() {
 // Fila del árbol que se arrastra por el asa ⋮⋮ y recibe lo que se suelta encima.
 function ItemRow({ id, ...props }: RowProps & { id: string }) {
   const drag = useDraggable({ id })
-  const drop = useDroppable({ id })
+  const dropTarget = useDroppable({ id })
 
   return (
     <Row
@@ -261,11 +358,10 @@ function ItemRow({ id, ...props }: RowProps & { id: string }) {
       dnd={{
         rowRef: (node) => {
           drag.setNodeRef(node)
-          drop.setNodeRef(node)
+          dropTarget.setNodeRef(node)
         },
         handleRef: drag.setActivatorNodeRef,
         handleProps: { ...drag.attributes, ...drag.listeners },
-        isOver: drop.isOver && !drag.isDragging,
         isDragging: drag.isDragging,
         transform: drag.transform,
       }}
@@ -282,6 +378,8 @@ type RowProps = {
   title: string
   type: string
   meta: string
+  inside?: boolean
+  line?: { edge: 'top' | 'bottom'; level: number } | null
 }
 
 function Row({
@@ -293,13 +391,14 @@ function Row({
   title,
   type,
   meta,
+  inside,
+  line,
   dnd,
 }: RowProps & {
   dnd?: {
     rowRef: (node: HTMLElement | null) => void
     handleRef: (node: HTMLElement | null) => void
     handleProps: React.HTMLAttributes<HTMLElement>
-    isOver: boolean
     isDragging: boolean
     transform: { x: number; y: number } | null
   }
@@ -323,17 +422,25 @@ function Row({
         },
       })}
       className={cn(
-        'flex items-center gap-2.5 rounded-md border border-transparent px-2.5 py-2',
+        'relative flex items-center gap-2.5 rounded-md border border-transparent px-2.5 py-2',
         onSelect && 'cursor-pointer',
         indent[level],
         kind === 'BLOCK' && 'border-border bg-primary-foreground',
         selected && 'border-primary bg-accent',
         dnd?.isDragging && 'relative z-20 opacity-90 shadow-lg',
         dnd?.isDragging && kind !== 'BLOCK' && 'bg-card',
-        dnd?.isOver &&
-          'border-primary bg-primary-foreground ring-2 ring-primary',
+        inside && 'border-primary bg-primary-foreground ring-2 ring-primary',
       )}
     >
+      {line && (
+        <div
+          style={{ left: indentPx[line.level] }}
+          className={cn(
+            'pointer-events-none absolute right-0 z-30 h-0.5 rounded-full bg-primary',
+            line.edge === 'top' ? '-top-px' : '-bottom-px',
+          )}
+        />
+      )}
       <span
         ref={dnd?.handleRef}
         {...dnd?.handleProps}

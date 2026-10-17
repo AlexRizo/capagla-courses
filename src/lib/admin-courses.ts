@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client'
-import type { CourseItem } from '@prisma/client'
+import type { CourseItem, Resource } from '@prisma/client'
 import type { JSONContent } from '@tiptap/react'
 import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
@@ -9,8 +9,9 @@ import { prisma } from '#/db'
 import { normalizeParts } from '#/lib/duration'
 import { getBunnyVideo } from '#/lib/bunny'
 import { requireAdmin } from '#/lib/guards'
-import { resolveMove } from '#/lib/course-tree'
+import { resolveDrop } from '#/lib/course-tree'
 import { parseRichText } from '#/lib/rich-text'
+import { removeUpload } from '#/lib/uploads'
 
 // Listado de cursos del panel: curso, videos, precio, alumnas y estado.
 export const getAdminCourses = createServerFn()
@@ -49,8 +50,10 @@ const minutes = (sec: number) =>
 
 // Árbol del curso aplanado en orden de lectura, con la sangría (`level`) y los
 // textos de la maqueta: tipo ("Bloque", "Video"...) y a la derecha cantidad o duración.
-function flatten(items: CourseItem[]) {
-  const byParent = new Map<string | null, CourseItem[]>()
+type ItemWithResources = CourseItem & { resources: Resource[] }
+
+function flatten(items: ItemWithResources[]) {
+  const byParent = new Map<string | null, ItemWithResources[]>()
   for (const i of items) {
     byParent.set(i.parentId, [...(byParent.get(i.parentId) ?? []), i])
   }
@@ -58,6 +61,7 @@ function flatten(items: CourseItem[]) {
 
   const rows: {
     id: string
+    parentId: string | null
     level: number
     kind: 'BLOCK' | 'CHAPTER' | 'LESSON'
     title: string
@@ -71,6 +75,7 @@ function flatten(items: CourseItem[]) {
     body: JSONContent | null
     notes: string | null
     videoParts: string | null
+    resources: { id: string; name: string }[]
     type: string
     meta: string
   }[] = []
@@ -106,6 +111,7 @@ function flatten(items: CourseItem[]) {
               : 'Video'
       rows.push({
         id: i.id,
+        parentId: i.parentId,
         level,
         kind: i.kind,
         title: i.title,
@@ -119,6 +125,7 @@ function flatten(items: CourseItem[]) {
         body: i.kind === 'LESSON' ? (i.body as JSONContent | null) : null,
         notes: i.notes,
         videoParts: i.videoParts,
+        resources: i.resources.map((r) => ({ id: r.id, name: r.name })),
         type,
         meta,
       })
@@ -137,7 +144,10 @@ export const getAdminCourse = createServerFn()
     const course = await prisma.product.findUnique({
       where: { slug: data.slug },
       include: {
-        items: { orderBy: { position: 'asc' } },
+        items: {
+          orderBy: { position: 'asc' },
+          include: { resources: { orderBy: { position: 'asc' } } },
+        },
       },
     })
     if (course?.kind !== 'COURSE') throw notFound()
@@ -146,6 +156,7 @@ export const getAdminCourse = createServerFn()
       settings: {
         name: course.name,
         description: course.description ?? '',
+        coverUrl: course.coverUrl,
         priceMxn: course.priceMxn,
         accessDays: course.accessDays,
         published: course.status === 'PUBLISHED',
@@ -155,7 +166,7 @@ export const getAdminCourse = createServerFn()
   })
 
 // "Ajustes del curso": título, descripción, precio normal, días de acceso y estado.
-// La portada se agrega con la subida de archivos.
+// La portada se sube por `/api/uploads`; aquí solo se quita.
 export const updateCourseSettings = createServerFn({ method: 'POST' })
   .middleware([requireAdmin])
   .validator(
@@ -178,6 +189,30 @@ export const updateCourseSettings = createServerFn({ method: 'POST' })
         status: published ? 'PUBLISHED' : 'DRAFT',
       },
     })
+  })
+
+export const removeCourseCover = createServerFn({ method: 'POST' })
+  .middleware([requireAdmin])
+  .validator(z.object({ slug: z.string() }))
+  .handler(async ({ data }) => {
+    const course = await prisma.product.findUnique({
+      where: { slug: data.slug },
+    })
+    if (course?.kind !== 'COURSE') throw notFound()
+    await prisma.product.update({
+      where: { id: course.id },
+      data: { coverUrl: null },
+    })
+    await removeUpload(course.coverUrl)
+  })
+
+// Quita un recurso de un capítulo o lección y borra su archivo.
+export const removeResource = createServerFn({ method: 'POST' })
+  .middleware([requireAdmin])
+  .validator(z.object({ id: z.string() }))
+  .handler(async ({ data }) => {
+    const resource = await prisma.resource.delete({ where: { id: data.id } })
+    await removeUpload(resource.url)
   })
 
 // Un bloque solo lleva nombre y si es gratis (visible sin comprar).
@@ -330,7 +365,21 @@ export const deleteCourseItem = createServerFn({ method: 'POST' })
   .middleware([requireAdmin])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
+    // Los recursos se borran en cascada de la base; sus archivos se quitan a mano.
+    const ids = [data.id]
+    for (const id of ids) {
+      const kids = await prisma.courseItem.findMany({
+        where: { parentId: id },
+        select: { id: true },
+      })
+      ids.push(...kids.map((k) => k.id))
+    }
+    const files = await prisma.resource.findMany({
+      where: { itemId: { in: ids } },
+      select: { url: true },
+    })
     await prisma.courseItem.delete({ where: { id: data.id } })
+    await Promise.all(files.map((f) => removeUpload(f.url)))
   })
 
 // "+ Crear curso": curso vacío en borrador, con precio 0 y 365 días de acceso, que se
@@ -356,12 +405,16 @@ export const createCourse = createServerFn({ method: 'POST' })
     return { slug }
   })
 
-// Arrastrar para ordenar: mueve `id` sobre `overId` (reglas en `resolveMove`).
+// Arrastrar para ordenar: mueve `id` sobre `overId` en una zona (reglas en `resolveDrop`).
 // El servidor decide el destino, lo valida y renumera los hermanos.
 export const moveCourseItem = createServerFn({ method: 'POST' })
   .middleware([requireAdmin])
   .validator(
-    z.object({ id: z.string(), overId: z.string(), after: z.boolean() }),
+    z.object({
+      id: z.string(),
+      overId: z.string(),
+      zone: z.enum(['before', 'inside', 'after']),
+    }),
   )
   .handler(async ({ data }) => {
     const item = await prisma.courseItem.findUnique({ where: { id: data.id } })
@@ -371,7 +424,7 @@ export const moveCourseItem = createServerFn({ method: 'POST' })
       orderBy: { position: 'asc' },
     })
 
-    const placement = resolveMove(items, data.id, data.overId, data.after)
+    const placement = resolveDrop(items, data.id, data.overId, data.zone)
     if (!placement) return
 
     const siblings = items.filter(

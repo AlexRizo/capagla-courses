@@ -12,6 +12,18 @@ export const env = createEnv({
     BUNNY_API_KEY: z.string().optional(),
     BUNNY_CDN_HOSTNAME: z.string().optional(),
     BUNNY_TOKEN_KEY: z.string().optional(),
+    // Stripe (cobros). La clave publicable se entrega al navegador desde el servidor.
+    // El secreto del webhook sale de `stripe listen` (desarrollo) o del panel (producción).
+    STRIPE_SECRET_KEY: z.string().optional(),
+    STRIPE_PUBLISH_KEY: z.string().optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().optional(),
+    // Brevo (correo). Sin la clave o sin remitente, los correos solo salen en la consola.
+    // El remitente debe ser de un dominio verificado en Brevo.
+    BREVO_API_KEY: z.string().optional(),
+    MAIL_FROM_EMAIL: z.string().email().optional(),
+    MAIL_FROM_NAME: z.string().optional(),
+    // Buzón de soporte: recibe los reportes y es la dirección de respuesta de los correos.
+    SUPPORT_EMAIL: z.string().email().optional(),
   },
 
   /**

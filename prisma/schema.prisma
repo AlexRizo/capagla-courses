@@ -112,9 +112,16 @@ enum ItemKind {
 }
 
 enum QuestionStatus {
+  // Solo la contestó el asistente de IA: la alumna aún no se la manda a la chef.
+  ASSISTANT
   PENDING
   ANSWERED
   HIDDEN
+}
+
+enum QuestionVote {
+  UP
+  DOWN
 }
 
 enum LessonType {
@@ -161,6 +168,26 @@ model Promotion {
   createdAt    DateTime           @default(now())
   products     PromotionProduct[]
   orders       Order[]
+  events       PromotionEvent[]
+}
+
+enum PromotionEventKind {
+  VISIT
+  CART
+}
+
+// Medición de una promoción: cuántos navegadores distintos (`visitorId`, cookie anónima)
+// vieron su landing (VISIT) o llegaron al pago con ella (CART). Una fila por navegador y
+// tipo: recargar o volver no suma.
+model PromotionEvent {
+  id          String             @id @default(cuid())
+  createdAt   DateTime           @default(now())
+  promotionId String
+  promotion   Promotion          @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  kind        PromotionEventKind
+  visitorId   String
+
+  @@unique([promotionId, kind, visitorId])
 }
 
 // Producto de una promoción. `position` 0 = curso principal; 1 y 2 = adicionales.
@@ -181,19 +208,19 @@ model PromotionProduct {
 // Capítulo y lección se convierten entre sí cambiando `kind`; las reglas de
 // anidación (qué cuelga de qué) las valida la aplicación, no la base.
 model CourseItem {
-  id           String           @id @default(cuid())
+  id           String            @id @default(cuid())
   productId    String
-  product      Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product      Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
   parentId     String?
-  parent       CourseItem?      @relation("ItemTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children     CourseItem[]     @relation("ItemTree")
+  parent       CourseItem?       @relation("ItemTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children     CourseItem[]      @relation("ItemTree")
   kind         ItemKind
   position     Int
   title        String
   // Hoy no se gestiona por elemento: lo público o borrador es el curso (`Product.status`).
-  status       ContentStatus    @default(PUBLISHED)
+  status       ContentStatus     @default(PUBLISHED)
   // Bloque: visible sin comprar para quien se registre con su correo (origen de los leads).
-  isFree       Boolean          @default(false)
+  isFree       Boolean           @default(false)
   // Capítulo: receta compartida por todas sus lecciones. Texto enriquecido (JSON de Tiptap).
   recipe       Json?
   // Lección.
@@ -211,6 +238,7 @@ model CourseItem {
   progress     LessonProgress[]
   moments      LessonMoment[]
   questions    LessonQuestion[]
+  transcript   LessonTranscript?
 
   @@index([productId, parentId, position])
 }
@@ -266,20 +294,41 @@ model MarketingSettings {
   ga4MeasurementId String   @default("")
 }
 
+// Transcripción de una lección: `lines` es una lista [{ t: segundos, x: texto }]. La usa el
+// asistente de IA y la pestaña "Lección y transcripción" del panel.
+model LessonTranscript {
+  itemId    String     @id
+  item      CourseItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  updatedAt DateTime   @updatedAt
+  lines     Json
+}
+
+// Ajustes del asistente de IA (una sola fila, id "main").
+model AssistantSettings {
+  id       String @id @default("main")
+  // Máximo de caracteres por respuesta del asistente.
+  maxChars Int    @default(600)
+}
+
 // Pregunta de una alumna a la chef sobre una lección. Mientras está PENDING solo la ve ella;
 // al publicar la respuesta (ANSWERED) queda visible para todas las alumnas del curso;
 // HIDDEN la saca de la lección sin borrarla.
 model LessonQuestion {
-  id         String         @id @default(cuid())
-  createdAt  DateTime       @default(now())
-  userId     String
-  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  itemId     String
-  item       CourseItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  text       String
-  status     QuestionStatus @default(PENDING)
-  answer     String?
-  answeredAt DateTime?
+  id              String         @id @default(cuid())
+  createdAt       DateTime       @default(now())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId          String
+  item            CourseItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  text            String
+  status          QuestionStatus @default(PENDING)
+  answer          String?
+  answeredAt      DateTime?
+  // Lo que respondió el asistente (no se publica) y si le sirvió a la alumna.
+  assistantAnswer String?
+  vote            QuestionVote?
+  // Borrador de la IA para la chef; se genera al abrir la pregunta y se puede regenerar.
+  draft           String?
 
   @@index([itemId, status])
   @@index([status, createdAt])
@@ -314,6 +363,8 @@ model Order {
   promotion             Promotion?  @relation(fields: [promotionId], references: [id], onDelete: SetNull)
   // PaymentIntent de Stripe con el que se cobra la orden.
   stripePaymentIntentId String?     @unique
+  // Renovación del acceso desde Mis cursos (precio de renovación, sin adicionales).
+  renewal               Boolean     @default(false)
 
   @@index([email])
   @@index([promotionId])

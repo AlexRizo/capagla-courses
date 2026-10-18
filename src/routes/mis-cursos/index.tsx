@@ -1,33 +1,39 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
+import { z } from 'zod'
 
+import { AccountForm } from '#/components/account-form'
+import {
+  field,
+  formCard,
+  label,
+  okBox,
+  primaryBtn,
+  textBtn,
+} from '#/components/landing-form-styles'
 import { authClient } from '#/lib/auth-client'
+import { RENEWAL_DISCOUNT_PCT, mxn } from '#/lib/catalog'
 import { getMyCourses, sendTicket, setMyPassword } from '#/lib/session'
 import { cn } from '#/lib/utils'
 
 export const Route = createFileRoute('/mis-cursos/')({
+  // `?cuenta` (desde el menú del reproductor) abre "Editar mi cuenta".
+  validateSearch: z.object({
+    cuenta: z.boolean().optional().catch(undefined),
+  }),
   loader: () => getMyCourses(),
   component: MisCursos,
 })
 
-const primaryBtn =
-  'min-h-12 cursor-pointer rounded-12 border-none bg-landing-primary px-6 text-base font-black text-white'
-const textBtn =
-  'min-h-12 cursor-pointer border-none bg-transparent px-4 text-15 font-bold text-landing-primary underline'
-const label = 'text-15 font-bold'
-const field =
-  'box-border h-12.5 rounded-12 border-1.5 bg-white px-4 text-base text-landing-ink'
-const formCard =
-  'flex flex-col gap-4 rounded-2xl border-1.5 border-landing-primary bg-white px-7 py-6'
-const okBox =
-  'rounded-xl border border-landing-ok-line bg-landing-ok px-6 py-4 text-15 text-landing-ok-ink'
 const menuItem =
   'cursor-pointer rounded-md border-none bg-transparent px-3 py-2.75 text-left text-15 text-landing-ink no-underline'
 
 function MisCursos() {
   const data = Route.useLoaderData()!
   const navigate = useNavigate()
+  const search = Route.useSearch()
   const [menu, setMenu] = useState(false)
+  const [account, setAccount] = useState(!!search.cuenta)
   const [step, setStep] = useState<'ask' | 'form' | 'done' | 'none'>(
     data.hasPassword ? 'none' : 'ask',
   )
@@ -38,6 +44,11 @@ function MisCursos() {
 
   function openTicket() {
     setTicket('form')
+    setMenu(false)
+  }
+
+  function openAccount() {
+    setAccount(true)
     setMenu(false)
   }
 
@@ -108,9 +119,13 @@ function MisCursos() {
                     Ir al panel
                   </Link>
                 )}
-                <a href="#" className={menuItem}>
+                <button
+                  type="button"
+                  onClick={openAccount}
+                  className={menuItem}
+                >
                   Editar mi cuenta
-                </a>
+                </button>
                 <button type="button" onClick={openTicket} className={menuItem}>
                   Ayuda y reportar un fallo
                 </button>
@@ -218,6 +233,16 @@ function MisCursos() {
             <div className={`${okBox} font-bold`}>
               Listo. Desde ahora entras con {email} y tu contraseña.
             </div>
+          )}
+
+          {account && (
+            <AccountForm
+              name={name}
+              email={email}
+              hasPassword={data.hasPassword}
+              onPasswordSet={() => setStep('none')}
+              onClose={() => setAccount(false)}
+            />
           )}
 
           {ticket === 'form' && (
@@ -465,8 +490,15 @@ function CourseCard({ course }: { course: MyCourse }) {
     month: 'long',
     year: 'numeric',
   })
-  const { active, lessons, seen } = course
+  const { active, lessons, seen, renewalMxn } = course
   const pct = lessons ? Math.round((seen / lessons) * 100) : 0
+  const daysLeft = Math.ceil(
+    (new Date(course.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000),
+  )
+  const renewLink = {
+    to: '/checkout',
+    search: { renovar: course.slug, desde: 'mis-cursos' },
+  } as const
 
   return (
     <div className="relative flex flex-col overflow-hidden rounded-2xl border border-landing-line bg-white md:flex-row md:flex-wrap md:rounded-20">
@@ -499,18 +531,52 @@ function CourseCard({ course }: { course: MyCourse }) {
             {lessons === 1 ? 'lección vista' : 'lecciones vistas'} · {pct}%
           </div>
         </div>
-        <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
-          <Link
-            to="/mis-cursos/$slug"
-            params={{ slug: course.slug }}
-            aria-disabled={!active}
-            className={cn(
-              'flex min-h-13 items-center justify-center rounded-12 bg-landing-primary text-17 font-black text-white no-underline md:inline-flex md:min-h-12.5 md:px-7',
-              !active && 'pointer-events-none opacity-50',
+        {/* Renovación (no está en la maqueta; decisión del cliente 2026-10-17). */}
+        {renewalMxn !== null && (
+          <div className="rounded-xl border-1.5 border-landing-warn-line bg-landing-warn p-3.5 text-sm leading-normal md:text-15">
+            {active ? (
+              <>
+                <strong>
+                  Tu acceso vence en {daysLeft}{' '}
+                  {daysLeft === 1 ? 'día' : 'días'}.
+                </strong>{' '}
+                Renuévalo ahora con {RENEWAL_DISCOUNT_PCT}% de descuento por{' '}
+                {mxn(renewalMxn)} y suma {course.accessDays} días a los que te
+                quedan.{' '}
+                <Link {...renewLink} className="font-bold text-landing-primary">
+                  Renovar
+                </Link>
+              </>
+            ) : (
+              <>
+                <strong>Tu acceso venció.</strong> Renuévalo con{' '}
+                {RENEWAL_DISCOUNT_PCT}% de descuento por {mxn(renewalMxn)} y
+                tienes {course.accessDays} días más. Tu avance se conserva.
+              </>
             )}
-          >
-            Continuar progreso
-          </Link>
+          </div>
+        )}
+        <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
+          {active || renewalMxn === null ? (
+            <Link
+              to="/mis-cursos/$slug"
+              params={{ slug: course.slug }}
+              aria-disabled={!active}
+              className={cn(
+                'flex min-h-13 items-center justify-center rounded-12 bg-landing-primary text-17 font-black text-white no-underline md:inline-flex md:min-h-12.5 md:px-7',
+                !active && 'pointer-events-none opacity-50',
+              )}
+            >
+              Continuar progreso
+            </Link>
+          ) : (
+            <Link
+              {...renewLink}
+              className="flex min-h-13 items-center justify-center rounded-12 bg-landing-primary text-17 font-black text-white no-underline md:inline-flex md:min-h-12.5 md:px-7"
+            >
+              Renovar por {mxn(renewalMxn)}
+            </Link>
+          )}
           <a
             href={active ? '#' : undefined}
             aria-disabled={!active}

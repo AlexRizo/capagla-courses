@@ -35,11 +35,13 @@ export function LessonTabs({
   notes,
   resources,
   questions,
+  assistant,
 }: {
   lessonId: string
   notes: string | null
   resources: PlayerResource[]
   questions: Awaited<ReturnType<typeof getPlayer>>['lesson']['questions']
+  assistant: boolean
 }) {
   const tabs = [
     ...(notes ? [{ id: 'notas', label: 'Notas' }] : []),
@@ -90,7 +92,11 @@ export function LessonTabs({
           </div>
         )}
         {tab === 'preguntas' && (
-          <Questions lessonId={lessonId} questions={questions} />
+          <Questions
+            lessonId={lessonId}
+            questions={questions}
+            assistant={assistant}
+          />
         )}
       </div>
     </div>

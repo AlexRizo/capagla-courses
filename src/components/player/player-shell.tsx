@@ -226,9 +226,9 @@ function AccountMenu({
           <div className="px-3 pt-1.5 pb-1 text-11 font-black tracking-player-caps text-player-accent">
             MI CUENTA
           </div>
-          <a href="#" className={item}>
+          <Link to="/mis-cursos" search={{ cuenta: true }} className={item}>
             Editar mi cuenta
-          </a>
+          </Link>
           <Link to="/mis-cursos" className={item}>
             Ayuda y reportar un fallo
           </Link>
@@ -730,6 +730,7 @@ function PlayerLayout({ data }: { data: Data }) {
                   notes={lesson.notes}
                   resources={resources}
                   questions={lesson.questions}
+                  assistant={data.assistant}
                 />
               </div>
             </main>
@@ -871,7 +872,12 @@ function PlayerLayout({ data }: { data: Data }) {
           )}
           {view === 'mat' && <MobileMaterial data={data} material={material} />}
           {view === 'preg' && (
-            <Questions lessonId={lesson.id} questions={lesson.questions} page />
+            <Questions
+              lessonId={lesson.id}
+              questions={lesson.questions}
+              assistant={data.assistant}
+              page
+            />
           )}
         </div>
 

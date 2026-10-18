@@ -10,6 +10,7 @@ import { signedPlaybackUrl } from '#/lib/bunny'
 import { isAdminRequest } from '#/lib/guards'
 import { resolveOffer } from '#/lib/offers'
 import type { Offer } from '#/lib/offers'
+import { recordPromotionEvent } from '#/lib/promo-stats'
 import { longDate } from '#/lib/promotions'
 
 // Textos del recuadro de un adicional, a partir de su precio especial.
@@ -111,6 +112,7 @@ export const getPromotionLanding = createServerFn()
     if (!offer.main.published && !(await isAdminRequest())) throw notFound()
     const page = buildCoursePage(offer)
     if (!page) throw notFound()
+    await recordPromotionEvent(exists.id, 'VISIT')
     const introVideo = exists.introVideoId
       ? signedPlaybackUrl(exists.introVideoId)
       : null

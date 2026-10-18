@@ -92,7 +92,7 @@ function Promociones() {
               <div className="flex-1">
                 <span className={pill}>{p.status}</span>
               </div>
-              <div className="flex-1 text-chart-3">—</div>
+              <div className="flex-1 text-chart-3">{p.visits}</div>
               <div className="flex-1 text-chart-3">{p.sales}</div>
             </Link>
           ))}

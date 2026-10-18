@@ -1,16 +1,25 @@
+import { redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
+import { APIError } from 'better-auth/api'
 import { z } from 'zod'
 
 import { prisma } from '#/db'
 import { auth, readSession } from '#/lib/auth'
 import { ticketMail } from '#/lib/emails'
 import { sendMail } from '#/lib/mailer'
+import { canRenew, renewalPrice } from '#/lib/offers'
 import { onlyFreeBlocks } from '#/lib/player-tree'
 
 export const getSession = createServerFn().handler(() =>
   readSession(getRequestHeaders()),
 )
+
+// Guarda de las páginas solo para quien aún no entró (Entrar, Revisa tu correo, Clase gratis):
+// con sesión no tienen nada que hacer ahí y van a Mis cursos.
+export async function redirectIfSignedIn() {
+  if (await getSession()) throw redirect({ to: '/mis-cursos' })
+}
 
 // Datos de "Mis cursos" del usuario con sesión.
 export const getMyCourses = createServerFn().handler(async () => {
@@ -114,6 +123,11 @@ export const getMyCourses = createServerFn().handler(async () => {
       expiresAt: e.expiresAt.toISOString(),
       // Pasada la fecha, el curso queda bloqueado.
       active: e.expiresAt > new Date(),
+      // Vencido o en sus últimos 30 días: se ofrece renovar a este precio.
+      renewalMxn: canRenew(e.expiresAt)
+        ? renewalPrice(e.product.priceMxn)
+        : null,
+      accessDays: e.product.accessDays,
       // Avance real: lecciones del curso y cuántas marcó como vistas.
       lessons: lessonCount.get(e.productId) ?? 0,
       seen: seenCount.get(e.productId) ?? 0,
@@ -128,6 +142,44 @@ export const setMyPassword = createServerFn({ method: 'POST' })
       body: { newPassword: data.password },
       headers: getRequestHeaders(),
     })
+  })
+
+// "Editar mi cuenta": el nombre es lo único que cambia aquí. El correo es con el que compró y
+// entra (órdenes, accesos y avisos dependen de él), por eso solo se muestra.
+export const updateMyName = createServerFn({ method: 'POST' })
+  .validator(z.object({ name: z.string().trim().min(1).max(80) }))
+  .handler(async ({ data }) => {
+    const session = await readSession(getRequestHeaders())
+    if (!session) throw new Error('Entra para editar tu cuenta.')
+    await auth.api.updateUser({
+      body: { name: data.name },
+      headers: getRequestHeaders(),
+    })
+  })
+
+// Cambiar una contraseña que ya existe exige la actual. Con otra incorrecta devuelve un
+// aviso en vez de fallar; las demás sesiones abiertas se cierran.
+export const changeMyPassword = createServerFn({ method: 'POST' })
+  .validator(
+    z.object({ current: z.string().min(1), password: z.string().min(8) }),
+  )
+  .handler(async ({ data }) => {
+    try {
+      await auth.api.changePassword({
+        body: {
+          currentPassword: data.current,
+          newPassword: data.password,
+          revokeOtherSessions: true,
+        },
+        headers: getRequestHeaders(),
+      })
+    } catch (error) {
+      if (error instanceof APIError && error.status === 'BAD_REQUEST') {
+        return { error: 'La contraseña actual no es correcta.' }
+      }
+      throw error
+    }
+    return {}
   })
 
 // "Ayuda y reportar un fallo": llega por correo a soporte (sin Brevo, a la consola).

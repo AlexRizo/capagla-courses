@@ -32,6 +32,8 @@ type Promotion = {
   introTitle: string
   introText: string
   introVideoId: string | null
+  visits: number
+  carts: number
   purchases: number
   revenueMxn: number
   baseUrl: string
@@ -431,8 +433,8 @@ export function PromotionEditor({ promotion }: { promotion: Promotion }) {
           <div className={cardTitle}>ENLACES Y RESULTADOS</div>
           <div className="flex flex-wrap gap-3">
             {[
-              ['Visitas', '—'],
-              ['Agregaron al carrito', '—'],
+              ['Visitas', String(promotion.visits)],
+              ['Agregaron al carrito', String(promotion.carts)],
               ['Compras', String(promotion.purchases)],
               ['Ingresos', `$${promotion.revenueMxn}`],
             ].map(([metric, value]) => (

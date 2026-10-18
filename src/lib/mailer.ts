@@ -66,7 +66,8 @@ export async function sendMail(mail: Mail) {
 export type LinkPurpose =
   | { kind: 'login' }
   | { kind: 'free-class' }
-  | { kind: 'purchase'; items: string[] }
+  // `renewedUntil`: fecha en que vence el acceso renovado (solo en una renovación).
+  | { kind: 'purchase'; items: string[]; renewedUntil?: string }
 
 const linkPurpose = new AsyncLocalStorage<LinkPurpose>()
 

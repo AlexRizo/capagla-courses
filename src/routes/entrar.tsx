@@ -5,9 +5,11 @@ import { z } from 'zod'
 import { AuthShell } from '#/components/auth-shell'
 import { authClient } from '#/lib/auth-client'
 import { startLogin } from '#/lib/login'
+import { redirectIfSignedIn } from '#/lib/session'
 
 // `?correo=` precarga el correo (p. ej. desde el checkout, cuando ese correo ya tiene el curso).
 export const Route = createFileRoute('/entrar')({
+  beforeLoad: () => redirectIfSignedIn(),
   validateSearch: z.object({ correo: z.string().optional().catch(undefined) }),
   component: Entrar,
 })

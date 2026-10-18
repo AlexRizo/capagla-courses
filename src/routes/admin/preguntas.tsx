@@ -1,24 +1,32 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { QuestionDialog } from '#/components/admin/question-dialog'
-import { getAdminQuestions } from '#/lib/admin-questions'
+import {
+  getAdminQuestions,
+  getAssistantInfo,
+  saveAssistantMaxChars,
+} from '#/lib/admin-questions'
 import { cn } from '#/lib/utils'
 
 export const Route = createFileRoute('/admin/preguntas')({
-  loader: () => getAdminQuestions(),
+  loader: async () => ({
+    questions: await getAdminQuestions(),
+    assistant: await getAssistantInfo(),
+  }),
   component: Preguntas,
 })
 
 const columns = 'flex items-center gap-3 px-5'
 const statusText = {
+  ASSISTANT: 'Asistente',
   PENDING: 'Pendiente',
   ANSWERED: 'Respondida',
   HIDDEN: 'Oculta',
 } as const
 
 function Preguntas() {
-  const questions = Route.useLoaderData()
+  const { questions, assistant } = Route.useLoaderData()
   const [filter, setFilter] = useState<'pend' | 'resp' | 'all'>('pend')
   const [selected, setSelected] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -51,8 +59,9 @@ function Preguntas() {
           Preguntas para la chef
         </h1>
         <div className="text-muted-foreground">
-          Aquí llegan las preguntas que las alumnas te mandan desde sus
-          lecciones.
+          {assistant.enabled
+            ? 'Primero responde el asistente. Aquí llegan solo las que la alumna decidió mandarte porque la respuesta no le sirvió.'
+            : 'Aquí llegan las preguntas que las alumnas te mandan desde sus lecciones.'}
         </div>
       </div>
 
@@ -125,14 +134,65 @@ function Preguntas() {
         )}
       </div>
 
+      <AssistantCard maxChars={assistant.maxChars} />
+
       {open && current && (
         <QuestionDialog
           question={current}
+          assistant={assistant.enabled}
           tab={tab}
           onTab={setTab}
           onClose={() => setOpen(false)}
         />
       )}
+    </div>
+  )
+}
+
+// Ajuste del asistente: se guarda al salir del campo.
+function AssistantCard({ maxChars }: { maxChars: number }) {
+  const router = useRouter()
+  const [value, setValue] = useState(String(maxChars))
+  const [error, setError] = useState<string | null>(null)
+
+  async function save() {
+    const number = Number(value)
+    if (number === maxChars) return setError(null)
+    const result = await saveAssistantMaxChars({ data: { maxChars: number } })
+    if (result.error) {
+      setValue(String(maxChars))
+      return setError(result.error)
+    }
+    setError(null)
+    await router.invalidate()
+  }
+
+  return (
+    <div className="flex w-full max-w-130 flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-xs">
+      <div className="text-base font-semibold">Asistente</div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="max-chars" className="text-13 font-medium">
+          Máximo de caracteres por respuesta
+        </label>
+        <input
+          id="max-chars"
+          type="text"
+          inputMode="numeric"
+          value={value}
+          onChange={(e) => setValue(e.target.value.replace(/\D/g, ''))}
+          onBlur={save}
+          onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+          className="box-border h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground"
+        />
+        <span className="text-xs text-muted-foreground">
+          Si no cabe, el asistente lo dice y ofrece mandarla a la chef.
+        </span>
+        {error && <span className="text-xs text-destructive">{error}</span>}
+      </div>
+      <div className="text-13 leading-normal text-muted-foreground">
+        Los votos de la alumna (me sirvió / no me sirvió) se guardan para un
+        panel de efectividad que se diseña más adelante.
+      </div>
     </div>
   )
 }

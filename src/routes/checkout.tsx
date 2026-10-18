@@ -18,7 +18,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { z } from 'zod'
 
-import { mxn } from '#/lib/catalog'
+import { RENEWAL_DISCOUNT_PCT, mxn } from '#/lib/catalog'
 import { getCheckoutData, getThanksOrder, startCheckout } from '#/lib/checkout'
 
 export const Route = createFileRoute('/checkout')({
@@ -27,10 +27,15 @@ export const Route = createFileRoute('/checkout')({
     prueba: z.string().optional().catch(undefined),
     // Desde "Quiero el curso" de Mis cursos: al pagar vuelve a Mis cursos (no a /gracias).
     desde: z.literal('mis-cursos').optional().catch(undefined),
+    // Renovación del acceso a ese curso (desde Mis cursos).
+    renovar: z.string().optional().catch(undefined),
   }),
-  loaderDeps: ({ search }) => ({ promo: search.promo, prueba: search.prueba }),
-  loader: ({ deps }) =>
-    getCheckoutData({ data: { promo: deps.promo, prueba: deps.prueba } }),
+  loaderDeps: ({ search }) => ({
+    promo: search.promo,
+    prueba: search.prueba,
+    renovar: search.renovar,
+  }),
+  loader: ({ deps }) => getCheckoutData({ data: deps }),
   component: Checkout,
 })
 
@@ -311,9 +316,10 @@ function CheckoutForm({
 }: {
   stripePromise: ReturnType<typeof loadStripe> | null
 }) {
-  const { course, bonuses, tool, special, until, account } =
+  const { course, bonuses, tool, special, until, account, renewal } =
     Route.useLoaderData()
-  const { promo, prueba, desde } = Route.useSearch()
+  const { promo, prueba, desde, renovar } = Route.useSearch()
+  const days = `${course.accessDays} días${renewal ? ' más' : ''}`
   const navigate = useNavigate()
   const stripe = useStripe()
   const cardGetters = useRef<CardGetters>({ mobile: null, desktop: null })
@@ -384,6 +390,7 @@ function CheckoutForm({
       addTool,
       promo,
       prueba,
+      renovar,
     ])
     if (attempt.current?.key === key) return attempt.current
     const result = await startCheckout({
@@ -394,6 +401,7 @@ function CheckoutForm({
         withTool: addTool,
         promo,
         prueba,
+        renovar,
         replaces: attempt.current?.orderId,
       },
     })
@@ -510,7 +518,7 @@ function CheckoutForm({
               <span className="font-black">{course.name}</span>
               <span className="text-landing-muted">
                 {course.recipes && `${course.recipes} recetas · `}
-                {course.accessDays} días
+                {days}
               </span>
             </div>
             <div className="flex flex-col items-end text-sm">
@@ -527,7 +535,7 @@ function CheckoutForm({
 
         <div className="flex flex-col gap-4 md:grow md:basis-110 md:gap-5.5">
           <h1 className="m-0 hidden text-34 font-black tracking-landing-title-md md:block">
-            Finaliza tu compra
+            {renewal ? 'Renueva tu acceso' : 'Finaliza tu compra'}
           </h1>
 
           {stripePromise && (
@@ -762,12 +770,12 @@ function CheckoutForm({
               <span className="font-bold">{course.name}</span>
               <span className="text-landing-muted">
                 {course.recipes && `${course.recipes} recetas · `}acceso por{' '}
-                {course.accessDays} días
+                {days}
               </span>
             </div>
           </div>
           <div className="flex items-baseline justify-between text-15">
-            <span>{course.label}</span>
+            <span>{renewal ? 'Renovación' : course.label}</span>
             <span className="flex items-baseline gap-2">
               {courseStrike && (
                 <span className={strike}>{mxn(course.normalMxn)}</span>
@@ -797,6 +805,8 @@ function CheckoutForm({
           </div>
           <div className="text-13 leading-normal text-landing-muted">
             {special && `Precio especial${until ? ` hasta el ${until}` : ''}. `}
+            {renewal &&
+              `Precio de renovación (${RENEWAL_DISCOUNT_PCT}% de descuento). Los días que te queden se suman. `}
             Acceso inmediato.
           </div>
         </div>

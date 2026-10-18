@@ -19,11 +19,11 @@ import {
 } from '#/lib/promotions'
 
 // Listado de promociones del panel (modo pro).
-// Visitas no se miden todavía (la pantalla las deja en "—"); ventas = órdenes pagadas.
+// Visitas = navegadores distintos que vieron la landing (`PromotionEvent`); ventas = órdenes pagadas.
 export const getAdminPromotions = createServerFn()
   .middleware([requireAdmin])
   .handler(async () => {
-    const [promotions, sales] = await Promise.all([
+    const [promotions, sales, visits] = await Promise.all([
       prisma.promotion.findMany({
         include: { _count: { select: { products: true } } },
         orderBy: [
@@ -36,8 +36,14 @@ export const getAdminPromotions = createServerFn()
         where: { status: 'PAID', promotionId: { not: null } },
         _count: true,
       }),
+      prisma.promotionEvent.groupBy({
+        by: ['promotionId'],
+        where: { kind: 'VISIT' },
+        _count: true,
+      }),
     ])
     const salesBy = new Map(sales.map((s) => [s.promotionId, s._count]))
+    const visitsBy = new Map(visits.map((v) => [v.promotionId, v._count]))
     const now = new Date()
     return promotions.map((p) => ({
       id: p.id,
@@ -46,6 +52,7 @@ export const getAdminPromotions = createServerFn()
       products: p._count.products,
       vigency: vigency(p.startsAt, p.endsAt),
       status: promotionStatus(p, now),
+      visits: visitsBy.get(p.id) ?? 0,
       sales: salesBy.get(p.id) ?? 0,
     }))
   })
@@ -55,7 +62,7 @@ export const getAdminPromotion = createServerFn()
   .middleware([requireAdmin])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const [promotion, catalog, paid] = await Promise.all([
+    const [promotion, catalog, paid, visits, carts] = await Promise.all([
       prisma.promotion.findUnique({
         where: { id: data.id },
         include: { products: { orderBy: { position: 'asc' } } },
@@ -65,6 +72,12 @@ export const getAdminPromotion = createServerFn()
         where: { status: 'PAID', promotionId: data.id },
         _count: true,
         _sum: { amountMxn: true },
+      }),
+      prisma.promotionEvent.count({
+        where: { promotionId: data.id, kind: 'VISIT' },
+      }),
+      prisma.promotionEvent.count({
+        where: { promotionId: data.id, kind: 'CART' },
       }),
     ])
     if (!promotion) throw notFound()
@@ -80,6 +93,8 @@ export const getAdminPromotion = createServerFn()
       introTitle: promotion.introTitle ?? '',
       introText: promotion.introText ?? '',
       introVideoId: promotion.introVideoId,
+      visits,
+      carts,
       purchases: paid._count,
       revenueMxn: paid._sum.amountMxn ?? 0,
       baseUrl: env.BETTER_AUTH_URL.replace(/\/$/, ''),

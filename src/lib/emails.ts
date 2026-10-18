@@ -76,6 +76,23 @@ export function accessLinkMail(
       text: `${title}\n\nGracias por registrarte. Entra con este enlace y empieza cuando quieras; no necesitas contraseña.${textTail}`,
     }
   }
+  if (purpose.kind === 'purchase' && purpose.renewedUntil) {
+    const title = '¡Listo, renovaste tu acceso!'
+    const list = purpose.items.map((i) => `• ${i}`).join('\n')
+    const until = `Tu acceso ahora vence el ${purpose.renewedUntil}. Tu avance sigue donde lo dejaste.`
+    return {
+      to,
+      subject: 'Renovaste tu acceso a Capagla',
+      html: layout(title, [
+        p('Tu pago se confirmó. Renovaste:'),
+        quote('TU RENOVACIÓN', list),
+        p(esc(until)),
+        button(url, 'Entrar a mi curso'),
+        expiryNote(url),
+      ]),
+      text: `${title}\n\nTu pago se confirmó. Renovaste:\n${list}\n\n${until}${textTail}`,
+    }
+  }
   if (purpose.kind === 'purchase') {
     const title = '¡Listo, ya tienes tu curso!'
     const list = purpose.items.map((i) => `• ${i}`).join('\n')

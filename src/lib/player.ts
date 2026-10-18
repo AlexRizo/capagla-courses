@@ -5,6 +5,11 @@ import { getRequestHeaders } from '@tanstack/react-start/server'
 import { z } from 'zod'
 
 import { prisma } from '#/db'
+import {
+  DAILY_ASSISTANT_LIMIT,
+  answerQuestion,
+  assistantEnabled,
+} from '#/lib/assistant'
 import { readSession } from '#/lib/auth'
 import { signedPlaybackUrl } from '#/lib/bunny'
 import { ago } from '#/lib/ago'
@@ -151,6 +156,8 @@ export const getPlayer = createServerFn()
     const seenCount = order.filter((o) => seen.has(o.lesson.id)).length
     return {
       preview,
+      // Hay un proveedor de IA: "Preguntar" lo consulta primero (ver `lib/assistant.ts`).
+      assistant: assistantEnabled(),
       course: { slug: course.slug, name: course.name },
       user: {
         name: session.user.name,
@@ -308,7 +315,14 @@ export const MAX_QUESTION_LENGTH = 1000
 // Para que una alumna no llene la bandeja de la chef con la misma lección.
 const MAX_PENDING_QUESTIONS = 5
 
-// "Preguntar": la pregunta le llega a la chef y queda pendiente hasta que la responda.
+const tooManyPending = async (userId: string, itemId: string) =>
+  (await prisma.lessonQuestion.count({
+    where: { userId, itemId, status: 'PENDING' },
+  })) >= MAX_PENDING_QUESTIONS
+
+const PENDING_LIMIT_ERROR = `Ya tienes ${MAX_PENDING_QUESTIONS} preguntas esperando respuesta en esta lección.`
+
+// "Preguntar" sin asistente: la pregunta le llega a la chef y queda pendiente hasta que la responda.
 export const createQuestion = createServerFn({ method: 'POST' })
   .validator(
     z.object({
@@ -318,20 +332,103 @@ export const createQuestion = createServerFn({ method: 'POST' })
   )
   .handler(async ({ data }) => {
     const { session, lesson } = await requireLessonAccess(data.lessonId)
-    const pending = await prisma.lessonQuestion.count({
-      where: {
-        userId: session.user.id,
-        itemId: lesson.id,
-        status: 'PENDING',
-      },
-    })
-    if (pending >= MAX_PENDING_QUESTIONS) {
-      return {
-        error: `Ya tienes ${MAX_PENDING_QUESTIONS} preguntas esperando respuesta en esta lección.`,
-      }
+    if (await tooManyPending(session.user.id, lesson.id)) {
+      return { error: PENDING_LIMIT_ERROR }
     }
     await prisma.lessonQuestion.create({
       data: { userId: session.user.id, itemId: lesson.id, text: data.text },
+    })
+    return {}
+  })
+
+// "Preguntar" con asistente: responde con lo que se explica en la lección. La pregunta queda
+// guardada (ASSISTANT) sin publicarse ni llegar a la chef hasta que la alumna pulse
+// "Preguntarle a la chef". Si el asistente falla, la pregunta se guarda igual y se le ofrece
+// mandarla a la chef.
+export const askAssistant = createServerFn({ method: 'POST' })
+  .validator(
+    z.object({
+      lessonId: z.string(),
+      text: z.string().trim().min(1).max(MAX_QUESTION_LENGTH),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { session, lesson } = await requireLessonAccess(data.lessonId)
+    if (!assistantEnabled())
+      return { error: 'El asistente no está disponible.' }
+    const today = await prisma.lessonQuestion.count({
+      where: {
+        userId: session.user.id,
+        status: { in: ['ASSISTANT', 'PENDING'] },
+        assistantAnswer: { not: null },
+        createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+    })
+    if (today >= DAILY_ASSISTANT_LIMIT) {
+      return {
+        error:
+          'Llegaste al límite de preguntas al asistente por hoy. Puedes mandarle tu pregunta a la chef.',
+      }
+    }
+    let answer: string | null = null
+    try {
+      answer = await answerQuestion(lesson.id, data.text)
+    } catch (error) {
+      console.error('[asistente] No se pudo responder:', error)
+    }
+    const question = await prisma.lessonQuestion.create({
+      data: {
+        userId: session.user.id,
+        itemId: lesson.id,
+        text: data.text,
+        status: 'ASSISTANT',
+        assistantAnswer: answer,
+      },
+    })
+    return { id: question.id, answer }
+  })
+
+// Una pregunta propia que todavía no responde la chef.
+async function ownOpenQuestion(id: string) {
+  const session = await readSession(getRequestHeaders())
+  if (!session) throw redirect({ to: '/entrar' })
+  const question = await prisma.lessonQuestion.findUnique({ where: { id } })
+  if (
+    !question ||
+    question.userId !== session.user.id ||
+    (question.status !== 'ASSISTANT' && question.status !== 'PENDING')
+  ) {
+    throw notFound()
+  }
+  return question
+}
+
+// 👍 "Me sirvió" / 👎 "No me sirvió" a la respuesta del asistente. Se guarda para medir
+// qué tan bien responde.
+export const voteAnswer = createServerFn({ method: 'POST' })
+  .validator(z.object({ id: z.string(), vote: z.enum(['UP', 'DOWN']) }))
+  .handler(async ({ data }) => {
+    const question = await ownOpenQuestion(data.id)
+    await requireLessonAccess(question.itemId)
+    await prisma.lessonQuestion.update({
+      where: { id: question.id },
+      data: { vote: data.vote },
+    })
+  })
+
+// "Preguntarle a la chef": la pregunta que contestó el asistente pasa a la bandeja de la chef.
+export const sendToChef = createServerFn({ method: 'POST' })
+  .validator(z.object({ id: z.string() }))
+  .handler(async ({ data }) => {
+    const question = await ownOpenQuestion(data.id)
+    const { session } = await requireLessonAccess(question.itemId)
+    if (question.status === 'PENDING') return {}
+    if (await tooManyPending(session.user.id, question.itemId)) {
+      return { error: PENDING_LIMIT_ERROR }
+    }
+    await prisma.lessonQuestion.update({
+      where: { id: question.id },
+      data: { status: 'PENDING' },
     })
     return {}
   })

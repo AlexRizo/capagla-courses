@@ -2,12 +2,15 @@ import { prisma } from '#/db'
 import { hasPlaceholderName } from '#/lib/account-name'
 import { auth } from '#/lib/auth'
 import { withLinkPurpose } from '#/lib/mailer'
-import { resolveOffer } from '#/lib/offers'
+import { resolveOffer, resolveRenewal } from '#/lib/offers'
+import { TIME_ZONE } from '#/lib/promotions'
 import { getStripe } from '#/lib/stripe'
 
 // El correo ya tiene acceso vigente al producto: comprarlo otra vez solo cobraría de más.
 // Con el acceso vencido sí se puede comprar (es una renovación).
 export class AlreadyOwnedError extends Error {}
+
+const DAY_MS = 24 * 60 * 60 * 1000
 
 async function hasActiveAccess(email: string, productId: string) {
   const count = await prisma.enrollment.count({
@@ -23,16 +26,23 @@ async function hasActiveAccess(email: string, productId: string) {
 // Orden con lo que dice la oferta del momento (precios del servidor, nunca del cliente):
 // el curso, los cursos adicionales de la promoción y la herramienta si se marcó la casilla.
 // Guarda la promoción de origen para atribuir la compra, aunque ya no aplique su precio.
+// `renew` (slug): renovación del correo que ya tuvo el producto, solo con su precio de renovación.
 export async function createOrder(input: {
   email: string
   name: string
   withTool: boolean
   promo?: string
   prueba?: string
+  renew?: string
 }) {
-  const offer = await resolveOffer(input.promo, true, input.prueba)
+  const renewal = input.renew
+    ? await resolveRenewal(input.renew, input.email)
+    : null
+  if (input.renew && !renewal) throw new Error('No se puede renovar.')
+  const offer = renewal ?? (await resolveOffer(input.promo, true, input.prueba))
   if (!offer.main.published) throw new Error('El curso no está a la venta.')
-  if (await hasActiveAccess(input.email, offer.main.productId)) {
+  // Una renovación sí puede pagarse con el acceso vigente (en sus últimos 30 días).
+  if (!renewal && (await hasActiveAccess(input.email, offer.main.productId))) {
     throw new AlreadyOwnedError()
   }
   const items = [
@@ -46,6 +56,7 @@ export async function createOrder(input: {
       name: input.name.trim(),
       amountMxn: items.reduce((sum, item) => sum + item.amountMxn, 0),
       promotionId: offer.promotion?.id,
+      renewal: !!renewal,
       items: { create: items },
     },
   })
@@ -90,16 +101,30 @@ async function completeOrderLocked(orderId: string) {
     })
   }
 
+  // Los días de acceso se suman a los que le queden (renovar antes de vencer no pierde
+  // días); con el acceso vencido o sin él, cuentan desde hoy.
+  const current = await prisma.enrollment.findMany({
+    where: {
+      userId: user.id,
+      productId: { in: order.items.map((i) => i.productId) },
+    },
+  })
+  const now = Date.now()
+  const newExpiry = new Map(
+    order.items.map((item) => {
+      const prev = current.find((e) => e.productId === item.productId)
+      const from = Math.max(now, prev?.expiresAt.getTime() ?? 0)
+      return [item.productId, new Date(from + item.product.accessDays * DAY_MS)]
+    }),
+  )
+
   const [paid] = await prisma.$transaction([
     prisma.order.update({
       where: { id: order.id },
       data: { status: 'PAID', paidAt: new Date(), userId: user.id },
     }),
     ...order.items.map((item) => {
-      // Días de acceso del producto desde la compra; recomprar reinicia el plazo.
-      const expiresAt = new Date(
-        Date.now() + item.product.accessDays * 24 * 60 * 60 * 1000,
-      )
+      const expiresAt = newExpiry.get(item.productId)!
       return prisma.enrollment.upsert({
         where: {
           userId_productId: { userId: user.id, productId: item.productId },
@@ -110,9 +135,19 @@ async function completeOrderLocked(orderId: string) {
     }),
   ])
 
-  // Correo de compra: lo que incluye y el enlace para entrar.
+  // Correo de compra (o de renovación, con la nueva fecha): lo que incluye y el enlace.
+  const renewedUntil = order.renewal
+    ? new Intl.DateTimeFormat('es-MX', {
+        timeZone: TIME_ZONE,
+        dateStyle: 'long',
+      }).format(newExpiry.get(order.items[0].productId))
+    : undefined
   await withLinkPurpose(
-    { kind: 'purchase', items: order.items.map((i) => i.product.name) },
+    {
+      kind: 'purchase',
+      items: order.items.map((i) => i.product.name),
+      renewedUntil,
+    },
     () =>
       auth.api.signInMagicLink({
         body: { email: order.email, callbackURL: '/mis-cursos' },
@@ -135,20 +170,22 @@ export async function failOrder(orderId: string) {
 
 // Reembolso total: la orden pasa a REFUNDED y se quita el acceso a todo lo que incluía
 // (curso, curso adicional y herramienta). Si la alumna tiene otra compra pagada del mismo
-// producto, ese producto se conserva. El progreso de sus lecciones no se borra. Un
-// reembolso parcial no pasa por aquí. Idempotente.
+// producto (p. ej. al reembolsar una renovación), ese producto se conserva pero pierde los
+// días que sumó esta orden. El progreso de sus lecciones no se borra. Un reembolso parcial
+// no pasa por aquí. Idempotente.
 export async function refundOrder(orderId: string) {
   return prisma.$transaction(
     async (tx) => {
       await tx.$executeRaw`select pg_advisory_xact_lock(hashtext(${orderId}))`
       const order = await prisma.order.findUnique({
         where: { id: orderId },
-        include: { items: true },
+        include: { items: { include: { product: true } } },
       })
       if (!order || order.status === 'REFUNDED') return
 
       const revoke: string[] = []
-      if (order.userId) {
+      const shorten: { productId: string; days: number }[] = []
+      if (order.userId && order.status === 'PAID') {
         for (const item of order.items) {
           const other = await prisma.orderItem.count({
             where: {
@@ -161,8 +198,19 @@ export async function refundOrder(orderId: string) {
             },
           })
           if (other === 0) revoke.push(item.productId)
+          else
+            shorten.push({
+              productId: item.productId,
+              days: item.product.accessDays,
+            })
         }
       }
+      const kept = await prisma.enrollment.findMany({
+        where: {
+          userId: order.userId ?? '',
+          productId: { in: shorten.map((s) => s.productId) },
+        },
+      })
       await prisma.$transaction([
         prisma.order.update({
           where: { id: order.id },
@@ -170,6 +218,15 @@ export async function refundOrder(orderId: string) {
         }),
         prisma.enrollment.deleteMany({
           where: { userId: order.userId ?? '', productId: { in: revoke } },
+        }),
+        ...kept.map((e) => {
+          const days = shorten.find((s) => s.productId === e.productId)!.days
+          return prisma.enrollment.update({
+            where: { id: e.id },
+            data: {
+              expiresAt: new Date(e.expiresAt.getTime() - days * DAY_MS),
+            },
+          })
         }),
       ])
     },

@@ -2,8 +2,10 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 
 import { AuthShell } from '#/components/auth-shell'
+import { redirectIfSignedIn } from '#/lib/session'
 
 export const Route = createFileRoute('/revisa-tu-correo')({
+  beforeLoad: () => redirectIfSignedIn(),
   validateSearch: z.object({ correo: z.string().optional() }),
   component: RevisaTuCorreo,
 })

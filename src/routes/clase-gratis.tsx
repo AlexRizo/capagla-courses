@@ -3,11 +3,15 @@ import { useState } from 'react'
 
 import { AuthShell } from '#/components/auth-shell'
 import { joinFreeClass, requireFreeClass } from '#/lib/free-class'
+import { redirectIfSignedIn } from '#/lib/session'
 import { cn } from '#/lib/utils'
 
 // Captura de correo a cambio de la clase gratis. Solo existe si hay un bloque gratis que entregar.
 export const Route = createFileRoute('/clase-gratis')({
-  beforeLoad: () => requireFreeClass(),
+  beforeLoad: async () => {
+    await redirectIfSignedIn()
+    await requireFreeClass()
+  },
   component: ClaseGratis,
 })
 

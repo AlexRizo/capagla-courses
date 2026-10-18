@@ -1,7 +1,13 @@
 import { useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 
-import { MAX_QUESTION_LENGTH, createQuestion } from '#/lib/player'
+import {
+  MAX_QUESTION_LENGTH,
+  askAssistant,
+  createQuestion,
+  sendToChef,
+  voteAnswer,
+} from '#/lib/player'
 import type { getPlayer } from '#/lib/player'
 import { cn } from '#/lib/utils'
 import { usePreview } from './preview'
@@ -12,19 +18,75 @@ type Question = Awaited<ReturnType<typeof getPlayer>>['lesson']['questions'][0]
 const normalize = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
+function Sparkle({ className }: { className: string }) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} aria-hidden>
+      <path
+        d="M8 1.5l1.5 4 4 1.5-4 1.5L8 12.5 6.5 8.5l-4-1.5 4-1.5z"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}
+
+// 👍 / 👎 de la respuesta del asistente (el mismo dibujo, girado).
+function VoteButton({
+  label,
+  down,
+  selected,
+  onClick,
+}: {
+  label: string
+  down?: boolean
+  selected: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={selected}
+      className={cn(
+        'flex size-10 cursor-pointer items-center justify-center rounded-full border-[1.5px] p-0',
+        selected
+          ? 'border-player-accent bg-player-accent text-player-on-accent'
+          : 'border-player-border bg-transparent text-player-muted',
+      )}
+    >
+      <svg
+        viewBox="0 0 20 20"
+        className={cn('size-4.5', down && 'rotate-180')}
+        aria-hidden
+      >
+        <path
+          d="M6 9v8H3V9zM6 9l3.5-6c1.2 0 2 .9 1.8 2L10.7 8H16a1.5 1.5 0 011.5 1.8l-1.2 6A1.5 1.5 0 0114.8 17H6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  )
+}
+
 // Cuántas preguntas se ven antes de "Ver todas las preguntas".
 const COLLAPSED = 2
 
 // Pestaña "Preguntas" de la lección (en móvil, su propia vista con título).
-// Mientras escribe se buscan respuestas que ya se dieron; "Preguntar" manda la pregunta a la chef.
-// (El paso intermedio del asistente de IA de la maqueta no está integrado.)
+// Mientras escribe se buscan respuestas que ya se dieron. "Preguntar" consulta primero al
+// asistente de IA (con "Me sirvió" / "No me sirvió" y "Preguntarle a la chef" como segundo
+// paso); sin asistente (`assistant` falso, aún no hay proveedor) la manda directo a la chef.
 export function Questions({
   lessonId,
   questions,
+  assistant,
   page,
 }: {
   lessonId: string
   questions: Question[]
+  assistant: boolean
   // Vista de móvil: con título y los controles uno bajo otro.
   page?: boolean
 }) {
@@ -32,6 +94,9 @@ export function Questions({
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
+  // Respuesta del asistente a la pregunta que acaba de hacer (null: no pudo responder).
+  const [asked, setAsked] = useState<{ id: string; answer: string | null }>()
+  const [vote, setVote] = useState<'UP' | 'DOWN'>()
   const [error, setError] = useState<string | null>(null)
   const [all, setAll] = useState(false)
 
@@ -53,14 +118,26 @@ export function Questions({
   function change(value: string) {
     setText(value)
     setSent(false)
+    setAsked(undefined)
+    setVote(undefined)
     setError(null)
   }
 
   async function ask() {
-    if (!hasText || sending) return
+    if (!hasText || sending || preview) return
     setSending(true)
     setError(null)
+    setAsked(undefined)
+    setVote(undefined)
     try {
+      if (assistant) {
+        const result = await askAssistant({
+          data: { lessonId, text: text.trim() },
+        })
+        if (result.error) return setError(result.error)
+        setAsked({ id: result.id, answer: result.answer ?? null })
+        return
+      }
       const result = await createQuestion({
         data: { lessonId, text: text.trim() },
       })
@@ -68,6 +145,37 @@ export function Questions({
       setText('')
       setSent(true)
       await router.invalidate()
+    } catch {
+      setError('No pudimos enviar tu pregunta. Inténtalo de nuevo.')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function rate(value: 'UP' | 'DOWN') {
+    if (!asked) return
+    setVote(value)
+    try {
+      await voteAnswer({ data: { id: asked.id, vote: value } })
+    } catch {
+      setVote(undefined)
+    }
+  }
+
+  async function toChef() {
+    if (!asked || sending) return
+    setSending(true)
+    setError(null)
+    try {
+      const result = await sendToChef({ data: { id: asked.id } })
+      if (result.error) return setError(result.error)
+      setText('')
+      setAsked(undefined)
+      setVote(undefined)
+      setSent(true)
+      await router.invalidate()
+    } catch {
+      setError('No pudimos enviar tu pregunta. Inténtalo de nuevo.')
     } finally {
       setSending(false)
     }
@@ -134,11 +242,69 @@ export function Questions({
           {matches === 1 ? 'dio' : 'dieron'}:
         </div>
       )}
-      {filtering && !sent && matches === 0 && (
+      {filtering && !sent && !asked && matches === 0 && (
         <div className="text-sm text-player-muted">
           Parece una pregunta nueva. Pulsa{' '}
-          <strong className="text-player-text">Preguntar</strong> y se la
-          enviamos a la chef.
+          <strong className="text-player-text">Preguntar</strong>{' '}
+          {assistant
+            ? 'y el asistente te ayuda.'
+            : 'y se la enviamos a la chef.'}
+        </div>
+      )}
+
+      {asked && (
+        <div
+          className={cn(
+            'flex flex-col gap-3.5 rounded-14 border border-player-border bg-player-open',
+            page ? 'p-4' : 'px-5 py-4.5',
+          )}
+        >
+          <div className="text-base leading-[1.55] whitespace-pre-line">
+            {asked.answer ??
+              'No pudimos generar la respuesta ahora. Puedes mandarle tu pregunta a la chef.'}
+          </div>
+          {asked.answer && (
+            <div className="flex items-center gap-2 text-13 text-player-muted">
+              <Sparkle className="size-3.5 text-player-accent" />
+              Respondido por Inteligencia Artificial
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-2.5 border-t border-player-border pt-3.5">
+            {asked.answer && (
+              <>
+                <VoteButton
+                  label="Me sirvió"
+                  selected={vote === 'UP'}
+                  onClick={() => rate('UP')}
+                />
+                <VoteButton
+                  label="No me sirvió"
+                  down
+                  selected={vote === 'DOWN'}
+                  onClick={() => rate('DOWN')}
+                />
+                {vote === 'UP' && (
+                  <span className="text-sm text-player-muted">
+                    Gracias, nos ayuda a mejorar.
+                  </span>
+                )}
+              </>
+            )}
+            <span className="flex-1" />
+            <button
+              type="button"
+              onClick={toChef}
+              disabled={sending}
+              className={cn(
+                'min-h-10 cursor-pointer rounded-full border-[1.5px] border-player-accent px-4.5 font-sans text-sm font-black',
+                vote === 'DOWN'
+                  ? 'bg-player-accent text-player-on-accent'
+                  : 'bg-transparent text-player-accent',
+              )}
+            >
+              Preguntarle a la chef
+            </button>
+          </div>
         </div>
       )}
 

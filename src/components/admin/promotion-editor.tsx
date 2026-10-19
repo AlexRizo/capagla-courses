@@ -9,6 +9,7 @@ import {
   primaryButton,
 } from '#/components/admin/form-styles'
 import { BunnyVideoField } from '#/components/admin/bunny-video-field'
+import type { OriginRow } from '#/lib/attribution'
 import { setPromotionPaused, updatePromotion } from '#/lib/admin-promotions'
 import { MAX_PROMOTION_PRODUCTS } from '#/lib/promotions'
 import { cn } from '#/lib/utils'
@@ -36,6 +37,7 @@ type Promotion = {
   carts: number
   purchases: number
   revenueMxn: number
+  origins: OriginRow[]
   baseUrl: string
   testKey: string
   slots: { productId: string; price: string }[]
@@ -452,6 +454,48 @@ export function PromotionEditor({ promotion }: { promotion: Promotion }) {
             cada compra se atribuya al anuncio correcto. Pixeles y eventos se
             configuran en Marketing.
           </div>
+          {/* Compras por anuncio (no está en la maqueta; el texto de Marketing dice que la
+              campaña y el creativo "se muestran en Promociones"). Solo si hay compras. */}
+          {promotion.origins.length > 0 && (
+            <div className="flex flex-col">
+              <div className={cardTitle}>COMPRAS POR ORIGEN</div>
+              <div className="mt-2 flex gap-3 border-t border-accent py-2 text-xs text-muted-foreground">
+                <div className="flex-3">Origen</div>
+                <div className="flex-2">Campaña</div>
+                <div className="flex-2">Creativo</div>
+                <div className="w-16 flex-none text-right">Compras</div>
+                <div className="w-20 flex-none text-right">Ingresos</div>
+              </div>
+              {promotion.origins.map((o) => {
+                const untagged =
+                  !o.source && !o.medium && !o.campaign && !o.creative
+                return (
+                  <div
+                    key={`${o.source}|${o.medium}|${o.campaign}|${o.creative}`}
+                    className="flex gap-3 border-t border-accent py-2 text-13"
+                  >
+                    <div className="min-w-0 flex-3 font-medium break-words">
+                      {untagged
+                        ? 'Sin etiquetas (enlace directo)'
+                        : [o.source, o.medium].filter(Boolean).join(' · ')}
+                    </div>
+                    <div className="min-w-0 flex-2 break-words text-chart-3">
+                      {o.campaign || '—'}
+                    </div>
+                    <div className="min-w-0 flex-2 break-words text-chart-3">
+                      {o.creative || '—'}
+                    </div>
+                    <div className="w-16 flex-none text-right">
+                      {o.purchases}
+                    </div>
+                    <div className="w-20 flex-none text-right">
+                      ${o.revenueMxn}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
           {channelLinks(promotion.baseUrl, promotion.slug).map((l) => (
             <div
               key={l.channel}

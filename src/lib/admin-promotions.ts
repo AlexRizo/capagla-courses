@@ -7,6 +7,7 @@ import { prisma } from '#/db'
 import { courseContents } from '#/lib/course-pages'
 import { env } from '#/env'
 import { getBunnyVideo } from '#/lib/bunny'
+import { groupPurchasesByOrigin } from '#/lib/attribution'
 import { requireAdmin } from '#/lib/guards'
 import { promotionTestKey } from '#/lib/offers'
 import {
@@ -62,24 +63,32 @@ export const getAdminPromotion = createServerFn()
   .middleware([requireAdmin])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const [promotion, catalog, paid, visits, carts] = await Promise.all([
-      prisma.promotion.findUnique({
-        where: { id: data.id },
-        include: { products: { orderBy: { position: 'asc' } } },
-      }),
-      prisma.product.findMany({ orderBy: [{ kind: 'asc' }, { name: 'asc' }] }),
-      prisma.order.aggregate({
-        where: { status: 'PAID', promotionId: data.id },
-        _count: true,
-        _sum: { amountMxn: true },
-      }),
-      prisma.promotionEvent.count({
-        where: { promotionId: data.id, kind: 'VISIT' },
-      }),
-      prisma.promotionEvent.count({
-        where: { promotionId: data.id, kind: 'CART' },
-      }),
-    ])
+    const [promotion, catalog, paid, visits, carts, paidOrders] =
+      await Promise.all([
+        prisma.promotion.findUnique({
+          where: { id: data.id },
+          include: { products: { orderBy: { position: 'asc' } } },
+        }),
+        prisma.product.findMany({
+          orderBy: [{ kind: 'asc' }, { name: 'asc' }],
+        }),
+        prisma.order.aggregate({
+          where: { status: 'PAID', promotionId: data.id },
+          _count: true,
+          _sum: { amountMxn: true },
+        }),
+        prisma.promotionEvent.count({
+          where: { promotionId: data.id, kind: 'VISIT' },
+        }),
+        prisma.promotionEvent.count({
+          where: { promotionId: data.id, kind: 'CART' },
+        }),
+        // Para ver de qué anuncio salió cada compra (ver `groupPurchasesByOrigin`).
+        prisma.order.findMany({
+          where: { status: 'PAID', promotionId: data.id },
+          select: { amountMxn: true, attribution: true },
+        }),
+      ])
     if (!promotion) throw notFound()
 
     return {
@@ -97,6 +106,7 @@ export const getAdminPromotion = createServerFn()
       carts,
       purchases: paid._count,
       revenueMxn: paid._sum.amountMxn ?? 0,
+      origins: groupPurchasesByOrigin(paidOrders),
       baseUrl: env.BETTER_AUTH_URL.replace(/\/$/, ''),
       testKey: promotionTestKey(promotion.id),
       slots: promotion.products.map((p) => ({

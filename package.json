@@ -24,6 +24,7 @@
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "db:seed": "dotenv -e .env.local -- prisma db seed",
     "db:import-course": "tsx prisma/import-course.ts",
+    "db:import-course-map": "tsx prisma/import-course-map.ts",
     "db:import-bunny": "tsx prisma/import-bunny.ts",
     "db:import-transcripts": "tsx prisma/import-transcripts.ts",
     "test": "vitest run"

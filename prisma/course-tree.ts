@@ -11,6 +11,8 @@ export type SeedItem = {
   isFree?: boolean
   lessonType?: 'VIDEO' | 'TEXT'
   durationSec?: number
+  // Video de la biblioteca de Bunny (solo lecciones de video).
+  bunnyVideoId?: string
   children?: SeedItem[]
 }
 

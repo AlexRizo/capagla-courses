@@ -577,27 +577,31 @@ function CourseCard({ course }: { course: MyCourse }) {
               Renovar por {mxn(renewalMxn)}
             </Link>
           )}
-          <a
-            href={active ? '#' : undefined}
-            aria-disabled={!active}
-            className={cn(
-              'flex min-h-11.5 items-center justify-center gap-2 rounded-12 border-1.5 border-landing-field text-sm font-bold text-landing-primary no-underline md:inline-flex md:min-h-12.5 md:px-4 md:text-15',
-              !active && 'pointer-events-none opacity-50',
-            )}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="size-4.5 fill-none stroke-landing-primary stroke-2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
+          {/* Solo los cursos con recetario (`assets/recetarios/<slug>.pdf`); vencido, inerte. */}
+          {course.recipeBook && (
+            <a
+              href={active ? `/api/recetarios/${course.slug}` : undefined}
+              download={active ? '' : undefined}
+              aria-disabled={!active}
+              className={cn(
+                'flex min-h-11.5 items-center justify-center gap-2 rounded-12 border-1.5 border-landing-field text-sm font-bold text-landing-primary no-underline md:inline-flex md:min-h-12.5 md:px-4 md:text-15',
+                !active && 'pointer-events-none opacity-50',
+              )}
             >
-              <path d="M12 4v11" />
-              <path d="M7 11l5 5 5-5" />
-              <path d="M5 20h14" />
-            </svg>
-            Descargar recetario (PDF)
-          </a>
+              <svg
+                viewBox="0 0 24 24"
+                className="size-4.5 fill-none stroke-landing-primary stroke-2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 4v11" />
+                <path d="M7 11l5 5 5-5" />
+                <path d="M5 20h14" />
+              </svg>
+              Descargar recetario (PDF)
+            </a>
+          )}
         </div>
       </div>
     </div>

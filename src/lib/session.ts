@@ -10,6 +10,7 @@ import { ticketMail } from '#/lib/emails'
 import { sendMail } from '#/lib/mailer'
 import { canRenew, renewalPrice } from '#/lib/offers'
 import { onlyFreeBlocks } from '#/lib/player-tree'
+import { hasRecipeBook } from '#/lib/recipe-books'
 
 export const getSession = createServerFn().handler(() =>
   readSession(getRequestHeaders()),
@@ -58,6 +59,16 @@ export const getMyCourses = createServerFn().handler(async () => {
       select: { item: { select: { productId: true } } },
     }),
   ])
+  // Cursos con recetario PDF (`assets/recetarios/<slug>.pdf`): solo ellos muestran el botón.
+  const withRecipeBook = new Set(
+    (
+      await Promise.all(
+        courses.map(async (e) =>
+          (await hasRecipeBook(e.product.slug)) ? e.productId : null,
+        ),
+      )
+    ).filter((id) => id !== null),
+  )
   const lessonCount = new Map(lessons.map((l) => [l.productId, l._count]))
   const recipeCount = new Map(chapters.map((c) => [c.productId, c._count]))
   const seenCount = new Map<string, number>()
@@ -120,6 +131,7 @@ export const getMyCourses = createServerFn().handler(async () => {
       name: e.product.name,
       coverUrl: e.product.coverUrl,
       recipes: recipeCount.get(e.productId) ?? 0,
+      recipeBook: withRecipeBook.has(e.productId),
       expiresAt: e.expiresAt.toISOString(),
       // Pasada la fecha, el curso queda bloqueado.
       active: e.expiresAt > new Date(),

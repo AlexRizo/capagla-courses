@@ -71,8 +71,11 @@ function Gracias() {
           </div>
         </div>
 
+        {/* Sin sesión (cuenta que ya existía) entra por el enlace del correo o con su correo. */}
         <Link
-          to="/mis-cursos"
+          {...(order.signedIn
+            ? { to: '/mis-cursos' }
+            : { to: '/entrar', search: { correo: order.email } })}
           className="box-border flex min-h-13.5 w-full items-center justify-center rounded-12 bg-landing-primary text-17 font-black text-white no-underline md:min-h-14.5 md:text-19"
         >
           Empezar el curso

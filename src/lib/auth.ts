@@ -34,7 +34,9 @@ export const auth = betterAuth({
       disableSignUp: true,
       expiresIn: 60 * 15,
       sendMagicLink: async ({ email, url }) => {
-        await sendMail(accessLinkMail(email, url, currentLinkPurpose()))
+        const purpose = currentLinkPurpose()
+        if (purpose.kind === 'capture') return purpose.onLink(url)
+        await sendMail(accessLinkMail(email, url, purpose))
       },
     }),
     tanstackStartCookies(),

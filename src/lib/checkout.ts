@@ -22,6 +22,7 @@ import {
   createOrder,
   failOrder,
   settleOrder,
+  signInAfterPurchase,
 } from '#/lib/purchases'
 import { getStripe } from '#/lib/stripe'
 
@@ -227,8 +228,24 @@ export const getThanksOrder = createServerFn()
     await settleOrder(data.orderId).catch((error: unknown) =>
       console.error('[stripe] No se pudo consultar el pago:', error),
     )
-    return prisma.order.findUnique({
+    const order = await prisma.order.findUnique({
       where: { id: data.orderId },
       include: { items: { include: { product: true } } },
     })
+    if (order?.status !== 'PAID') return order && { ...order, signedIn: false }
+    // Quien acaba de pagar queda con la sesión abierta (ver `signInAfterPurchase`).
+    const headers = getRequestHeaders()
+    let signedIn = !!(await readSession(headers))
+    if (!signedIn) {
+      signedIn = await signInAfterPurchase(order.id, headers).catch(
+        (error: unknown) => {
+          console.error(
+            '[sesión] No se pudo abrir la sesión tras pagar:',
+            error,
+          )
+          return false
+        },
+      )
+    }
+    return { ...order, signedIn }
   })

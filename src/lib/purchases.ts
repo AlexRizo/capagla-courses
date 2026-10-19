@@ -158,6 +158,45 @@ async function completeOrderLocked(orderId: string) {
   return paid
 }
 
+// Tras pagar, abre la sesión en el navegador que pagó para que "Empezar el curso" no la mande
+// a Entrar. Solo si la cuenta la creó esta misma compra y el pago es reciente: con una cuenta
+// que ya existía bastaría escribir el correo de otra persona y pagar para entrar a ella (el
+// correo no se verifica antes de pagar); esas cuentas entran con el enlace del correo.
+// Usa el mismo mecanismo del enlace de acceso (Better Auth crea la sesión y su cookie), sin
+// mandar correo. `headers` son los de la petición del navegador.
+const SIGN_IN_WINDOW_MS = 30 * 60 * 1000
+
+export async function signInAfterPurchase(orderId: string, headers: Headers) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { user: true },
+  })
+  if (order?.status !== 'PAID' || !order.user || !order.paidAt) return false
+  if (Date.now() - order.paidAt.getTime() > SIGN_IN_WINDOW_MS) return false
+  if (order.user.createdAt < order.createdAt || order.user.role !== 'STUDENT') {
+    return false
+  }
+
+  let link: string | undefined
+  await withLinkPurpose(
+    {
+      kind: 'capture',
+      onLink: (url) => {
+        link = url
+      },
+    },
+    () =>
+      auth.api.signInMagicLink({
+        body: { email: order.email, callbackURL: '/mis-cursos' },
+        headers: new Headers(),
+      }),
+  )
+  const token = link ? new URL(link).searchParams.get('token') : null
+  if (!token) return false
+  await auth.api.magicLinkVerify({ query: { token }, headers })
+  return true
+}
+
 // Pago rechazado: solo marca las órdenes que siguen pendientes (una orden pagada no
 // vuelve atrás). La alumna puede reintentar con el mismo PaymentIntent y entonces se
 // completa igual.

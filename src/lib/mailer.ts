@@ -68,6 +68,8 @@ export type LinkPurpose =
   | { kind: 'free-class' }
   // `renewedUntil`: fecha en que vence el acceso renovado (solo en una renovación).
   | { kind: 'purchase'; items: string[]; renewedUntil?: string }
+  // No se manda correo: el enlace se entrega a `onLink` (para abrir la sesión en el servidor).
+  | { kind: 'capture'; onLink: (url: string) => void }
 
 const linkPurpose = new AsyncLocalStorage<LinkPurpose>()
 

@@ -28,6 +28,7 @@ import { Route as AdminCursosSlugRouteImport } from './routes/admin/cursos/$slug
 import { Route as AdminPromocionesIndexRouteImport } from './routes/admin/promociones/index'
 import { Route as AdminPromocionesIdRouteImport } from './routes/admin/promociones/$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiRecursosNameRouteImport } from './routes/api/recursos/$name'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
 import { Route as MisCursosSlugIndexRouteImport } from './routes/mis-cursos/$slug/index'
 import { Route as MisCursosSlugLessonIdRouteImport } from './routes/mis-cursos/$slug/$lessonId'
@@ -127,6 +128,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRecursosNameRoute = ApiRecursosNameRouteImport.update({
+  id: '/api/recursos/$name',
+  path: '/api/recursos/$name',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
   id: '/api/stripe/webhook',
   path: '/api/stripe/webhook',
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/recursos/$name': typeof ApiRecursosNameRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
   '/admin/cursos/': typeof AdminCursosIndexRoute
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/recursos/$name': typeof ApiRecursosNameRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
   '/admin/cursos': typeof AdminCursosIndexRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/recursos/$name': typeof ApiRecursosNameRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
   '/admin/cursos/': typeof AdminCursosIndexRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/admin/cursos/$slug'
     | '/admin/promociones/$id'
     | '/api/auth/$'
+    | '/api/recursos/$name'
     | '/api/stripe/webhook'
     | '/mis-cursos/$slug/$lessonId'
     | '/admin/cursos/'
@@ -258,6 +268,7 @@ export interface FileRouteTypes {
     | '/admin/cursos/$slug'
     | '/admin/promociones/$id'
     | '/api/auth/$'
+    | '/api/recursos/$name'
     | '/api/stripe/webhook'
     | '/mis-cursos/$slug/$lessonId'
     | '/admin/cursos'
@@ -282,6 +293,7 @@ export interface FileRouteTypes {
     | '/admin/cursos/$slug'
     | '/admin/promociones/$id'
     | '/api/auth/$'
+    | '/api/recursos/$name'
     | '/api/stripe/webhook'
     | '/mis-cursos/$slug/$lessonId'
     | '/admin/cursos/'
@@ -302,6 +314,7 @@ export interface RootRouteChildren {
   ApiUploadsRoute: typeof ApiUploadsRoute
   CursosSlugRoute: typeof CursosSlugRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiRecursosNameRoute: typeof ApiRecursosNameRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
 }
 
@@ -440,6 +453,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/recursos/$name': {
+      id: '/api/recursos/$name'
+      path: '/api/recursos/$name'
+      fullPath: '/api/recursos/$name'
+      preLoaderRoute: typeof ApiRecursosNameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/stripe/webhook': {
       id: '/api/stripe/webhook'
       path: '/api/stripe/webhook'
@@ -513,6 +533,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiUploadsRoute: ApiUploadsRoute,
   CursosSlugRoute: CursosSlugRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiRecursosNameRoute: ApiRecursosNameRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport

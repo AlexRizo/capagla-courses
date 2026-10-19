@@ -73,6 +73,8 @@ export function BlockSettings({
 
       <button
         type="button"
+        role="switch"
+        aria-checked={free}
         onClick={() => setFree(!free)}
         className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2.5 text-left text-sm text-foreground"
       >

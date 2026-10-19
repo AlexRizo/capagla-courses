@@ -1,12 +1,17 @@
 import { randomUUID } from 'node:crypto'
-import { mkdir, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-// Subida de archivos a disco local, SOLO para desarrollo: `public/uploads/`.
+// Subida de archivos a disco local, SOLO para desarrollo.
 // En producción `public/` es estático (se copia al compilar), así que no se puede escribir;
 // ahí se reemplaza por UploadThing. Ver "Pendientes / dudas" (ARCHIVOS) en la bitácora.
+//  - Portadas (`image`): `public/uploads/`, públicas.
+//  - Recursos (`file`): `private-uploads/`, fuera de `public/`. Solo se descargan por
+//    `/api/recursos/<archivo>`, que pide sesión y acceso al curso (ver esa ruta).
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads')
+const PRIVATE_DIR = path.join(process.cwd(), 'private-uploads')
 const URL_PREFIX = '/uploads/'
+export const PRIVATE_URL_PREFIX = '/api/recursos/'
 const MB = 1024 * 1024
 
 export const UPLOAD_KINDS = {
@@ -59,17 +64,31 @@ export async function storeUpload(file: File, kind: UploadKind) {
   if (!ext || !(exts as readonly string[]).includes(ext)) {
     throw new UploadError(`Formato no permitido. Usa: ${exts.join(', ')}.`)
   }
-  await mkdir(UPLOAD_DIR, { recursive: true })
+  const dir = kind === 'file' ? PRIVATE_DIR : UPLOAD_DIR
+  await mkdir(dir, { recursive: true })
   const stored = `${randomUUID()}.${ext}`
-  await writeFile(path.join(UPLOAD_DIR, stored), buf)
+  await writeFile(path.join(dir, stored), buf)
   const name = path.basename(file.name.replaceAll('\\', '/')).slice(0, 120)
-  return { url: URL_PREFIX + stored, name: name || stored }
+  const prefix = kind === 'file' ? PRIVATE_URL_PREFIX : URL_PREFIX
+  return { url: prefix + stored, name: name || stored }
 }
 
 // Borra un archivo subido por nosotros; ignora cualquier otra URL (p. ej. `/images/...`).
 export async function removeUpload(url: string | null | undefined) {
-  if (!url || !/^\/uploads\/[0-9a-f-]+\.[a-z]+$/.test(url)) return
-  await unlink(path.join(UPLOAD_DIR, url.slice(URL_PREFIX.length))).catch(
-    () => {},
-  )
+  if (!url) return
+  if (/^\/uploads\/[0-9a-f-]+\.[a-z]+$/.test(url)) {
+    await unlink(path.join(UPLOAD_DIR, url.slice(URL_PREFIX.length))).catch(
+      () => {},
+    )
+  } else if (/^\/api\/recursos\/[0-9a-f-]+\.[a-z]+$/.test(url)) {
+    await unlink(
+      path.join(PRIVATE_DIR, url.slice(PRIVATE_URL_PREFIX.length)),
+    ).catch(() => {})
+  }
+}
+
+// Lee un recurso privado por el nombre con el que se guardó (el final de su URL).
+export async function readPrivateUpload(stored: string) {
+  if (!/^[0-9a-f-]+\.[a-z]+$/.test(stored)) return null
+  return readFile(path.join(PRIVATE_DIR, stored)).catch(() => null)
 }

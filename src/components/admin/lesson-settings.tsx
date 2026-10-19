@@ -198,7 +198,7 @@ export function LessonSettings({
         </div>
       )}
 
-      <div className="flex items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-2.5">
         <button type="submit" disabled={saving} className={primaryButton}>
           Guardar
         </button>
@@ -209,7 +209,7 @@ export function LessonSettings({
           href={`/mis-cursos/${slug}/${lesson.id}?vista=alumna`}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex h-9 items-center rounded-md border border-border bg-card px-3.5 font-medium text-foreground no-underline"
+          className="inline-flex h-9 items-center rounded-md border border-border bg-card px-3.5 font-medium whitespace-nowrap text-foreground no-underline"
         >
           Ver como alumna
         </a>

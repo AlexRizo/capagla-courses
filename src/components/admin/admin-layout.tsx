@@ -132,6 +132,8 @@ export function AdminLayout({
               </button>
               <button
                 type="button"
+                role="switch"
+                aria-checked={proMode}
                 onClick={() => setProMode(!proMode)}
                 className="flex cursor-pointer items-center gap-2.5 border-none bg-transparent p-0"
               >

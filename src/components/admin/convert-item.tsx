@@ -38,7 +38,7 @@ export function ConvertItem({
         onClick={convert}
         disabled={busy || blockedReason !== null}
         title={blockedReason ?? undefined}
-        className="h-9 cursor-pointer rounded-md border border-border bg-card px-3.5 font-medium text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-9 cursor-pointer rounded-md border border-border bg-card px-3.5 font-medium whitespace-nowrap text-foreground disabled:cursor-not-allowed disabled:opacity-60"
       >
         {to === 'LESSON' ? 'Convertir en lección' : 'Convertir en capítulo'}
       </button>

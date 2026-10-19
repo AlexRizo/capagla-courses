@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { MobileMenu } from '#/components/mobile-menu'
 import type { CoursePage } from '#/lib/course-pages'
+import { track } from '#/lib/track-client'
 
 const solid =
   'flex items-center justify-center rounded-12 bg-landing-primary font-black text-white no-underline'
@@ -11,6 +12,17 @@ const footerLink = 'text-landing-muted'
 // Landing de venta de un curso: la usan /cursos/$slug (precio normal) y las promociones.
 export function CourseLanding({ page }: { page: CoursePage }) {
   const [playing, setPlaying] = useState(false)
+  // Marketing: ver el curso o la promoción (solo el navegador).
+  useEffect(() => {
+    track('ViewContent', {
+      params: {
+        contentName: page.title,
+        contentIds: [page.slug],
+        value: page.priceMxn,
+        currency: 'MXN',
+      },
+    })
+  }, [page.slug, page.promoSlug, page.title, page.priceMxn])
   // Sin video de intro el botón queda como en la maqueta (sin acción).
   const onPlay = page.introVideo ? () => setPlaying(true) : undefined
 

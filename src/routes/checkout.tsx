@@ -20,6 +20,7 @@ import { z } from 'zod'
 
 import { RENEWAL_DISCOUNT_PCT, mxn } from '#/lib/catalog'
 import { getCheckoutData, getThanksOrder, startCheckout } from '#/lib/checkout'
+import { track } from '#/lib/track-client'
 
 export const Route = createFileRoute('/checkout')({
   validateSearch: z.object({
@@ -354,6 +355,19 @@ function CheckoutForm({
     bonuses.reduce((sum, b) => sum + b.priceMxn, 0) +
     (addTool ? tool.priceMxn : 0)
   const payText = `Pagar ${mxn(total)}`
+  const cartParams = {
+    value: total,
+    currency: 'MXN',
+    contentName: course.name,
+    contentIds: [course.slug],
+  }
+  // Marketing: llegar al pago es "agregar al carrito" (navegador y servidor), una vez por visita.
+  const cartTracked = useRef(false)
+  useEffect(() => {
+    if (cartTracked.current) return
+    cartTracked.current = true
+    track('AddToCart', { email: account?.email, params: cartParams })
+  }, [])
   const payLabel =
     stage === 'idle' ? (
       payText
@@ -450,6 +464,14 @@ function CheckoutForm({
       return
     }
 
+    // Marketing: inicia el pago (solo en el primer intento; reintentar con otra tarjeta no repite).
+    if (!attempt.current) {
+      track('InitiateCheckout', {
+        email: buyer.email,
+        fullName: buyer.name,
+        params: cartParams,
+      })
+    }
     setStage('preparing')
     setError(null)
     try {

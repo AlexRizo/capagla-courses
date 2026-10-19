@@ -278,6 +278,9 @@ model Lead {
   consentAt DateTime
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Atribución con la que llegó y si aceptó las cookies de medición (ver `Order`).
+  attribution      Json?
+  marketingConsent Boolean?
 }
 
 // Datos de conexión de Marketing (una sola fila, id "main"). Solo se guardan: ningún píxel ni
@@ -365,6 +368,14 @@ model Order {
   stripePaymentIntentId String?     @unique
   // Renovación del acceso desde Mis cursos (precio de renovación, sin adicionales).
   renewal               Boolean     @default(false)
+  // Atribución de marketing al comprar (utm_*, fbclid, ttclid, página de entrada) y si la persona
+  // aceptó las cookies de medición en ese momento (null = no había elegido). Ver lib/attribution.ts.
+  attribution           Json?
+  marketingConsent      Boolean?
+  // IP, navegador y cookies del píxel (fbp, fbc) del momento del pago: el servidor los manda con
+  // el evento Purchase aunque la compra la confirme el webhook de Stripe. Solo si aceptó las
+  // cookies de medición. Ver lib/track-core.ts.
+  trackingContext       Json?
 
   @@index([email])
   @@index([promotionId])

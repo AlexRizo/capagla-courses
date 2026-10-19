@@ -6,6 +6,9 @@ import {
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
+import { CookieNotice } from '#/components/cookie-notice'
+import { Tracking } from '#/components/tracking'
+import { getTrackingConfig } from '#/lib/track'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
 import appCss from '../styles.css?url'
@@ -17,6 +20,9 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+  // IDs públicos de los píxeles (Marketing); sin ellos el sitio no mide nada.
+  loader: () => getTrackingConfig(),
+  staleTime: 5 * 60_000,
   head: () => ({
     meta: [
       {
@@ -46,6 +52,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const config = Route.useLoaderData()
   return (
     <html lang="es">
       <head>
@@ -53,6 +60,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        <CookieNotice />
+        <Tracking config={config} />
         <TanStackDevtools
           config={{
             position: 'bottom-right',

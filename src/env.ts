@@ -22,6 +22,9 @@ export const env = createEnv({
     BREVO_API_KEY: z.string().optional(),
     MAIL_FROM_EMAIL: z.string().email().optional(),
     MAIL_FROM_NAME: z.string().optional(),
+    // Solo pruebas: otra dirección en lugar de graph.facebook.com para la API de conversiones.
+    META_API_URL: z.string().url().optional(),
+    TIKTOK_API_URL: z.string().url().optional(),
     // Buzón de soporte: recibe los reportes y es la dirección de respuesta de los correos.
     SUPPORT_EMAIL: z.string().email().optional(),
   },

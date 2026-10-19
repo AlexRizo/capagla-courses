@@ -1,9 +1,12 @@
 import { Link, createFileRoute, redirect } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { z } from 'zod'
 
 import { AuthShell } from '#/components/auth-shell'
 import { mxn } from '#/lib/catalog'
 import { getThanksOrder } from '#/lib/checkout'
+import { track } from '#/lib/track-client'
+import { purchaseEventId } from '#/lib/tracking-events'
 
 export const Route = createFileRoute('/gracias')({
   // Sin orden, con una que no existe o que no inició este navegador → inicio (sin error).
@@ -24,6 +27,22 @@ function Gracias() {
   const order = Route.useLoaderData()
   // El curso de costos gratis no es una línea cobrada: solo se listan los pagos.
   const lines = order.items.filter((item) => item.amountMxn > 0)
+
+  // Marketing: compra confirmada (navegador). El servidor manda la suya con el mismo `eventId`,
+  // así que `track` no la repite al servidor. Una renovación no cuenta como compra de anuncio.
+  useEffect(() => {
+    if (order.renewal) return
+    track('Purchase', {
+      eventId: purchaseEventId(order.id),
+      params: {
+        value: order.amountMxn,
+        currency: 'MXN',
+        transactionId: order.id,
+        contentIds: order.items.map((i) => i.product.slug),
+        contentName: order.items.map((i) => i.product.name).join(', '),
+      },
+    })
+  }, [order.id, order.renewal, order.amountMxn, order.items])
 
   return (
     <AuthShell logoLink={false}>

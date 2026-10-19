@@ -1,11 +1,17 @@
 import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { getRequestHeaders } from '@tanstack/react-start/server'
+import { getCookie, getRequestHeaders } from '@tanstack/react-start/server'
 import { z } from 'zod'
 
 import { prisma } from '#/db'
 import { placeholderName } from '#/lib/account-name'
+import {
+  ATTRIBUTION_COOKIE,
+  attributionJson,
+  parseAttribution,
+} from '#/lib/attribution'
 import { auth } from '#/lib/auth'
+import { CONSENT_COOKIE, parseConsent } from '#/lib/consent'
 import { withLinkPurpose } from '#/lib/mailer'
 import { buildPlayerTree, onlyFreeBlocks } from '#/lib/player-tree'
 import { tooManyAttempts } from '#/lib/rate-limit'
@@ -58,9 +64,18 @@ export const joinFreeClass = createServerFn({ method: 'POST' })
         { email, name: placeholderName(email), emailVerified: false },
         { method: 'free-class' },
       ))
+    // Si llegó por un anuncio, el lead guarda esa atribución (la primera, no se pisa después).
+    const attribution = parseAttribution(getCookie(ATTRIBUTION_COOKIE))
+    const consent = parseConsent(getCookie(CONSENT_COOKIE))
     await prisma.lead.upsert({
       where: { email },
-      create: { email, userId: user.id, consentAt: new Date() },
+      create: {
+        email,
+        userId: user.id,
+        consentAt: new Date(),
+        attribution: attributionJson(attribution),
+        marketingConsent: consent === null ? undefined : consent === 'accepted',
+      },
       update: {},
     })
 

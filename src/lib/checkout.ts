@@ -4,6 +4,7 @@ import { notFound, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import {
   getCookie,
+  getRequestHeader,
   getRequestHeaders,
   setCookie,
 } from '@tanstack/react-start/server'
@@ -11,9 +12,17 @@ import { z } from 'zod'
 
 import { prisma } from '#/db'
 import { hasPlaceholderName } from '#/lib/account-name'
+import {
+  ATTRIBUTION_COOKIE,
+  parseAttribution,
+  stripeMetadata,
+} from '#/lib/attribution'
 import { readSession } from '#/lib/auth'
+import { CONSENT_COOKIE, parseConsent } from '#/lib/consent'
 import { courseContents } from '#/lib/course-pages'
 import { canRenew, resolveOffer, resolveRenewal } from '#/lib/offers'
+import { clientIp } from '#/lib/track-core'
+import type { TrackingContext } from '#/lib/track-core'
 import { recordPromotionEvent } from '#/lib/promo-stats'
 import { longDate } from '#/lib/promotions'
 import { env } from '#/env'
@@ -100,6 +109,7 @@ export const getCheckoutData = createServerFn()
       // El producto principal puede ser cualquier producto (no solo el curso de Navidad).
       course: {
         ...line(offer.main),
+        slug: offer.main.slug,
         label: offer.main.isCourse ? 'Curso' : 'Herramienta',
         image: offer.main.coverUrl,
         accessDays: offer.main.accessDays,
@@ -163,7 +173,29 @@ export const startCheckout = createServerFn({ method: 'POST' })
       throw new Error('Faltan el correo y el nombre.')
     }
     const buyer = { email: buyerEmail, name: buyerName }
-    const input = { ...rest, ...buyer, renew: renovar }
+    // Marketing: de dónde llegó y si aceptó las cookies de medición (cookies del navegador).
+    const attribution = parseAttribution(getCookie(ATTRIBUTION_COOKIE))
+    const consent = parseConsent(getCookie(CONSENT_COOKIE))
+    // Con las cookies aceptadas se guarda lo que el servidor necesita para mandar la compra a
+    // las plataformas aunque la confirme el webhook de Stripe (sin navegador delante).
+    const trackingContext: TrackingContext | null =
+      consent === 'accepted'
+        ? {
+            ip: clientIp(getRequestHeader('x-forwarded-for')),
+            userAgent: getRequestHeader('user-agent')?.slice(0, 500),
+            fbp: getCookie('_fbp')?.slice(0, 200),
+            fbc: getCookie('_fbc')?.slice(0, 300),
+            ttp: getCookie('_ttp')?.slice(0, 200),
+          }
+        : null
+    const input = {
+      ...rest,
+      ...buyer,
+      renew: renovar,
+      attribution,
+      marketingConsent: consent === null ? null : consent === 'accepted',
+      trackingContext,
+    }
     const stripe = getStripe()
 
     if (replaces) {
@@ -191,6 +223,12 @@ export const startCheckout = createServerFn({ method: 'POST' })
     }
     // Stripe no cobra menos de $10 MXN.
     if (order.amountMxn < 10) throw new Error('El monto es menor al mínimo.')
+    const promotion = order.promotionId
+      ? await prisma.promotion.findUnique({
+          where: { id: order.promotionId },
+          select: { slug: true },
+        })
+      : null
     const intent = await stripe.paymentIntents.create(
       {
         amount: order.amountMxn * 100,
@@ -199,7 +237,11 @@ export const startCheckout = createServerFn({ method: 'POST' })
         allowed_payment_method_types: ['card'],
         receipt_email: order.email,
         description: `Capagla · orden ${order.id}`,
-        metadata: { orderId: order.id },
+        // Promoción, campaña y creativo que originaron la compra (se ven en Stripe).
+        metadata: {
+          orderId: order.id,
+          ...stripeMetadata(attribution, promotion?.slug ?? null),
+        },
       },
       { idempotencyKey: `order-${order.id}` },
     )

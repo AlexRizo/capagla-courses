@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import { AuthShell } from '#/components/auth-shell'
 import { joinFreeClass, requireFreeClass } from '#/lib/free-class'
+import { track } from '#/lib/track-client'
 import { redirectIfSignedIn } from '#/lib/session'
 import { cn } from '#/lib/utils'
 
@@ -33,6 +34,8 @@ function ClaseGratis() {
         )
         return form.correo.reportValidity()
       }
+      // Marketing: se registró en la clase gratis (navegador y servidor).
+      track('Lead', { email, params: { contentName: 'Clase gratis' } })
       await navigate({ to: '/revisa-tu-correo', search: { correo: email } })
     } finally {
       setLoading(false)

@@ -1,7 +1,11 @@
 import { prisma } from '#/db'
 import { hasPlaceholderName } from '#/lib/account-name'
+import { attributionJson } from '#/lib/attribution'
+import type { Attribution } from '#/lib/attribution'
 import { auth } from '#/lib/auth'
 import { withLinkPurpose } from '#/lib/mailer'
+import { trackPurchase } from '#/lib/purchase-tracking'
+import type { TrackingContext } from '#/lib/track-core'
 import { resolveOffer, resolveRenewal } from '#/lib/offers'
 import { TIME_ZONE } from '#/lib/promotions'
 import { getStripe } from '#/lib/stripe'
@@ -34,6 +38,11 @@ export async function createOrder(input: {
   promo?: string
   prueba?: string
   renew?: string
+  // Atribución de la visita y si aceptó las cookies de medición (ver lib/attribution.ts).
+  attribution?: Attribution | null
+  marketingConsent?: boolean | null
+  // IP, navegador y cookies del píxel (solo con las cookies aceptadas) para el evento Purchase.
+  trackingContext?: TrackingContext | null
 }) {
   const renewal = input.renew
     ? await resolveRenewal(input.renew, input.email)
@@ -57,6 +66,9 @@ export async function createOrder(input: {
       amountMxn: items.reduce((sum, item) => sum + item.amountMxn, 0),
       promotionId: offer.promotion?.id,
       renewal: !!renewal,
+      attribution: attributionJson(input.attribution ?? null),
+      marketingConsent: input.marketingConsent ?? undefined,
+      trackingContext: input.trackingContext ?? undefined,
       items: { create: items },
     },
   })
@@ -154,6 +166,9 @@ async function completeOrderLocked(orderId: string) {
         headers: new Headers(),
       }),
   )
+
+  // Marketing: la compra confirmada sale a las plataformas (sin esperar su respuesta).
+  void trackPurchase(paid.id)
 
   return paid
 }

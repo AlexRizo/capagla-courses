@@ -49,6 +49,7 @@ export function buildCoursePage(offer: Offer): CoursePage | null {
     intro,
     introShort: offer.promotion?.introText || content.introShort,
     price: mxn(offer.main.priceMxn),
+    priceMxn: offer.main.priceMxn,
     strike: special ? mxn(offer.main.normalMxn) : '',
     strikeShort: special ? `$${offer.main.normalMxn}` : '',
     priceNote: offer.applied

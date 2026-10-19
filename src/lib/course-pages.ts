@@ -36,6 +36,8 @@ export type Offer = {
 // La landing lista para mostrar: contenido + precios y promoción del momento.
 export type CoursePage = CourseContent & {
   price: string
+  // Precio en pesos (para los eventos de marketing).
+  priceMxn: number
   strike: string
   strikeShort: string
   priceNote: string

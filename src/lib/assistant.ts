@@ -1,6 +1,11 @@
 import type { JSONContent } from '@tiptap/react'
 
 import { prisma } from '#/db'
+import { env } from '#/env'
+import {
+  DEFAULT_ASSISTANT_MODEL,
+  anthropicTextModel,
+} from '#/lib/assistant-model'
 import { transcriptText } from '#/lib/transcript'
 import type { TranscriptLine } from '#/lib/transcript'
 
@@ -15,12 +20,20 @@ export type TextModel = (prompt: {
   maxTokens: number
 }) => Promise<string>
 
-// PROVEEDOR: mientras devuelva null no hay asistente. Las preguntas van directo a la chef
-// (como antes) y no aparecen "Regenerar con IA" ni el borrador. Al conectar uno (p. ej. con
-// su clave en `env.ts` y `.env`), todo lo demás ya funciona: respuesta a la alumna, votos,
-// "Preguntarle a la chef", borrador y regenerar.
+// PROVEEDOR: Claude (`lib/assistant-model.ts`). Con `ANTHROPIC_API_KEY` en el entorno hay
+// asistente: respuesta a la alumna, votos, "Preguntarle a la chef", borrador y regenerar. Sin
+// la clave devuelve null: las preguntas van directo a la chef (como antes) y no aparecen
+// "Regenerar con IA" ni el borrador. `ASSISTANT_MODEL` cambia el modelo.
+let cached: { key: string; model: string; run: TextModel } | null = null
+
 export function getTextModel(): TextModel | null {
-  return null
+  const key = env.ANTHROPIC_API_KEY?.trim()
+  if (!key) return null
+  const model = env.ASSISTANT_MODEL?.trim() || DEFAULT_ASSISTANT_MODEL
+  if (cached?.key !== key || cached.model !== model) {
+    cached = { key, model, run: anthropicTextModel({ apiKey: key, model }) }
+  }
+  return cached.run
 }
 
 export const assistantEnabled = () => getTextModel() !== null
@@ -150,8 +163,11 @@ ${SAFETY}`,
 // Si el modelo se pasó del límite, no se corta a la mitad de una frase: se avisa.
 const TOO_LONG = `La respuesta es más larga de lo que puedo darte aquí. Mándasela a la chef con el botón "Preguntarle a la chef".`
 
-export async function answerQuestion(itemId: string, question: string) {
-  const model = getTextModel()
+export async function answerQuestion(
+  itemId: string,
+  question: string,
+  model: TextModel | null = getTextModel(),
+) {
   if (!model) throw new Error('No hay un proveedor de IA conectado.')
   const maxChars = await getMaxChars()
   const text = (
@@ -165,8 +181,8 @@ export async function draftAnswer(
   itemId: string,
   question: string,
   assistantAnswer: string | null,
+  model: TextModel | null = getTextModel(),
 ) {
-  const model = getTextModel()
   if (!model) throw new Error('No hay un proveedor de IA conectado.')
   const text = (
     await model(draft(await lessonContext(itemId), question, assistantAnswer))

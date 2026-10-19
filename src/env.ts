@@ -22,6 +22,10 @@ export const env = createEnv({
     BREVO_API_KEY: z.string().optional(),
     MAIL_FROM_EMAIL: z.string().email().optional(),
     MAIL_FROM_NAME: z.string().optional(),
+    // Asistente de IA de las preguntas (Claude). Sin clave no hay asistente: las preguntas van
+    // directo a la chef. `ASSISTANT_MODEL` elige el modelo (por defecto `claude-opus-5-5`).
+    ANTHROPIC_API_KEY: z.string().optional(),
+    ASSISTANT_MODEL: z.string().optional(),
     // Solo pruebas: otra dirección en lugar de graph.facebook.com para la API de conversiones.
     META_API_URL: z.string().url().optional(),
     TIKTOK_API_URL: z.string().url().optional(),

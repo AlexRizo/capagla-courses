@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs'
+
 import { defineConfig } from 'vite'
 import { devtools } from '@tanstack/devtools-vite'
 
@@ -11,8 +13,9 @@ import { nitro } from 'nitro/vite'
 // Vite solo expone VITE_* al cliente; las demás variables del .env deben estar
 // en process.env para el código de servidor (env.ts, Prisma, Better Auth).
 // Se carga solo .env (el único archivo de variables del proyecto).
+// En producción (Railway) las variables vienen de la plataforma y no hay archivo `.env`.
 const config = defineConfig(() => {
-  process.loadEnvFile('.env')
+  if (existsSync('.env')) process.loadEnvFile('.env')
 
   return {
     resolve: { tsconfigPaths: true },

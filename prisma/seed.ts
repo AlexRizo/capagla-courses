@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { hashPassword } from 'better-auth/crypto'
 
+import { adminCredentials } from './admin-credentials'
 import { courseTreeFromIndex, createItems } from './course-tree'
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
@@ -73,8 +74,9 @@ async function seedProducts() {
   console.log(`✅ ${products.length} productos`)
 }
 
-// Administradora de desarrollo (no hay registro: las cuentas nacen al comprar).
-const admin = { email: 'dev@alowee.com', name: 'Admin', password: 'Passwd123+' }
+// Administradora: ver `admin-credentials.ts` (en producción exige ADMIN_EMAIL y ADMIN_PASSWORD).
+const admin = adminCredentials(process.env)
+const localDatabase = admin.local
 
 async function seedAdmin() {
   const user = await prisma.user.upsert({
@@ -93,10 +95,13 @@ async function seedAdmin() {
     where: { userId: user.id, providerId: 'credential' },
   })
   if (credential) {
-    await prisma.account.update({
-      where: { id: credential.id },
-      data: { password },
-    })
+    // En desarrollo se restablece la contraseña; en producción no se pisa la que ya cambió.
+    if (localDatabase) {
+      await prisma.account.update({
+        where: { id: credential.id },
+        data: { password },
+      })
+    }
   } else {
     await prisma.account.create({
       data: {
@@ -111,7 +116,7 @@ async function seedAdmin() {
   console.log(`✅ admin ${admin.email}`)
 }
 
-// Árbol del curso desde el índice de contenido (`contenido/curso-principal.json`).
+// Árbol del curso desde el índice de contenido (`prisma/data/curso-principal.json`).
 async function seedCourseTree() {
   const course = await prisma.product.findUniqueOrThrow({
     where: { slug: 'postres-navidad' },
@@ -119,9 +124,9 @@ async function seedCourseTree() {
   // Idempotente: no pisa lo que ya se haya editado en el panel (para reemplazarlo: pnpm db:import-course).
   if ((await prisma.courseItem.count({ where: { productId: course.id } })) > 0)
     return
-  const file = new URL('../../contenido/curso-principal.json', import.meta.url)
+  const file = new URL('./data/curso-principal.json', import.meta.url)
   if (!existsSync(file)) {
-    console.log('⚠️ sin contenido/curso-principal.json: curso sin árbol')
+    console.log('⚠️ sin prisma/data/curso-principal.json: curso sin árbol')
     return
   }
   const tree = courseTreeFromIndex(JSON.parse(readFileSync(file, 'utf8')))

@@ -7,10 +7,10 @@ import { PrismaClient } from '@prisma/client'
 import { courseTreeFromIndex, createItems } from './course-tree'
 import type { SeedItem } from './course-tree'
 
-// Carga el índice del curso (`contenido/curso-principal.json`) en la base y REEMPLAZA el árbol
+// Carga el índice del curso (`prisma/data/curso-principal.json`) en la base y REEMPLAZA el árbol
 // del curso (bloques, capítulos y lecciones, con sus notas, recursos y avances).
 // Uso: pnpm db:import-course [ruta del json]
-const file = process.argv[2] ?? '../contenido/curso-principal.json'
+const file = process.argv[2] ?? 'prisma/data/curso-principal.json'
 const index = JSON.parse(readFileSync(file, 'utf8'))
 const tree = courseTreeFromIndex(index)
 

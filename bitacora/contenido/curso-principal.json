@@ -1,0 +1,234 @@
+{
+  "curso": {
+    "id": "postres-navidad",
+    "titulo": "Postres Fáciles para regalar en Navidad",
+    "titulo_nuevo": null,
+    "_nota_titulo": "El análisis sugiere reposicionar como curso para vender (ej. 'Postres para vender: 11 recetas rendidoras y técnicas de decoración'). Por decidir.",
+    "idioma": "es-MX",
+    "moneda": "MXN",
+    "precio_mxn": null,
+    "_nota_precio": "Por definir en la estrategia. Histórico: $479 (2021), $347 (2022), $297 (promo). Precio ancla $1,970 nunca se cobró.",
+    "acceso": {
+      "tipo": "anual",
+      "dias": 365,
+      "renovacion_con_descuento": true
+    },
+    "totales": {
+      "recetas": 11,
+      "videos": 52,
+      "duracion_seg": 26928,
+      "duracion_texto": "7 h 28 min"
+    },
+    "recursos": [
+      {
+        "id": "recetario-pdf",
+        "tipo": "pdf",
+        "titulo": "Recetario digital: Postres para regalar en Navidad",
+        "archivo_origen": "Recetario-Digital-Postres-para-regalar-en-Navidad.pdf",
+        "estado": "por verificar"
+      },
+      {
+        "id": "plantillas-empaque",
+        "tipo": "pdf",
+        "titulo": "Plantillas de tarjetas y stickers para empaque",
+        "archivo_origen": null,
+        "estado": "prometido en las clases, por verificar que exista"
+      },
+      {
+        "id": "grupo-privado",
+        "tipo": "comunidad",
+        "titulo": "Grupo privado de dudas",
+        "archivo_origen": null,
+        "estado": "por confirmar si sigue activo y dónde vive (WhatsApp o Facebook)"
+      }
+    ]
+  },
+  "modulos": [
+    {
+      "orden": 0,
+      "id": "introduccion",
+      "titulo": "Introducción",
+      "vimeo_carpeta": "00",
+      "videos_cantidad": 2,
+      "duracion_seg": 93,
+      "lecciones": [
+        { "orden": 1, "id": "bienvenida", "titulo": "Bienvenida" },
+        { "orden": 2, "id": "quien-soy", "titulo": "Quién soy" },
+        { "orden": 3, "id": "que-es-la-reposteria", "titulo": "Qué es la repostería" },
+        { "orden": 4, "id": "utensilios", "titulo": "Utensilios" },
+        { "orden": 5, "id": "duyas", "titulo": "Duyas" },
+        { "orden": 6, "id": "mise-en-place", "titulo": "Mise en place" },
+        { "orden": 7, "id": "tips", "titulo": "Tips" }
+      ],
+      "_nota": "En WordPress eran 7 lecciones, pero en Vimeo solo hay 2 videos de intro (intro del curso + anuncio de 48 s, 00-INTRO-AD). Confirmar qué lecciones tienen video y cuáles son solo texto. La intro dice 'este año podremos reunirnos…' y suena a 2021: regrabar."
+    },
+    {
+      "orden": 1,
+      "id": "postres-de-snack",
+      "titulo": "Postres de snack para Navidad",
+      "recetas": [
+        {
+          "orden": 1,
+          "id": "enjambre-de-chocolate",
+          "titulo": "Enjambre de chocolate",
+          "codigo_origen": "POSTRES-ENJAMBRE",
+          "vimeo_carpeta": "01",
+          "videos_cantidad": 2,
+          "duracion_seg": 1103,
+          "temas": ["Preparación", "Resultado"],
+          "decoracion_navidena": [],
+          "leccion_receta_texto": true
+        },
+        {
+          "orden": 2,
+          "id": "turron-de-chocolate",
+          "titulo": "Turrón de chocolate",
+          "codigo_origen": "POSTRES-TURRON",
+          "vimeo_carpeta": "02",
+          "videos_cantidad": 2,
+          "duracion_seg": 738,
+          "temas": ["Preparación", "Resultado"],
+          "decoracion_navidena": [],
+          "leccion_receta_texto": true
+        }
+      ]
+    },
+    {
+      "orden": 2,
+      "id": "hora-de-hornear",
+      "titulo": "Hora de hornear",
+      "recetas": [
+        {
+          "orden": 3,
+          "id": "brownie-cheesecake",
+          "titulo": "Brownie de cheesecake",
+          "codigo_origen": "POSTRES-BROWNIE",
+          "vimeo_carpeta": "06",
+          "videos_cantidad": 8,
+          "duracion_seg": 2277,
+          "temas": ["Intro", "Materiales", "Utensilios", "Ingredientes", "Preparación", "Base", "Capa de cheesecake", "Final"],
+          "decoracion_navidena": ["Corte en forma de pinos"],
+          "leccion_receta_texto": true,
+          "_nota": "Falta el video 06-08 en la numeración (hay 8 videos pero el último es el 06-09)."
+        },
+        {
+          "orden": 4,
+          "id": "blondie",
+          "titulo": "Blondie",
+          "codigo_origen": "POSTRES-BLONDIE",
+          "vimeo_carpeta": "05",
+          "videos_cantidad": 2,
+          "duracion_seg": 1198,
+          "temas": ["Preparación", "Decoración"],
+          "decoracion_navidena": [],
+          "leccion_receta_texto": true
+        },
+        {
+          "orden": 5,
+          "id": "cupcake",
+          "titulo": "Cupcake",
+          "codigo_origen": null,
+          "vimeo_carpeta": "03",
+          "videos_cantidad": 7,
+          "duracion_seg": 4395,
+          "temas": ["Procedimiento", "Chantilly artesanal", "Decorados"],
+          "decoracion_navidena": ["Hombre de nieve", "Gorro de Papá Noel", "Pino", "Nochebuena"],
+          "leccion_receta_texto": true,
+          "_nota": "El listado original de códigos no incluye uno para el cupcake."
+        },
+        {
+          "orden": 6,
+          "id": "lunch-box-cake",
+          "titulo": "Lunch Box Cake",
+          "codigo_origen": "POSTRES-LUNCHBOX",
+          "vimeo_carpeta": "04",
+          "videos_cantidad": 7,
+          "duracion_seg": 3639,
+          "temas": ["Ingredientes", "Jarabe", "Betún de mantequilla", "Desmoldar panes", "Decorados"],
+          "decoracion_navidena": ["Pino rojo", "Hombre de nieve", "Corona navideña"],
+          "leccion_receta_texto": true
+        },
+        {
+          "orden": 7,
+          "id": "roles-de-canela",
+          "titulo": "Roles de canela",
+          "codigo_origen": "POSTRES-ROL-CANELA",
+          "vimeo_carpeta": "07",
+          "videos_cantidad": 6,
+          "duracion_seg": 3167,
+          "temas": ["Intro", "Ingredientes", "Procedimiento", "Roles normales y mini", "Final"],
+          "decoracion_navidena": [],
+          "leccion_receta_texto": true
+        }
+      ]
+    },
+    {
+      "orden": 3,
+      "id": "galletas-navidenas",
+      "titulo": "Galletas navideñas",
+      "recetas": [
+        {
+          "orden": 8,
+          "id": "alfajores",
+          "titulo": "Alfajores",
+          "codigo_origen": "POSTRES-ALFAJORES",
+          "vimeo_carpeta": "11",
+          "videos_cantidad": 3,
+          "duracion_seg": 1968,
+          "temas": ["Preparación", "Horneado", "Decorado"],
+          "decoracion_navidena": [],
+          "leccion_receta_texto": true
+        },
+        {
+          "orden": 9,
+          "id": "galleta-de-mantequilla",
+          "titulo": "Galleta de mantequilla",
+          "codigo_origen": "POSTRES-GALLETA-MANTEQUILLA",
+          "vimeo_carpeta": "10",
+          "videos_cantidad": 4,
+          "duracion_seg": 4104,
+          "temas": ["Masa", "Explicación", "Horneado", "Decorado con royal icing (46 min)"],
+          "decoracion_navidena": ["Galletas decoradas con royal icing"],
+          "leccion_receta_texto": true,
+          "_nota": "El video de decorado dura 46 min: dividir en partes de 10-15 min o añadir capítulos."
+        },
+        {
+          "orden": 10,
+          "id": "galleta-de-jengibre",
+          "titulo": "Galleta de jengibre",
+          "codigo_origen": "POSTRES-GALLETA-GENJIBRE",
+          "vimeo_carpeta": "09",
+          "videos_cantidad": 5,
+          "duracion_seg": 2844,
+          "temas": ["Masa", "Corte", "Horneado", "Decorado (28 min)"],
+          "decoracion_navidena": ["Galletas decoradas con royal icing"],
+          "leccion_receta_texto": true,
+          "_nota": "El código de origen trae 'GENJIBRE' (error de ortografía); el id nuevo está corregido. El video de decorado dura 28 min."
+        },
+        {
+          "orden": 11,
+          "id": "galleta-red-velvet",
+          "titulo": "Galleta Red Velvet",
+          "codigo_origen": "POSTRES-GALLETA-RED-VELVET",
+          "vimeo_carpeta": "08",
+          "videos_cantidad": 3,
+          "duracion_seg": 1361,
+          "temas": ["Masa", "Relleno", "Horneado"],
+          "decoracion_navidena": [],
+          "leccion_receta_texto": true
+        }
+      ]
+    },
+    {
+      "orden": 4,
+      "id": "despedida",
+      "titulo": "Despedida",
+      "vimeo_carpeta": "12",
+      "videos_cantidad": 1,
+      "duracion_seg": 41,
+      "lecciones": [
+        { "orden": 1, "id": "despedida", "titulo": "Despedida" }
+      ]
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import {
   UploadError,
   removeUpload,
   storeUpload,
+  uploadsAvailable,
 } from '#/lib/uploads'
 
 const MAX_RESOURCES_PER_ITEM = 20
@@ -16,7 +17,7 @@ const json = (body: unknown, status = 200) => Response.json(body, { status })
 // Subida de archivos del panel (solo admin). Un envío = una acción:
 //  - target "cover": `id` es el slug del curso; reemplaza su portada.
 //  - target "resource": `id` es un capítulo o lección; agrega un recurso.
-// Solo desarrollo: ver `lib/uploads.ts`.
+// Van a Bunny Storage; sin él, a disco local solo en desarrollo (ver `lib/uploads.ts`).
 export const Route = createFileRoute('/api/uploads')({
   server: {
     handlers: {
@@ -25,7 +26,7 @@ export const Route = createFileRoute('/api/uploads')({
         if (session?.user.role !== 'ADMIN') {
           return new Response('Not Found', { status: 404 })
         }
-        if (process.env.NODE_ENV === 'production') {
+        if (!uploadsAvailable()) {
           return json(
             { error: 'La subida de archivos aún no está disponible.' },
             501,

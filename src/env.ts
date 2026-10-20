@@ -12,6 +12,14 @@ export const env = createEnv({
     BUNNY_API_KEY: z.string().optional(),
     BUNNY_CDN_HOSTNAME: z.string().optional(),
     BUNNY_TOKEN_KEY: z.string().optional(),
+    // Bunny Storage (portadas y recursos subidos desde el panel). Sin las tres primeras, los
+    // archivos van al disco local (solo desarrollo). La clave es la contraseña de la zona
+    // (no la de Stream); `HOST` lleva la región (`la.storage.bunnycdn.com`, por defecto
+    // `storage.bunnycdn.com`) y `CDN_URL` es la Pull Zone conectada, para las portadas.
+    BUNNY_STORAGE_ZONE: z.string().optional(),
+    BUNNY_STORAGE_KEY: z.string().optional(),
+    BUNNY_STORAGE_HOST: z.string().optional(),
+    BUNNY_STORAGE_CDN_URL: z.string().url().optional(),
     // Stripe (cobros). La clave publicable se entrega al navegador desde el servidor.
     // El secreto del webhook sale de `stripe listen` (desarrollo) o del panel (producción).
     STRIPE_SECRET_KEY: z.string().optional(),

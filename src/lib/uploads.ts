@@ -2,15 +2,20 @@ import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-// Subida de archivos a disco local, SOLO para desarrollo.
-// En producción `public/` es estático (se copia al compilar), así que no se puede escribir;
-// ahí se reemplaza por UploadThing. Ver "Pendientes / dudas" (ARCHIVOS) en la bitácora.
-//  - Portadas (`image`): `public/uploads/`, públicas.
-//  - Recursos (`file`): `private-uploads/`, fuera de `public/`. Solo se descargan por
-//    `/api/recursos/<archivo>`, que pide sesión y acceso al curso (ver esa ruta).
+import { getBunnyStorage } from '#/lib/bunny-storage'
+import type { BunnyStorage } from '#/lib/bunny-storage'
+
+// Subida de archivos. Con Bunny Storage configurado (`lib/bunny-storage.ts`) van allá; sin él,
+// a disco local, SOLO para desarrollo (en producción `public/` es estático y no se puede
+// escribir, así que `/api/uploads` responde 501 hasta configurar Bunny Storage).
+//  - Portadas (`image`): `uploads/` en Bunny (URL pública por CDN) o `public/uploads/`.
+//  - Recursos (`file`): `recursos/` en Bunny o `private-uploads/`, fuera de `public/`. Solo se
+//    descargan por `/api/recursos/<archivo>`, que pide sesión y acceso al curso (ver esa ruta).
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads')
 const PRIVATE_DIR = path.join(process.cwd(), 'private-uploads')
 const URL_PREFIX = '/uploads/'
+const BUNNY_PUBLIC_DIR = 'uploads'
+const BUNNY_PRIVATE_DIR = 'recursos'
 export const PRIVATE_URL_PREFIX = '/api/recursos/'
 const MB = 1024 * 1024
 
@@ -52,8 +57,18 @@ function detectExt(buf: Buffer, fileName: string) {
 
 export class UploadError extends Error {}
 
-// Guarda el archivo con un nombre aleatorio y devuelve su URL pública y el nombre original.
-export async function storeUpload(file: File, kind: UploadKind) {
+// ¿Se puede subir archivos? Con Bunny Storage siempre; con disco local, solo fuera de producción.
+export const uploadsAvailable = (
+  storage: BunnyStorage | null = getBunnyStorage(),
+) => !!storage || process.env.NODE_ENV !== 'production'
+
+// Guarda el archivo con un nombre aleatorio y devuelve su URL y el nombre original. La de una
+// portada es pública (CDN o `/uploads/…`); la de un recurso es `/api/recursos/…`.
+export async function storeUpload(
+  file: File,
+  kind: UploadKind,
+  storage: BunnyStorage | null = getBunnyStorage(),
+) {
   const { exts, maxBytes } = UPLOAD_KINDS[kind]
   if (file.size === 0) throw new UploadError('El archivo está vacío.')
   if (file.size > maxBytes) {
@@ -64,31 +79,58 @@ export async function storeUpload(file: File, kind: UploadKind) {
   if (!ext || !(exts as readonly string[]).includes(ext)) {
     throw new UploadError(`Formato no permitido. Usa: ${exts.join(', ')}.`)
   }
+  const stored = `${randomUUID()}.${ext}`
+  const name = path.basename(file.name.replaceAll('\\', '/')).slice(0, 120)
+  if (storage) {
+    const key = `${kind === 'file' ? BUNNY_PRIVATE_DIR : BUNNY_PUBLIC_DIR}/${stored}`
+    await storage.put(key, buf)
+    const url =
+      kind === 'file' ? PRIVATE_URL_PREFIX + stored : storage.publicUrl(key)
+    return { url, name: name || stored }
+  }
   const dir = kind === 'file' ? PRIVATE_DIR : UPLOAD_DIR
   await mkdir(dir, { recursive: true })
-  const stored = `${randomUUID()}.${ext}`
   await writeFile(path.join(dir, stored), buf)
-  const name = path.basename(file.name.replaceAll('\\', '/')).slice(0, 120)
   const prefix = kind === 'file' ? PRIVATE_URL_PREFIX : URL_PREFIX
   return { url: prefix + stored, name: name || stored }
 }
 
 // Borra un archivo subido por nosotros; ignora cualquier otra URL (p. ej. `/images/...`).
-export async function removeUpload(url: string | null | undefined) {
+// Si falla el borrado en Bunny solo se registra: el archivo huérfano no debe impedir que la
+// alumna o la chef sigan trabajando.
+export async function removeUpload(
+  url: string | null | undefined,
+  storage: BunnyStorage | null = getBunnyStorage(),
+) {
   if (!url) return
-  if (/^\/uploads\/[0-9a-f-]+\.[a-z]+$/.test(url)) {
+  const cdnPath = storage?.pathFromPublicUrl(url)
+  if (cdnPath !== null && cdnPath !== undefined) {
+    if (!/^uploads\/[0-9a-f-]+\.[a-z]+$/.test(cdnPath)) return
+    await storage!.delete(cdnPath).catch(logFailure)
+  } else if (/^\/uploads\/[0-9a-f-]+\.[a-z]+$/.test(url)) {
     await unlink(path.join(UPLOAD_DIR, url.slice(URL_PREFIX.length))).catch(
       () => {},
     )
   } else if (/^\/api\/recursos\/[0-9a-f-]+\.[a-z]+$/.test(url)) {
-    await unlink(
-      path.join(PRIVATE_DIR, url.slice(PRIVATE_URL_PREFIX.length)),
-    ).catch(() => {})
+    const stored = url.slice(PRIVATE_URL_PREFIX.length)
+    // También el disco local: quedan archivos de antes de configurar Bunny.
+    await unlink(path.join(PRIVATE_DIR, stored)).catch(() => {})
+    await storage?.delete(`${BUNNY_PRIVATE_DIR}/${stored}`).catch(logFailure)
   }
 }
 
+const logFailure = (error: unknown) =>
+  console.error('[subida] No se pudo borrar el archivo de Bunny:', error)
+
 // Lee un recurso privado por el nombre con el que se guardó (el final de su URL).
-export async function readPrivateUpload(stored: string) {
+export async function readPrivateUpload(
+  stored: string,
+  storage: BunnyStorage | null = getBunnyStorage(),
+) {
   if (!/^[0-9a-f-]+\.[a-z]+$/.test(stored)) return null
+  if (storage) {
+    const file = await storage.get(`${BUNNY_PRIVATE_DIR}/${stored}`)
+    if (file) return file
+  }
   return readFile(path.join(PRIVATE_DIR, stored)).catch(() => null)
 }

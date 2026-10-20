@@ -25,6 +25,7 @@ import {
 // Con sesión pero sin acceso completo (una lead de "Clase gratis" o con el acceso vencido) solo
 // entra a los bloques gratis; si el curso no tiene, vuelve a Mis cursos (ahí se ve el curso
 // bloqueado). La comprobación es del servidor, no de la pantalla.
+// Una admin entra completa a cualquier curso publicado sin inscripción (con su propio avance).
 // `preview` ("Ver como alumna" del panel): solo una admin; ve el curso completo aunque esté
 // en borrador, como una alumna recién inscrita (sin su avance) y sin guardar nada.
 async function requireAccess(slug: string, preview = false) {
@@ -40,6 +41,9 @@ async function requireAccess(slug: string, preview = false) {
     throw notFound()
   }
   if (asAdmin) return { session, course, full: true, preview: true }
+  if (session.user.role === 'ADMIN') {
+    return { session, course, full: true, preview: false }
+  }
   const enrollment = await prisma.enrollment.findUnique({
     where: {
       userId_productId: { userId: session.user.id, productId: course.id },

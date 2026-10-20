@@ -31,9 +31,11 @@ export const env = createEnv({
     MAIL_FROM_EMAIL: z.string().email().optional(),
     MAIL_FROM_NAME: z.string().optional(),
     // Asistente de IA de las preguntas (Claude). Sin clave no hay asistente: las preguntas van
-    // directo a la chef. `ASSISTANT_MODEL` elige el modelo (por defecto `claude-opus-5-5`).
+    // directo a la chef. El modelo es siempre Claude Haiku 5.5 (`lib/assistant-model.ts`).
     ANTHROPIC_API_KEY: z.string().optional(),
-    ASSISTANT_MODEL: z.string().optional(),
+    // Solo si la clave no está atada a un workspace (Anthropic responde 400 "not scoped to a
+    // workspace"): ID del workspace, que se manda en el encabezado `anthropic-workspace-id`.
+    ANTHROPIC_WORKSPACE_ID: z.string().optional(),
     // Solo pruebas: otra dirección en lugar de graph.facebook.com para la API de conversiones.
     META_API_URL: z.string().url().optional(),
     TIKTOK_API_URL: z.string().url().optional(),

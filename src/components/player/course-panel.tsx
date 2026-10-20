@@ -71,7 +71,7 @@ function Lesson({
       params={{ slug, lessonId: lesson.id }}
       onClick={onNavigate}
       className={cn(
-        'flex items-center gap-3 rounded-10 pr-3 text-player-text no-underline',
+        'flex items-center gap-3 rounded-10 py-2 pr-3 text-player-text no-underline',
         mobile ? 'min-h-11' : 'min-h-10.5',
         nested ? 'pl-10' : 'pl-3',
       )}

@@ -38,10 +38,31 @@ export const getMyCourses = createServerFn().handler(async () => {
   ])
 
   // Solo cursos publicados: el reproductor no abre un borrador.
-  const courses = enrollments.filter(
-    (e) => e.product.kind === 'COURSE' && e.product.status === 'PUBLISHED',
-  )
-  const ids = courses.map((e) => e.productId)
+  const isAdmin = session.user.role === 'ADMIN'
+  // La admin ve todos los cursos publicados aunque no los haya comprado (sin vencimiento ni
+  // renovación). Si compró alguno, se le muestra como a una alumna.
+  const adminOnly = isAdmin
+    ? await prisma.product.findMany({
+        where: {
+          kind: 'COURSE',
+          status: 'PUBLISHED',
+          id: { notIn: enrollments.map((e) => e.productId) },
+        },
+        orderBy: { position: 'asc' },
+      })
+    : []
+  const courses = [
+    ...enrollments
+      .filter(
+        (e) => e.product.kind === 'COURSE' && e.product.status === 'PUBLISHED',
+      )
+      .map((e) => ({
+        product: e.product,
+        expiresAt: e.expiresAt,
+      })),
+    ...adminOnly.map((product) => ({ product, expiresAt: null })),
+  ]
+  const ids = courses.map((c) => c.product.id)
   const [lessons, chapters, seen] = await Promise.all([
     prisma.courseItem.groupBy({
       by: ['productId'],
@@ -63,8 +84,8 @@ export const getMyCourses = createServerFn().handler(async () => {
   const withRecipeBook = new Set(
     (
       await Promise.all(
-        courses.map(async (e) =>
-          (await hasRecipeBook(e.product.slug)) ? e.productId : null,
+        courses.map(async (c) =>
+          (await hasRecipeBook(c.product.slug)) ? c.product.id : null,
         ),
       )
     ).filter((id) => id !== null),
@@ -78,7 +99,7 @@ export const getMyCourses = createServerFn().handler(async () => {
   }
 
   // Cursos publicados con un bloque gratis que la cuenta aún no tiene: se ofrece su clase gratis.
-  const owned = new Set(enrollments.map((e) => e.productId))
+  const owned = new Set([...enrollments.map((e) => e.productId), ...ids])
   const freeCandidates = await prisma.product.findMany({
     where: {
       kind: 'COURSE',
@@ -122,27 +143,29 @@ export const getMyCourses = createServerFn().handler(async () => {
     user: {
       name: session.user.name,
       email: session.user.email,
-      isAdmin: session.user.role === 'ADMIN',
+      isAdmin,
     },
     hasPassword: credential !== null,
     freeCourses,
-    courses: courses.map((e) => ({
-      slug: e.product.slug,
-      name: e.product.name,
-      coverUrl: e.product.coverUrl,
-      recipes: recipeCount.get(e.productId) ?? 0,
-      recipeBook: withRecipeBook.has(e.productId),
-      expiresAt: e.expiresAt.toISOString(),
+    courses: courses.map(({ product, expiresAt }) => ({
+      slug: product.slug,
+      name: product.name,
+      coverUrl: product.coverUrl,
+      recipes: recipeCount.get(product.id) ?? 0,
+      recipeBook: withRecipeBook.has(product.id),
+      // Sin fecha: acceso de administradora (no es una compra).
+      expiresAt: expiresAt?.toISOString() ?? null,
       // Pasada la fecha, el curso queda bloqueado.
-      active: e.expiresAt > new Date(),
+      active: expiresAt === null || expiresAt > new Date(),
       // Vencido o en sus últimos 30 días: se ofrece renovar a este precio.
-      renewalMxn: canRenew(e.expiresAt)
-        ? renewalPrice(e.product.priceMxn)
-        : null,
-      accessDays: e.product.accessDays,
+      renewalMxn:
+        expiresAt && canRenew(expiresAt)
+          ? renewalPrice(product.priceMxn)
+          : null,
+      accessDays: product.accessDays,
       // Avance real: lecciones del curso y cuántas marcó como vistas.
-      lessons: lessonCount.get(e.productId) ?? 0,
-      seen: seenCount.get(e.productId) ?? 0,
+      lessons: lessonCount.get(product.id) ?? 0,
+      seen: seenCount.get(product.id) ?? 0,
     })),
   }
 })

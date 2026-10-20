@@ -4,7 +4,13 @@ import type { TextModel } from '#/lib/assistant'
 
 // Claude como modelo del asistente de las preguntas (solo servidor). `getTextModel` de
 // `lib/assistant.ts` lo usa cuando hay `ANTHROPIC_API_KEY`.
-export const DEFAULT_ASSISTANT_MODEL = 'claude-opus-5-5'
+//
+// SIEMPRE Claude Haiku 5.5 (decisión del usuario, 2026-10-20: nunca Sonnet ni Opus), y por eso
+// el modelo no se configura: ni variable de entorno ni opción. Es el modelo más barato (≈ $0.10
+// de entrada y $0.50 de salida por millón de tokens con prompts de hasta 100 mil tokens; arriba
+// de eso el precio sube) y alcanza para responder con lo que dice la lección. Un filtro de
+// seguridad puede negarse y no hay modelo de respaldo: la alumna puede mandar la pregunta a la chef.
+export const ASSISTANT_MODEL = 'claude-haiku-5-5'
 
 // En los modelos actuales el razonamiento está siempre activo y cuenta contra `max_tokens`. El
 // asistente pide pocos tokens (≈ la mitad de los caracteres que permite la respuesta), así que
@@ -16,23 +22,26 @@ export class AssistantRefusal extends Error {}
 
 export function anthropicTextModel(options: {
   apiKey: string
-  model?: string
+  // Solo para una clave que no está atada a un workspace.
+  workspaceId?: string
   // Solo pruebas: otra dirección en lugar de api.anthropic.com.
   baseURL?: string
 }): TextModel {
   const client = new Anthropic({
     apiKey: options.apiKey,
     baseURL: options.baseURL,
+    defaultHeaders: options.workspaceId
+      ? { 'anthropic-workspace-id': options.workspaceId }
+      : undefined,
     // Una pregunta que tarda más de un minuto no sirve en pantalla; el SDK reintenta 2 veces
     // los errores de red, de límite de uso y del servidor.
     timeout: 60_000,
   })
-  const model = options.model || DEFAULT_ASSISTANT_MODEL
 
   return async ({ system, user, maxTokens }) => {
     try {
       const response = await client.messages.create({
-        model,
+        model: ASSISTANT_MODEL,
         max_tokens: maxTokens + THINKING_HEADROOM,
         system,
         messages: [{ role: 'user', content: user }],

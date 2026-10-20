@@ -485,16 +485,21 @@ function FreeCourseCard({ course }: { course: FreeCourse }) {
 
 // Tarjeta de un curso comprado: avance, vencimiento, "Continuar progreso" y recetario.
 function CourseCard({ course }: { course: MyCourse }) {
-  const expires = new Date(course.expiresAt).toLocaleDateString('es-MX', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  const expires =
+    course.expiresAt &&
+    new Date(course.expiresAt).toLocaleDateString('es-MX', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
   const { active, lessons, seen, renewalMxn } = course
   const pct = lessons ? Math.round((seen / lessons) * 100) : 0
-  const daysLeft = Math.ceil(
-    (new Date(course.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000),
-  )
+  const daysLeft = course.expiresAt
+    ? Math.ceil(
+        (new Date(course.expiresAt).getTime() - Date.now()) /
+          (24 * 60 * 60 * 1000),
+      )
+    : 0
   const renewLink = {
     to: '/checkout',
     search: { renovar: course.slug, desde: 'mis-cursos' },
@@ -516,8 +521,14 @@ function CourseCard({ course }: { course: MyCourse }) {
           {course.name}
         </div>
         <div className="text-sm text-landing-muted md:text-15">
-          {course.recipes > 0 && `${course.recipes} recetas · `}Tu acceso{' '}
-          {active ? 'vence' : 'venció'} el {expires}
+          {course.recipes > 0 && `${course.recipes} recetas · `}
+          {expires ? (
+            <>
+              Tu acceso {active ? 'vence' : 'venció'} el {expires}
+            </>
+          ) : (
+            'Acceso de administradora'
+          )}
         </div>
         <div className="flex flex-col gap-1.5 md:gap-2">
           <div className="h-2.5 overflow-hidden rounded-full bg-landing-track">

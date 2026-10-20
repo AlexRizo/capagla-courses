@@ -1,11 +1,16 @@
 import { existsSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { hashPassword } from 'better-auth/crypto'
 
 import { adminCredentials } from './admin-credentials'
+import { courseTreeFromMap } from './course-map'
+import type { MapEntry } from './course-map'
 import { courseTreeFromIndex, createItems } from './course-tree'
+import type { VideoName } from './transcript-plan'
+import { loadTranscripts } from './transcripts-load'
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
@@ -116,12 +121,16 @@ async function seedAdmin() {
   console.log(`✅ admin ${admin.email}`)
 }
 
-// Árbol del curso desde el índice de contenido (`prisma/data/curso-principal.json`).
+// Árbol del curso: estructura del índice de contenido (`prisma/data/curso-principal.json`) con el
+// orden y los videos de Bunny del mapa de videos (`prisma/data/mapa-videos.json`, el mismo
+// orden y GUID de `bitacora/contenido/UBICACION-VIDEOS.md`), más las transcripciones
+// (`prisma/data/transcripciones`). Sin el mapa, solo la estructura del índice.
 async function seedCourseTree() {
   const course = await prisma.product.findUniqueOrThrow({
     where: { slug: 'postres-navidad' },
   })
-  // Idempotente: no pisa lo que ya se haya editado en el panel (para reemplazarlo: pnpm db:import-course).
+  // Idempotente: no pisa lo que ya se haya editado en el panel (para reemplazarlo:
+  // pnpm db:import-course-map).
   if ((await prisma.courseItem.count({ where: { productId: course.id } })) > 0)
     return
   const file = new URL('./data/curso-principal.json', import.meta.url)
@@ -129,9 +138,31 @@ async function seedCourseTree() {
     console.log('⚠️ sin prisma/data/curso-principal.json: curso sin árbol')
     return
   }
-  const tree = courseTreeFromIndex(JSON.parse(readFileSync(file, 'utf8')))
-  await createItems(prisma, course.id, tree, null)
-  console.log('✅ árbol de postres-navidad desde el índice de contenido')
+  const index = JSON.parse(readFileSync(file, 'utf8'))
+  const mapFile = new URL('./data/mapa-videos.json', import.meta.url)
+  if (!existsSync(mapFile)) {
+    await createItems(prisma, course.id, courseTreeFromIndex(index), null)
+    console.log(
+      '✅ árbol de postres-navidad desde el índice (sin mapa de videos)',
+    )
+    return
+  }
+  const map = JSON.parse(readFileSync(mapFile, 'utf8')) as (MapEntry &
+    VideoName)[]
+  await createItems(prisma, course.id, courseTreeFromMap(index, map), null)
+  console.log('✅ árbol de postres-navidad con el mapa de videos')
+
+  const dir = fileURLToPath(new URL('./data/transcripciones', import.meta.url))
+  if (!existsSync(dir)) return
+  const { loaded, skipped, withoutTranscript } = await loadTranscripts(
+    prisma,
+    dir,
+    map,
+  )
+  console.log(
+    `✅ transcripciones: ${loaded.length} archivos cargados` +
+      `, ${skipped.length} sin cargar, ${withoutTranscript.length} lecciones con video sin transcripción`,
+  )
 }
 
 // Promoción de la maqueta del panel: precios del editor de ejemplo (curso $397, curso de

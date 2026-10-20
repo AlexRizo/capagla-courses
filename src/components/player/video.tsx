@@ -445,6 +445,16 @@ export function VideoPlayer({
           hidden ? 'cursor-none' : 'cursor-pointer',
         )}
       />
+      {/* Marca de agua (pedido del usuario): dentro del contenedor, así también sale en pantalla
+          completa; no recibe clics. */}
+      {!failed && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute top-2.5 right-3 text-sm font-black tracking-wide text-white/40 drop-shadow-sm select-none md:top-4 md:right-5 md:text-base"
+        >
+          Capagla
+        </div>
+      )}
       {failed ? (
         <div className="absolute inset-0 flex items-center justify-center p-6 text-center font-bold text-landing-lilac">
           No se pudo cargar el video.

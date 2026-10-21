@@ -8,7 +8,7 @@ import {
   note,
   primaryButton,
 } from '#/components/admin/form-styles'
-import { Switch } from '#/components/admin/switch'
+import { FreeToggle } from '#/components/admin/free-toggle'
 import { updateBlock } from '#/lib/admin-courses'
 
 // Panel derecho del editor para un bloque: nombre y "bloque gratis".
@@ -71,24 +71,12 @@ export function BlockSettings({
         material y no se convierten en capítulo ni en lección.
       </div>
 
-      <button
-        type="button"
-        role="switch"
-        aria-checked={free}
-        onClick={() => setFree(!free)}
-        className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2.5 text-left text-sm text-foreground"
-      >
-        <span className="flex flex-col gap-0.5">
-          <span className="font-medium">
-            Bloque gratis (visible sin comprar)
-          </span>
-          <span className="text-xs leading-140 text-muted-foreground">
-            Quien se registre con su correo ve todo este bloque sin pagar. Ahí
-            nacen los leads.
-          </span>
-        </span>
-        <Switch on={free} />
-      </button>
+      <FreeToggle
+        on={free}
+        onChange={setFree}
+        title="Bloque gratis (visible sin comprar)"
+        description="Quien se registre con su correo ve todo este bloque sin pagar. Ahí nacen los leads."
+      />
 
       <div className="flex items-center gap-2.5">
         <button type="submit" disabled={saving} className={primaryButton}>

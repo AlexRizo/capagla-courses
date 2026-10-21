@@ -41,17 +41,21 @@ export const minutes = (sec: number) =>
 
 type FreeCheck = Pick<Item, 'id' | 'kind' | 'parentId' | 'isFree'>
 
-// Solo los bloques gratis y lo que contienen: lo que ve quien aún no compró el curso.
-export function onlyFreeBlocks<T extends FreeCheck>(items: T[]) {
+// Solo lo gratis: un bloque o capítulo marcado como gratis y todo lo que contiene. Si el gratis
+// es un capítulo, también queda su bloque, solo como contenedor (sus demás hijos siguen de pago).
+export function onlyFreeItems<T extends FreeCheck>(items: T[]) {
   const byId = new Map<string, FreeCheck>(items.map((i) => [i.id, i]))
-  const blockOf = (item: FreeCheck) => {
+  const parentOf = (item: FreeCheck) =>
+    item.parentId ? byId.get(item.parentId) : undefined
+  const visible = new Set<string>()
+  for (const item of items) {
     let current: FreeCheck | undefined = item
-    while (current && current.kind !== 'BLOCK') {
-      current = current.parentId ? byId.get(current.parentId) : undefined
-    }
-    return current
+    while (current && !current.isFree) current = parentOf(current)
+    if (!current) continue
+    visible.add(item.id)
+    for (let up = parentOf(current); up; up = parentOf(up)) visible.add(up.id)
   }
-  return items.filter((i) => blockOf(i)?.isFree)
+  return items.filter((i) => visible.has(i.id))
 }
 
 export function buildPlayerTree(items: Item[], seen: Set<string>) {

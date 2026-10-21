@@ -17,7 +17,7 @@ import { parseParts, partAt } from '#/lib/duration'
 import {
   buildPlayerTree,
   lessonPosition,
-  onlyFreeBlocks,
+  onlyFreeItems,
   resumeLessonId,
 } from '#/lib/player-tree'
 
@@ -52,7 +52,7 @@ async function requireAccess(slug: string, preview = false) {
   const full = !!enrollment && enrollment.expiresAt > new Date()
   if (!full) {
     const free = await prisma.courseItem.count({
-      where: { productId: course.id, kind: 'BLOCK', isFree: true },
+      where: { productId: course.id, isFree: true },
     })
     if (free === 0) throw redirect({ to: '/mis-cursos' })
   }
@@ -78,7 +78,7 @@ async function loadTree(
           select: { itemId: true },
         }),
   ])
-  const items = full ? allItems : onlyFreeBlocks(allItems)
+  const items = full ? allItems : onlyFreeItems(allItems)
   const seen = new Set(progress.map((p) => p.itemId))
   return { items, seen, ...buildPlayerTree(items, seen) }
 }
@@ -235,7 +235,7 @@ async function requireLessonAccess(lessonId: string) {
     const items = await prisma.courseItem.findMany({
       where: { productId: lesson.productId },
     })
-    if (!onlyFreeBlocks(items).some((i) => i.id === lesson.id)) {
+    if (!onlyFreeItems(items).some((i) => i.id === lesson.id)) {
       throw notFound()
     }
   }

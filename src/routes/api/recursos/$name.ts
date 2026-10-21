@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { prisma } from '#/db'
 import { readSession } from '#/lib/auth'
-import { onlyFreeBlocks } from '#/lib/player-tree'
+import { onlyFreeItems } from '#/lib/player-tree'
 import { PRIVATE_URL_PREFIX, readPrivateUpload } from '#/lib/uploads'
 
 const TYPES: Record<string, string> = {
@@ -50,7 +50,7 @@ export const Route = createFileRoute('/api/recursos/$name')({
             const items = await prisma.courseItem.findMany({
               where: { productId },
             })
-            if (!onlyFreeBlocks(items).some((i) => i.id === resource.itemId)) {
+            if (!onlyFreeItems(items).some((i) => i.id === resource.itemId)) {
               return notFound()
             }
           }

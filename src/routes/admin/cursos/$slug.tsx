@@ -325,6 +325,7 @@ function EditarCurso() {
               id={current.id}
               title={current.title}
               published={current.published}
+              isFree={current.isFree}
               recipe={current.recipe}
               resources={current.resources}
               convert={convert}

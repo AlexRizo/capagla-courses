@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { onlyFreeBlocks } from '#/lib/player-tree'
+import { onlyFreeItems } from '#/lib/player-tree'
 
 const item = (
   id: string,
@@ -9,7 +9,7 @@ const item = (
   isFree = false,
 ) => ({ id, kind, parentId, isFree })
 
-describe('onlyFreeBlocks', () => {
+describe('onlyFreeItems', () => {
   const items = [
     item('b1', 'BLOCK', null, true),
     item('c1', 'CHAPTER', 'b1'),
@@ -20,7 +20,7 @@ describe('onlyFreeBlocks', () => {
     item('l3', 'LESSON', 'c2'),
   ]
   it('deja el bloque gratis y todo lo que contiene', () => {
-    expect(onlyFreeBlocks(items).map((i) => i.id)).toEqual([
+    expect(onlyFreeItems(items).map((i) => i.id)).toEqual([
       'b1',
       'c1',
       'l1',
@@ -28,6 +28,19 @@ describe('onlyFreeBlocks', () => {
     ])
   })
   it('sin bloques gratis no queda nada', () => {
-    expect(onlyFreeBlocks(items.filter((i) => !i.id.endsWith('1')))).toEqual([])
+    expect(onlyFreeItems(items.filter((i) => !i.id.endsWith('1')))).toEqual([])
+  })
+  it('un capítulo gratis deja su contenido y su bloque como contenedor', () => {
+    const mixed = [
+      item('b1', 'BLOCK', null),
+      item('c1', 'CHAPTER', 'b1', true),
+      item('l1', 'LESSON', 'c1'),
+      item('c2', 'CHAPTER', 'b1'),
+      item('l2', 'LESSON', 'c2'),
+      item('l3', 'LESSON', 'b1'),
+      item('b2', 'BLOCK', null),
+      item('c3', 'CHAPTER', 'b2'),
+    ]
+    expect(onlyFreeItems(mixed).map((i) => i.id)).toEqual(['b1', 'c1', 'l1'])
   })
 })

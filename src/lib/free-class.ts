@@ -13,7 +13,7 @@ import {
 import { auth } from '#/lib/auth'
 import { CONSENT_COOKIE, parseConsent } from '#/lib/consent'
 import { withLinkPurpose } from '#/lib/mailer'
-import { buildPlayerTree, onlyFreeBlocks } from '#/lib/player-tree'
+import { buildPlayerTree, onlyFreeItems } from '#/lib/player-tree'
 import { tooManyAttempts } from '#/lib/rate-limit'
 
 // La clase gratis es el primer bloque gratis de un curso publicado: su primera lección es donde
@@ -27,7 +27,7 @@ async function findFreeLesson() {
     const items = await prisma.courseItem.findMany({
       where: { productId: course.id },
     })
-    const { order } = buildPlayerTree(onlyFreeBlocks(items), new Set())
+    const { order } = buildPlayerTree(onlyFreeItems(items), new Set())
     if (order.length) return { slug: course.slug, lessonId: order[0].lesson.id }
   }
   return null

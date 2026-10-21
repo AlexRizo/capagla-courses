@@ -219,7 +219,8 @@ model CourseItem {
   title        String
   // Hoy no se gestiona por elemento: lo público o borrador es el curso (`Product.status`).
   status       ContentStatus     @default(PUBLISHED)
-  // Bloque: visible sin comprar para quien se registre con su correo (origen de los leads).
+  // Bloque o capítulo: visible sin comprar (con todo lo que contiene) para quien se registre
+  // con su correo (origen de los leads). Una lección no es gratis por sí sola.
   isFree       Boolean           @default(false)
   // Capítulo: receta compartida por todas sus lecciones. Texto enriquecido (JSON de Tiptap).
   recipe       Json?

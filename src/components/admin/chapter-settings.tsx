@@ -9,15 +9,17 @@ import {
   note,
   primaryButton,
 } from '#/components/admin/form-styles'
+import { FreeToggle } from '#/components/admin/free-toggle'
 import { RichTextEditor } from '#/components/admin/rich-text-editor'
 import { ResourceFiles, UploadBox } from '#/components/admin/upload-field'
 import { updateChapter } from '#/lib/admin-courses'
 
-// Panel derecho del editor para un capítulo: nombre y receta.
+// Panel derecho del editor para un capítulo: nombre, receta y "capítulo gratis".
 export function ChapterSettings({
   id,
   title,
   published,
+  isFree,
   recipe,
   resources,
   convert,
@@ -26,12 +28,14 @@ export function ChapterSettings({
   id: string
   title: string
   published: boolean
+  isFree: boolean
   recipe: JSONContent | null
   resources: { id: string; name: string }[]
   convert: React.ReactNode
   remove: React.ReactNode
 }) {
   const router = useRouter()
+  const [free, setFree] = useState(isFree)
   const [doc, setDoc] = useState<JSONContent | null>(recipe)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -43,7 +47,12 @@ export function ChapterSettings({
     setMessage(null)
     try {
       await updateChapter({
-        data: { id, title: String(form.get('title')), recipe: doc },
+        data: {
+          id,
+          title: String(form.get('title')),
+          isFree: free,
+          recipe: doc,
+        },
       })
       await router.invalidate()
       setMessage('Guardado')
@@ -93,6 +102,13 @@ export function ChapterSettings({
           placeholder="Utensilios, ingredientes y procedimiento"
         />
       </div>
+
+      <FreeToggle
+        on={free}
+        onChange={setFree}
+        title="Capítulo gratis (visible sin comprar)"
+        description="Quien se registre con su correo ve este capítulo y sus lecciones sin pagar. El resto del bloque sigue de pago."
+      />
 
       <div className={field}>
         <span className={label}>Recursos del capítulo</span>

@@ -95,6 +95,7 @@ function flatten(items: ItemWithResources[]) {
         if (i.isFree) meta += meta ? ' · Gratis' : 'Gratis'
       } else if (i.kind === 'CHAPTER') {
         meta = plural(lessons, 'lección', 'lecciones')
+        if (i.isFree) meta += ' · Gratis'
       } else {
         meta =
           i.lessonType === 'VIDEO' && i.durationSec
@@ -230,13 +231,15 @@ export const updateBlock = createServerFn({ method: 'POST' })
     await prisma.courseItem.update({ where: { id, kind: 'BLOCK' }, data: rest })
   })
 
-// Un capítulo lleva nombre y la receta (texto enriquecido compartido por sus lecciones).
+// Un capítulo lleva nombre, si es gratis (visible sin comprar) y la receta (texto enriquecido
+// compartido por sus lecciones).
 export const updateChapter = createServerFn({ method: 'POST' })
   .middleware([requireAdmin])
   .validator(
     z.object({
       id: z.string(),
       title: z.string().trim().min(1).max(120),
+      isFree: z.boolean(),
       recipe: z.unknown(),
     }),
   )
@@ -244,7 +247,11 @@ export const updateChapter = createServerFn({ method: 'POST' })
     const recipe = parseRichText(data.recipe)
     await prisma.courseItem.update({
       where: { id: data.id, kind: 'CHAPTER' },
-      data: { title: data.title, recipe: recipe ?? Prisma.DbNull },
+      data: {
+        title: data.title,
+        isFree: data.isFree,
+        recipe: recipe ?? Prisma.DbNull,
+      },
     })
   })
 
@@ -470,7 +477,12 @@ export const convertCourseItem = createServerFn({ method: 'POST' })
       }
       await prisma.courseItem.update({
         where: { id: item.id },
-        data: { kind: 'LESSON', lessonType: item.lessonType ?? 'VIDEO' },
+        // Una lección nunca es gratis por sí sola: al dejar de ser capítulo pierde la marca.
+        data: {
+          kind: 'LESSON',
+          lessonType: item.lessonType ?? 'VIDEO',
+          isFree: false,
+        },
       })
     } else {
       if (item.kind !== 'LESSON') return { error: 'No es una lección.' }

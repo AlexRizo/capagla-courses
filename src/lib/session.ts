@@ -9,7 +9,7 @@ import { auth, readSession } from '#/lib/auth'
 import { ticketMail } from '#/lib/emails'
 import { sendMail } from '#/lib/mailer'
 import { canRenew, renewalPrice } from '#/lib/offers'
-import { onlyFreeBlocks } from '#/lib/player-tree'
+import { onlyFreeItems } from '#/lib/player-tree'
 import { hasRecipeBook } from '#/lib/recipe-books'
 
 export const getSession = createServerFn().handler(() =>
@@ -105,7 +105,7 @@ export const getMyCourses = createServerFn().handler(async () => {
       kind: 'COURSE',
       status: 'PUBLISHED',
       id: { notIn: [...owned] },
-      items: { some: { kind: 'BLOCK', isFree: true } },
+      items: { some: { isFree: true } },
     },
     orderBy: { position: 'asc' },
   })
@@ -128,7 +128,7 @@ export const getMyCourses = createServerFn().handler(async () => {
   ])
   const seenIds = new Set(freeSeen.map((s) => s.itemId))
   const freeCourses = freeCandidates.map((c) => {
-    const mine = onlyFreeBlocks(freeItems.filter((i) => i.productId === c.id))
+    const mine = onlyFreeItems(freeItems.filter((i) => i.productId === c.id))
     const freeLessons = mine.filter((i) => i.kind === 'LESSON')
     return {
       slug: c.slug,

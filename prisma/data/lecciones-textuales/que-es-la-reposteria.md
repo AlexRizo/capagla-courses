@@ -1,0 +1,3 @@
+La repostería es una de las ramas más amadas y conocidas de la gastronomía, pues se encarga de preparar delicias dulces y lograr los más exquisitos postres. Los reposteros usamos diferentes equipos y herramientas de cocina que nos permiten lograr un sabor delicioso y una presentación extraordinaria, ya que ambos aspectos son igual de importantes en la creación de postres.
+
+El origen de la palabra repostería corresponde al término latino repositorius, el cual significa “persona encargada de reponer o guardar cosas”. Con el paso del tiempo, la palabra empezó a relacionarse con diversos significados que giraban en torno a la preparación de alimentos.

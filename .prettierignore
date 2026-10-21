@@ -1,3 +1,5 @@
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
+# Textos de las lecciones: markdown propio (el `*` suelto del recetario no es una lista)
+prisma/data/lecciones-textuales

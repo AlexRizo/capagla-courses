@@ -27,6 +27,7 @@
     "db:import-course-map": "tsx prisma/import-course-map.ts",
     "db:import-bunny": "tsx prisma/import-bunny.ts",
     "db:import-transcripts": "tsx prisma/import-transcripts.ts",
+    "db:import-lesson-texts": "tsx prisma/import-lesson-texts.ts",
     "test": "vitest run"
   },
   "dependencies": {

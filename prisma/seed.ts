@@ -9,6 +9,7 @@ import { adminCredentials } from './admin-credentials'
 import { courseTreeFromMap } from './course-map'
 import type { MapEntry } from './course-map'
 import { courseTreeFromIndex, createItems } from './course-tree'
+import { loadLessonTexts } from './lesson-texts'
 import type { VideoName } from './transcript-plan'
 import { loadTranscripts } from './transcripts-load'
 
@@ -165,6 +166,20 @@ async function seedCourseTree() {
   )
 }
 
+// Texto de las lecciones de texto (Introducción y la "Receta" de cada capítulo), desde
+// `prisma/data/lecciones-textuales`. Idempotente: no pisa una lección que ya tenga texto (para
+// reemplazarlo: pnpm db:import-lesson-texts --force).
+async function seedLessonTexts() {
+  const dir = fileURLToPath(
+    new URL('./data/lecciones-textuales', import.meta.url),
+  )
+  if (!existsSync(dir)) return
+  const { loaded, kept, missing } = await loadLessonTexts(prisma, dir)
+  console.log(
+    `✅ textos de lecciones: ${loaded.length} cargados, ${kept.length} ya tenían texto, ${missing.length} sin lección`,
+  )
+}
+
 // Promoción de la maqueta del panel: precios del editor de ejemplo (curso $397, curso de
 // costos gratis, herramienta $100). Sin fecha de inicio (la maqueta pone "[inicio]"); termina
 // el 17 de noviembre al final del día en America/Mexico_City (UTC-6). La segunda promoción
@@ -248,6 +263,7 @@ async function main() {
   await seedProducts()
   await seedAdmin()
   await seedCourseTree()
+  await seedLessonTexts()
   await seedPromotion()
   await seedFinalPromotion()
 }

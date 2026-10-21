@@ -1,12 +1,34 @@
 import { Node } from '@tiptap/pm/model'
-import { getSchema } from '@tiptap/react'
+import { Node as TiptapNode, getSchema } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import type { JSONContent } from '@tiptap/react'
+
+import { isSafeImageSrc } from '#/lib/image-src'
+
+// Imagen en bloque (solo `src` y `alt`). El editor no tiene botón para insertarla: las
+// imágenes de las lecciones de texto llegan con `pnpm db:import-lesson-texts` y el editor
+// solo las conserva.
+const RichImage = TiptapNode.create({
+  name: 'image',
+  group: 'block',
+  atom: true,
+  addAttributes() {
+    return { src: { default: null }, alt: { default: '' } }
+  },
+})
+
+function assertSafeImages(node: JSONContent) {
+  if (node.type === 'image' && !isSafeImageSrc(node.attrs?.src)) {
+    throw new Error('Imagen con dirección no permitida')
+  }
+  node.content?.forEach(assertSafeImages)
+}
 
 // Texto enriquecido del curso (receta del capítulo, texto de la lección):
 // se guarda como JSON del editor, nunca como HTML. Este es el único conjunto de
 // formatos permitido; el servidor rechaza cualquier otro al guardar.
 export const richTextExtensions = [
+  RichImage,
   StarterKit.configure({
     heading: { levels: [2, 3] },
     blockquote: false,
@@ -31,5 +53,6 @@ export function parseRichText(value: unknown): JSONContent | null {
   }
   const doc = Node.fromJSON(schema, value)
   doc.check()
+  assertSafeImages(value)
   return doc.textContent.trim() === '' ? null : value
 }

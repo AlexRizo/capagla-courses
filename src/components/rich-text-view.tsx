@@ -1,5 +1,6 @@
 import type { JSONContent } from '@tiptap/react'
 
+import { isSafeImageSrc } from '#/lib/image-src'
 import { cn } from '#/lib/utils'
 
 // Muestra el texto enriquecido del curso (JSON del editor) sin HTML crudo: cada nodo y
@@ -37,6 +38,15 @@ function Node({ node }: { node: JSONContent }) {
       return <li>{kids}</li>
     case 'hardBreak':
       return <br />
+    case 'image':
+      return isSafeImageSrc(node.attrs?.src) ? (
+        <img
+          src={node.attrs.src}
+          alt={node.attrs.alt ?? ''}
+          loading="lazy"
+          className="my-2 h-auto max-w-full self-center rounded-lg"
+        />
+      ) : null
     default:
       return <>{kids}</>
   }

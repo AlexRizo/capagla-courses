@@ -257,6 +257,49 @@ describe('el asistente con la transcripción de la lección', () => {
     // La transcripción es automática: la receta y las notas de la chef mandan sobre ella.
     expect(system).toContain('La transcripción del video es automática')
     expect(system).toContain('mandan ellas')
+    // Si la receta y el video difieren en una cantidad, se dicen las dos.
+    expect(system).toContain('di las dos')
+  })
+
+  it('lee la lección de texto "Receta" del mismo capítulo, y no la de otro', async () => {
+    const lesson = await prisma.courseItem.findUniqueOrThrow({
+      where: { id: lessonId },
+    })
+    const doc = (t: string) => ({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: t }] }],
+    })
+    const sibling = (parentId: string | null, title: string, t: string) =>
+      prisma.courseItem.create({
+        data: {
+          productId: lesson.productId,
+          parentId,
+          kind: 'LESSON',
+          lessonType: 'TEXT',
+          title,
+          position: 5,
+          body: doc(t),
+        },
+      })
+    await sibling(lesson.parentId, 'Receta', '190 g Queso Crema.')
+    const chapter = await prisma.courseItem.findUniqueOrThrow({
+      where: { id: lesson.parentId! },
+    })
+    const other = await prisma.courseItem.create({
+      data: {
+        productId: lesson.productId,
+        parentId: chapter.parentId,
+        kind: 'CHAPTER',
+        title: 'Blondie',
+        position: 9,
+      },
+    })
+    await sibling(other.id, 'Receta', '300 g Chispas de chocolate.')
+
+    await answerQuestion(lessonId, '¿Cuánto queso crema lleva?', model())
+    const user = requests[0].body.messages[0].content as string
+    expect(user).toContain('## Receta\n190 g Queso Crema.')
+    expect(user).not.toContain('Chispas de chocolate')
   })
 
   it('una pregunta con una orden dentro viaja como dato, entre etiquetas', async () => {

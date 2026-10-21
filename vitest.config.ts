@@ -22,6 +22,9 @@ export default defineConfig({
       // Sin proveedor de correo: los enlaces solo salen en la consola.
       BREVO_API_KEY: '',
       MAIL_FROM_EMAIL: '',
+      // Sin asistente de IA aunque la terminal tenga la clave: las pruebas nunca hablan con Claude.
+      ANTHROPIC_API_KEY: '',
+      ANTHROPIC_WORKSPACE_ID: '',
       // Meta y TikTok apuntan a un servidor falso local (lo levanta `purchase-marketing.test.ts`):
       // las pruebas nunca hablan con las plataformas reales.
       META_API_URL: 'http://127.0.0.1:47631',

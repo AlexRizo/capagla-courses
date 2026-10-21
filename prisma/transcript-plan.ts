@@ -19,10 +19,14 @@ export type PlanLesson = {
 
 export type VideoName = { vimeo_nombre: string; bunny_guid: string }
 
-// Transcripciones que NO se cargan (clave: nombre en minúsculas → motivo). Hoy ninguna: la de
-// `06-01_BROWNIE_INTRODUCCION` dura 54 s y su video de Bunny (`00-01`) 19 s, y por decisión del
-// usuario (2026-10-20) se carga igual. Ver "TRANSCRIPCIONES" en la bitácora.
-export const HELD_BACK: Record<string, string> = {}
+// Transcripciones que NO se cargan (clave: nombre en minúsculas → motivo). La de
+// `06-01_BROWNIE_INTRODUCCION` dura 54 s y su video de Bunny (`00-01`) 19 s: por decisión del
+// usuario (2026-10-20, antes del despliegue) no se carga hasta que el cliente aclare cuál es el
+// video. Para cargarla, quitar esta línea y correr `pnpm db:import-transcripts`.
+export const HELD_BACK: Record<string, string> = {
+  '06-01_brownie_introduccion':
+    'no coincide con su video (54 s contra 19 s); pendiente de aclarar con el cliente',
+}
 
 const key = (s: string) =>
   fold(s)

@@ -144,7 +144,7 @@ export const courseContents: Partial<Record<string, CourseContent>> = {
         labelShort: 'recetas completas',
       },
       {
-        big: '52',
+        big: '50',
         label: 'videos paso a paso',
         labelShort: 'videos paso a paso',
       },

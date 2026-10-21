@@ -180,8 +180,8 @@ async function seedLessonTexts() {
   )
 }
 
-// Promoción de la maqueta del panel: precios del editor de ejemplo (curso $397, curso de
-// costos gratis, herramienta $100). Sin fecha de inicio (la maqueta pone "[inicio]"); termina
+// Promoción de la maqueta del panel: precios del editor de ejemplo (curso $397,
+// herramienta $100; el curso de costos gratis se quitó, ver `seedFinalPromotion`). Sin fecha de inicio (la maqueta pone "[inicio]"); termina
 // el 17 de noviembre al final del día en America/Mexico_City (UTC-6). La segunda promoción
 // de la lista (`/navidad-final`) no se siembra: la maqueta no define su contenido.
 async function seedPromotion() {
@@ -192,7 +192,7 @@ async function seedPromotion() {
   await prisma.promotion.create({
     data: {
       slug: 'navidad',
-      name: 'Anuncio: 3 cursos en 1',
+      name: 'Anuncio: Navidad',
       // Del 16 de octubre 00:00 al 17 de noviembre 23:59, hora de Ciudad de México (UTC-6).
       startsAt: new Date('2026-10-16T06:00:00Z'),
       endsAt: new Date('2026-11-18T05:59:00Z'),
@@ -204,13 +204,8 @@ async function seedPromotion() {
             priceMxn: 397,
           },
           {
-            productId: await bySlug('calcular-costos'),
-            position: 1,
-            priceMxn: 0,
-          },
-          {
             productId: await bySlug('herramienta-costos'),
-            position: 2,
+            position: 1,
             priceMxn: 100,
           },
         ],
@@ -221,7 +216,9 @@ async function seedPromotion() {
 }
 
 // Segunda promoción de la maqueta ("última semana"): precios de la "fecha 2" (curso $597,
-// herramienta con 25%) y el curso de costos gratis (decisión del cliente, 2026-10-16).
+// herramienta con 25%). El curso de costos gratis (decisión del cliente, 2026-10-16) se quitó de
+// las dos promociones el 2026-10-20 porque el curso aún no está terminado; se agrega de nuevo
+// en el panel (Promociones) cuando lo esté.
 async function seedFinalPromotion() {
   if (await prisma.promotion.findUnique({ where: { slug: 'navidad-final' } })) {
     return
@@ -231,7 +228,7 @@ async function seedFinalPromotion() {
   await prisma.promotion.create({
     data: {
       slug: 'navidad-final',
-      name: 'Anuncio: 3 cursos en 1 (última semana)',
+      name: 'Anuncio: Navidad (última semana)',
       // Del 18 de noviembre 00:00 al 30 de noviembre 23:59, hora de Ciudad de México (UTC-6).
       startsAt: new Date('2026-11-18T06:00:00Z'),
       endsAt: new Date('2026-12-01T05:59:00Z'),
@@ -243,13 +240,8 @@ async function seedFinalPromotion() {
             priceMxn: 597,
           },
           {
-            productId: await bySlug('calcular-costos'),
-            position: 1,
-            priceMxn: 0,
-          },
-          {
             productId: await bySlug('herramienta-costos'),
-            position: 2,
+            position: 1,
             priceMxn: 150,
           },
         ],

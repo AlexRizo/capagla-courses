@@ -60,16 +60,17 @@ describe('planTranscripts', () => {
     expect(plan.withoutTranscript.map((l) => l.id)).toEqual(['1'])
   })
 
-  it('hoy no hay ninguna retenida: la de 06-01 se carga aunque no coincida con su video', () => {
-    expect(HELD_BACK).toEqual({})
+  it('hoy solo está retenida la de 06-01: no se carga aunque tenga lección', () => {
+    expect(Object.keys(HELD_BACK)).toEqual(['06-01_brownie_introduccion'])
     const lessons = [lesson('1', 'Introducción', 'guid-c')]
     const plan = planTranscripts(
       ['06-01_BROWNIE_INTRODUCCION'],
       lessons,
       videos,
     )
-    expect(plan.assigned).toEqual([
-      { name: '06-01_BROWNIE_INTRODUCCION', lessonIds: ['1'] },
+    expect(plan.assigned).toEqual([])
+    expect(plan.skipped.map((x) => x.name)).toEqual([
+      '06-01_BROWNIE_INTRODUCCION',
     ])
   })
 
@@ -128,18 +129,25 @@ describe('transcripciones reales contra el curso rearmado', () => {
     .map((f) => f.replace(/\.vtt$/, ''))
   const plan = planTranscripts(names, lessons, map)
 
-  it('se cargan los 50 videos del mapa; solo quedan fuera los dos de la biblioteca anterior', () => {
+  it('se cargan 49 de los 50 videos del mapa; quedan fuera 06-01 (retenida) y los dos de la biblioteca anterior', () => {
     expect(names).toHaveLength(52)
-    expect(plan.assigned).toHaveLength(50)
+    expect(plan.assigned).toHaveLength(49)
     expect(plan.skipped.map((s) => s.name).sort()).toEqual([
       '00-INTRO',
       '00-INTRO-AD',
+      '06-01_BROWNIE_INTRODUCCION',
     ])
   })
 
-  it('cada lección con video tiene su transcripción', () => {
+  it('solo la lección del video 00-01 se queda sin transcripción', () => {
     expect(lessons.filter((l) => l.bunnyVideoId).length).toBeGreaterThan(50)
-    expect(plan.withoutTranscript).toEqual([])
+    const guid = map.find(
+      (m) => m.vimeo_nombre === '06-01_BROWNIE_INTRODUCCION',
+    )?.bunny_guid
+    expect(plan.withoutTranscript.length).toBeGreaterThan(0)
+    expect(plan.withoutTranscript.every((l) => l.bunnyVideoId === guid)).toBe(
+      true,
+    )
   })
 
   it('un video que está en varias recetas lleva su transcripción a todas', () => {

@@ -361,12 +361,9 @@ function MisCursos() {
                 </span>
               </div>
               <div>
-                <a
-                  href="#"
-                  className="inline-flex items-center justify-center self-start rounded-lg border-1.5 border-landing-primary px-3.5 py-2 text-sm font-black text-landing-primary no-underline md:min-h-11.5 md:rounded-12 md:px-6 md:py-0 md:text-base"
-                >
-                  Abrir herramienta
-                </a>
+                <span className="inline-flex items-center justify-center self-start rounded-lg bg-landing-soft px-3.5 py-2 text-sm font-black text-landing-muted md:min-h-11.5 md:rounded-12 md:px-6 md:py-0 md:text-base">
+                  Próximamente
+                </span>
               </div>
             </div>
           </div>

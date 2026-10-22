@@ -29,6 +29,7 @@ import { Route as AdminPromocionesIndexRouteImport } from './routes/admin/promoc
 import { Route as AdminPromocionesIdRouteImport } from './routes/admin/promociones/$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiRecetariosSlugRouteImport } from './routes/api/recetarios/$slug'
+import { Route as ApiRecetasNameRouteImport } from './routes/api/recetas/$name'
 import { Route as ApiRecursosNameRouteImport } from './routes/api/recursos/$name'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
 import { Route as MisCursosSlugIndexRouteImport } from './routes/mis-cursos/$slug/index'
@@ -134,6 +135,11 @@ const ApiRecetariosSlugRoute = ApiRecetariosSlugRouteImport.update({
   path: '/api/recetarios/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRecetasNameRoute = ApiRecetasNameRouteImport.update({
+  id: '/api/recetas/$name',
+  path: '/api/recetas/$name',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiRecursosNameRoute = ApiRecursosNameRouteImport.update({
   id: '/api/recursos/$name',
   path: '/api/recursos/$name',
@@ -174,6 +180,7 @@ export interface FileRoutesByFullPath {
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/recetarios/$slug': typeof ApiRecetariosSlugRoute
+  '/api/recetas/$name': typeof ApiRecetasNameRoute
   '/api/recursos/$name': typeof ApiRecursosNameRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
@@ -199,6 +206,7 @@ export interface FileRoutesByTo {
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/recetarios/$slug': typeof ApiRecetariosSlugRoute
+  '/api/recetas/$name': typeof ApiRecetasNameRoute
   '/api/recursos/$name': typeof ApiRecursosNameRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
@@ -226,6 +234,7 @@ export interface FileRoutesById {
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/recetarios/$slug': typeof ApiRecetariosSlugRoute
+  '/api/recetas/$name': typeof ApiRecetasNameRoute
   '/api/recursos/$name': typeof ApiRecursosNameRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/admin/promociones/$id'
     | '/api/auth/$'
     | '/api/recetarios/$slug'
+    | '/api/recetas/$name'
     | '/api/recursos/$name'
     | '/api/stripe/webhook'
     | '/mis-cursos/$slug/$lessonId'
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/admin/promociones/$id'
     | '/api/auth/$'
     | '/api/recetarios/$slug'
+    | '/api/recetas/$name'
     | '/api/recursos/$name'
     | '/api/stripe/webhook'
     | '/mis-cursos/$slug/$lessonId'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/admin/promociones/$id'
     | '/api/auth/$'
     | '/api/recetarios/$slug'
+    | '/api/recetas/$name'
     | '/api/recursos/$name'
     | '/api/stripe/webhook'
     | '/mis-cursos/$slug/$lessonId'
@@ -327,6 +339,7 @@ export interface RootRouteChildren {
   CursosSlugRoute: typeof CursosSlugRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiRecetariosSlugRoute: typeof ApiRecetariosSlugRoute
+  ApiRecetasNameRoute: typeof ApiRecetasNameRoute
   ApiRecursosNameRoute: typeof ApiRecursosNameRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
 }
@@ -473,6 +486,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRecetariosSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/recetas/$name': {
+      id: '/api/recetas/$name'
+      path: '/api/recetas/$name'
+      fullPath: '/api/recetas/$name'
+      preLoaderRoute: typeof ApiRecetasNameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/recursos/$name': {
       id: '/api/recursos/$name'
       path: '/api/recursos/$name'
@@ -554,6 +574,7 @@ const rootRouteChildren: RootRouteChildren = {
   CursosSlugRoute: CursosSlugRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiRecetariosSlugRoute: ApiRecetariosSlugRoute,
+  ApiRecetasNameRoute: ApiRecetasNameRoute,
   ApiRecursosNameRoute: ApiRecursosNameRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,
 }

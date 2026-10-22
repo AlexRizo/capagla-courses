@@ -9,10 +9,18 @@ import { Questions } from './questions'
 
 export type PlayerResource = { id: string; name: string; url: string }
 
+// Lección de texto sin texto que solo trae enlaces de descarga (la "Receta" de cada capítulo: el
+// PDF de la receta). El enlace va en lugar del texto, no repetido en "Recursos".
+export const isDownloadLesson = (lesson: {
+  type: string
+  body: unknown
+  resources: PlayerResource[]
+}) => lesson.type === 'TEXT' && !lesson.body && lesson.resources.length > 0
+
 const sectionLabel =
   'text-11 font-black tracking-player-caps text-player-accent'
 
-function DownloadRow({ resource }: { resource: PlayerResource }) {
+export function DownloadRow({ resource }: { resource: PlayerResource }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-12 border border-player-border bg-player-surface px-3.5 py-3.25">
       <span className="text-sm">{resource.name}</span>

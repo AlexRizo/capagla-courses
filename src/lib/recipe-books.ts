@@ -7,6 +7,8 @@ import path from 'node:path'
 // La maqueta no trae dónde subirlo desde el panel: se reemplaza cambiando el archivo.
 const DIR = path.join(process.cwd(), 'assets', 'recetarios')
 
+export const RECIPE_BOOK_URL_PREFIX = '/api/recetarios/'
+
 // El slug llega de la URL: solo letras minúsculas, números y guiones (nada de rutas).
 const fileFor = (slug: string) =>
   /^[a-z0-9-]+$/.test(slug) ? path.join(DIR, `${slug}.pdf`) : null

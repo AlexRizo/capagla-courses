@@ -5,11 +5,12 @@ import { describe, expect, it } from 'vitest'
 import { courseTreeFromMap } from '../../prisma/course-map'
 import type { MapEntry } from '../../prisma/course-map'
 import type { SeedItem } from '../../prisma/course-tree'
+import { LESSON_RESOURCES } from '../../prisma/lesson-resources'
 import { LESSON_TEXTS, markdownToDoc } from '../../prisma/lesson-texts'
 import { parseRichText } from '#/lib/rich-text'
 
 // El texto de las lecciones de texto (`prisma/data/lecciones-textuales`, `pnpm
-// db:import-lesson-texts`): del cliente (Introducción) y del recetario PDF (las 11 recetas).
+// db:import-lesson-texts`): del cliente (Introducción).
 const DIR = 'prisma/data/lecciones-textuales'
 const read = (f: string) => readFileSync(`${DIR}/${f}`, 'utf8')
 
@@ -99,8 +100,14 @@ describe('textos de las lecciones', () => {
       }
     }
     walk(courseTreeFromMap(index, map), '')
+    // Cada una lleva su texto (Introducción) o el enlace al PDF de su receta ("Receta").
     expect(texts.sort()).toEqual(
-      LESSON_TEXTS.map((e) => `${e.parent} › ${e.lesson}`).sort(),
+      [
+        ...LESSON_TEXTS,
+        ...LESSON_RESOURCES.filter((e) => e.lesson === 'Receta'),
+      ]
+        .map((e) => `${e.parent} › ${e.lesson}`)
+        .sort(),
     )
   })
 
@@ -114,28 +121,6 @@ describe('textos de las lecciones', () => {
         expect(node.attrs!.alt, node.attrs!.src).not.toBe('')
       }
     }
-  })
-
-  it('las cantidades del recetario no cambian al pasarlas a texto', () => {
-    // Algunas cantidades, tal como están impresas en el recetario (incluso las que el cliente aún
-    // debe revisar): el texto cargado no las corrige por su cuenta.
-    const body = (parent: string) =>
-      textOf(
-        markdownToDoc(
-          LESSON_TEXTS.find((e) => e.parent === parent)!
-            .files.map(read)
-            .join('\n\n'),
-        ),
-      )
-    expect(body('Enjambre de chocolate')).toContain(
-      '250 g Chocolate semi amargo.',
-    )
-    expect(body('Brownie de cheesecake')).toContain('360 g Azúcar refinada.')
-    expect(body('Brownie de cheesecake')).toContain('190 g Queso Crema.')
-    expect(body('Lunch Box Cake')).toContain('250 g Esencia de vainilla.')
-    expect(body('Roles de canela')).toContain('520 g Harina para todo uso.')
-    expect(body('Galleta Red Velvet')).toContain('400 g Mantequilla sin sal')
-    expect(body('Galleta de jengibre')).toContain('400 g Mantequilla fria')
   })
 })
 

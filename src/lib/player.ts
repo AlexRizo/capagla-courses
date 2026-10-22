@@ -14,6 +14,7 @@ import { readSession } from '#/lib/auth'
 import { signedPlaybackUrl } from '#/lib/bunny'
 import { ago } from '#/lib/ago'
 import { parseParts, partAt } from '#/lib/duration'
+import { RECIPE_BOOK_URL_PREFIX } from '#/lib/recipe-books'
 import {
   buildPlayerTree,
   lessonPosition,
@@ -147,6 +148,10 @@ export const getPlayer = createServerFn()
         itemId: {
           in: [data.lessonId, ...(chapterItem ? [chapterItem.id] : [])],
         },
+        // El recetario general pide el curso comprado: la clase gratis no lo ve ni lo ofrece.
+        ...(full
+          ? {}
+          : { NOT: { url: { startsWith: RECIPE_BOOK_URL_PREFIX } } }),
       },
       orderBy: { position: 'asc' },
     })

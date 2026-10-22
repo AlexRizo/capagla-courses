@@ -5,7 +5,7 @@ import { PrismaClient } from '@prisma/client'
 
 import { loadLessonTexts } from './lesson-texts'
 
-// Carga el texto de las lecciones de texto (Introducción y la "Receta" de cada capítulo) desde
+// Carga el texto de las lecciones de texto (Introducción) desde
 // `prisma/data/lecciones-textuales`. Sin `--force` no toca una lección que ya tenga texto;
 // con `--force` lo reemplaza (pierde lo editado en el panel). Cargar **después** de rearmar el
 // curso con el mapa. Las imágenes de esos textos están en `public/images/lecciones`.

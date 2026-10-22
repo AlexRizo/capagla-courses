@@ -10,6 +10,7 @@ import { courseTreeFromMap } from './course-map'
 import type { MapEntry } from './course-map'
 import { courseTreeFromIndex, createItems } from './course-tree'
 import { loadLessonTexts } from './lesson-texts'
+import { loadLessonResources } from './lesson-resources'
 import type { VideoName } from './transcript-plan'
 import { loadTranscripts } from './transcripts-load'
 
@@ -124,7 +125,7 @@ async function seedAdmin() {
 
 // Árbol del curso: estructura del índice de contenido (`prisma/data/curso-principal.json`) con el
 // orden y los videos de Bunny del mapa de videos (`prisma/data/mapa-videos.json`, el mismo
-// orden y GUID de `bitacora/contenido/UBICACION-VIDEOS.md`), más las transcripciones
+// orden y GUID de `UBICACION-VIDEOS.md` (guardado fuera del repo)), más las transcripciones
 // (`prisma/data/transcripciones`). Sin el mapa, solo la estructura del índice.
 async function seedCourseTree() {
   const course = await prisma.product.findUniqueOrThrow({
@@ -166,7 +167,7 @@ async function seedCourseTree() {
   )
 }
 
-// Texto de las lecciones de texto (Introducción y la "Receta" de cada capítulo), desde
+// Texto de las lecciones de texto de la Introducción, desde
 // `prisma/data/lecciones-textuales`. Idempotente: no pisa una lección que ya tenga texto (para
 // reemplazarlo: pnpm db:import-lesson-texts --force).
 async function seedLessonTexts() {
@@ -177,6 +178,15 @@ async function seedLessonTexts() {
   const { loaded, kept, missing } = await loadLessonTexts(prisma, dir)
   console.log(
     `✅ textos de lecciones: ${loaded.length} cargados, ${kept.length} ya tenían texto, ${missing.length} sin lección`,
+  )
+}
+
+// Enlaces de descarga: el PDF de cada receta (lección "Receta") y el recetario general (solo en la
+// Introducción). Idempotente: no repite los que ya existen.
+async function seedLessonResources() {
+  const { added, present, missing } = await loadLessonResources(prisma)
+  console.log(
+    `✅ enlaces de descarga: ${added.length} lecciones con enlaces nuevos, ${present.length} ya los tenían, ${missing.length} sin lección`,
   )
 }
 
@@ -256,6 +266,7 @@ async function main() {
   await seedAdmin()
   await seedCourseTree()
   await seedLessonTexts()
+  await seedLessonResources()
   await seedPromotion()
   await seedFinalPromotion()
 }

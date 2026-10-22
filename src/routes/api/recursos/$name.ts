@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { prisma } from '#/db'
 import { readSession } from '#/lib/auth'
-import { onlyFreeItems } from '#/lib/player-tree'
+import { canReadResource } from '#/lib/resource-access'
 import { PRIVATE_URL_PREFIX, readPrivateUpload } from '#/lib/uploads'
 
 const TYPES: Record<string, string> = {
@@ -34,27 +34,7 @@ export const Route = createFileRoute('/api/recursos/$name')({
         })
         if (!resource) return notFound()
 
-        if (session.user.role !== 'ADMIN') {
-          const { productId } = resource.item
-          const course = await prisma.product.findUnique({
-            where: { id: productId },
-          })
-          if (course?.status !== 'PUBLISHED') return notFound()
-
-          const enrollment = await prisma.enrollment.findUnique({
-            where: {
-              userId_productId: { userId: session.user.id, productId },
-            },
-          })
-          if (!enrollment || enrollment.expiresAt <= new Date()) {
-            const items = await prisma.courseItem.findMany({
-              where: { productId },
-            })
-            if (!onlyFreeItems(items).some((i) => i.id === resource.itemId)) {
-              return notFound()
-            }
-          }
-        }
+        if (!(await canReadResource(session, resource))) return notFound()
 
         const file = await readPrivateUpload(params.name)
         if (!file) return notFound()

@@ -11,8 +11,10 @@ import { cn } from '#/lib/utils'
 import { CoursePanel, SearchIcon } from './course-panel'
 import {
   ChapterMaterial,
+  DownloadRow,
   LessonTabs,
   hasChapterMaterial,
+  isDownloadLesson,
 } from './lesson-extras'
 import type { PlayerResource } from './lesson-extras'
 import { Questions } from './questions'
@@ -258,6 +260,12 @@ function LessonContent({
       <div className="rounded-16 border border-player-border bg-player-surface p-6">
         {lesson.body ? (
           <RichTextView doc={lesson.body} className="text-base leading-160" />
+        ) : isDownloadLesson(lesson) ? (
+          <div className="flex flex-col gap-2.5">
+            {lesson.resources.map((r) => (
+              <DownloadRow key={r.id} resource={r} />
+            ))}
+          </div>
         ) : (
           <div className="text-sm text-player-muted">
             Esta lección aún no tiene contenido.
@@ -490,7 +498,9 @@ function ProgressSummary({ progress }: { progress: Data['progress'] }) {
 // Notas y recursos de ESTA lección más el material del capítulo, apilados (móvil).
 function MobileMaterial({ data, material }: { data: Data; material: boolean }) {
   const { lesson, chapter } = data
-  const resources: PlayerResource[] = lesson.resources
+  const resources: PlayerResource[] = isDownloadLesson(lesson)
+    ? []
+    : lesson.resources
   return (
     <>
       <h2 className="m-0 text-22 font-black tracking-landing-title-sm">
@@ -599,7 +609,9 @@ function PlayerLayout({ data }: { data: Data }) {
         : rightTab
   // Lo que se ve en móvil: la lección de texto no tiene la vista "Lección".
   const view = isVideo || mobileTab === 'preg' ? mobileTab : 'mat'
-  const resources: PlayerResource[] = lesson.resources
+  const resources: PlayerResource[] = isDownloadLesson(lesson)
+    ? []
+    : lesson.resources
   const marker = useMarkMoment(lesson.id, !!lesson.videoUrl)
 
   const toggleLeft = (search = false) => {

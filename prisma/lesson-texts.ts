@@ -93,9 +93,9 @@ export function markdownToDoc(markdown: string): JSONContent {
   return { type: 'doc', content }
 }
 
-// Qué archivos van a qué lección. `parent` es el bloque (Introducción) o el capítulo (cada
-// receta) donde está la lección; `lesson`, su título. Las recetas de Cupcake y Lunch Box Cake
-// llevan además las dos cremas (`cremas.md`), que las dos usan.
+// Qué archivos van a qué lección de la Introducción. `parent` es el bloque donde está la lección;
+// `lesson`, su título. La lección "Receta" de cada capítulo no lleva texto: lleva el enlace al PDF
+// de su receta (`lesson-resources.ts`).
 export const LESSON_TEXTS: {
   parent: string
   lesson: string
@@ -114,53 +114,6 @@ export const LESSON_TEXTS: {
     files: ['mise-en-place.md'],
   },
   { parent: 'Introducción', lesson: 'Tips', files: ['tips.md'] },
-  {
-    parent: 'Enjambre de chocolate',
-    lesson: 'Receta',
-    files: ['receta-enjambre-de-chocolate.md'],
-  },
-  {
-    parent: 'Turrón de chocolate',
-    lesson: 'Receta',
-    files: ['receta-turron-de-chocolate.md'],
-  },
-  {
-    parent: 'Brownie de cheesecake',
-    lesson: 'Receta',
-    files: ['receta-brownie-de-cheesecake.md'],
-  },
-  { parent: 'Blondie', lesson: 'Receta', files: ['receta-blondie.md'] },
-  {
-    parent: 'Cupcake',
-    lesson: 'Receta',
-    files: ['receta-cupcake.md', 'cremas.md'],
-  },
-  {
-    parent: 'Lunch Box Cake',
-    lesson: 'Receta',
-    files: ['receta-lunch-box-cake.md', 'cremas.md'],
-  },
-  {
-    parent: 'Roles de canela',
-    lesson: 'Receta',
-    files: ['receta-roles-de-canela.md'],
-  },
-  { parent: 'Alfajores', lesson: 'Receta', files: ['receta-alfajores.md'] },
-  {
-    parent: 'Galleta de mantequilla',
-    lesson: 'Receta',
-    files: ['receta-galleta-de-mantequilla.md'],
-  },
-  {
-    parent: 'Galleta de jengibre',
-    lesson: 'Receta',
-    files: ['receta-galleta-de-jengibre.md'],
-  },
-  {
-    parent: 'Galleta Red Velvet',
-    lesson: 'Receta',
-    files: ['receta-galleta-red-velvet.md'],
-  },
 ]
 
 // Carga a las lecciones de texto su contenido desde una carpeta de archivos `.md`. Por defecto no

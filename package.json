@@ -12,6 +12,7 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "generate-routes": "tsr generate",
+    "postinstall": "prisma generate",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint",

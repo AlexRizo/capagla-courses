@@ -7,7 +7,9 @@ import type { MapEntry } from '../../prisma/course-map'
 import type { SeedItem } from '../../prisma/course-tree'
 import { LESSON_RESOURCES } from '../../prisma/lesson-resources'
 import { LESSON_TEXTS, markdownToDoc } from '../../prisma/lesson-texts'
-import { parseRichText } from '#/lib/rich-text'
+import { getSchema } from '@tiptap/react'
+
+import { parseRichText, richTextExtensions } from '#/lib/rich-text'
 
 // El texto de las lecciones de texto (`prisma/data/lecciones-textuales`, `pnpm
 // db:import-lesson-texts`): del cliente (Introducción).
@@ -136,6 +138,11 @@ describe('imágenes en el texto enriquecido', () => {
   it('acepta un archivo propio y una dirección https', () => {
     expect(parseRichText(doc('/images/lecciones/duyas.jpg'))).not.toBeNull()
     expect(parseRichText(doc('https://cdn.example.com/a.jpg'))).not.toBeNull()
+  })
+
+  it('el esquema del editor sabe dibujar la imagen (toDOM)', () => {
+    const { toDOM } = getSchema(richTextExtensions).nodes.image.spec
+    expect(toDOM).toBeTypeOf('function')
   })
 
   it('rechaza cualquier otra dirección', () => {

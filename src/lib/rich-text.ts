@@ -1,5 +1,5 @@
 import { Node } from '@tiptap/pm/model'
-import { Node as TiptapNode, getSchema } from '@tiptap/react'
+import { Node as TiptapNode, getSchema, mergeAttributes } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import type { JSONContent } from '@tiptap/react'
 
@@ -14,6 +14,13 @@ const RichImage = TiptapNode.create({
   atom: true,
   addAttributes() {
     return { src: { default: null }, alt: { default: '' } }
+  },
+  // Sin `renderHTML` el esquema no tiene `toDOM` y el editor falla al dibujar el nodo.
+  parseHTML() {
+    return [{ tag: 'img[src]' }]
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['img', mergeAttributes(HTMLAttributes)]
   },
 })
 

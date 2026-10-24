@@ -54,14 +54,14 @@ const groups: { label: string; items: Item[] }[] = [
     label: 'Costos',
     items: [
       { label: 'Productos', icon: Package },
-      { label: 'Recetas', icon: BookOpen },
-      { label: 'Premezclas', icon: Layers },
+      { label: 'Recetas', icon: BookOpen, to: '/herramienta/recetas' },
+      { label: 'Premezclas', icon: Layers, to: '/herramienta/premezclas' },
       {
         label: 'Ingredientes',
         icon: Archive,
         to: '/herramienta/ingredientes',
       },
-      { label: 'Etiquetas', icon: Tag },
+      { label: 'Etiquetas', icon: Tag, to: '/herramienta/etiquetas' },
     ],
   },
   {

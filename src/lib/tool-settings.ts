@@ -1,5 +1,5 @@
 import type { CostSettings } from '@prisma/client'
-import { createServerFn } from '@tanstack/react-start'
+import { createServerFn, createServerOnlyFn } from '@tanstack/react-start'
 
 import { prisma } from '#/db'
 import { EMPTY_SETTINGS, settingsSchema } from '#/lib/cost-settings'
@@ -32,14 +32,16 @@ const toValues = (row: CostSettings): CostSettingsValues => ({
   taxPct: n(row.taxPct),
 })
 
+// Los ajustes de una alumna (vacíos si aún no guarda). Lo usan también las recetas, que necesitan
+// su mano de obra y su gasto fijo por hora.
+export const loadSettings = createServerOnlyFn(async (userId: string) => {
+  const row = await prisma.costSettings.findUnique({ where: { userId } })
+  return row ? toValues(row) : EMPTY_SETTINGS
+})
+
 export const getCostSettings = createServerFn()
   .middleware([requireTool])
-  .handler(async ({ context }) => {
-    const row = await prisma.costSettings.findUnique({
-      where: { userId: context.userId },
-    })
-    return row ? toValues(row) : EMPTY_SETTINGS
-  })
+  .handler(({ context }) => loadSettings(context.userId))
 
 export const saveCostSettings = createServerFn({ method: 'POST' })
   .middleware([requireTool])

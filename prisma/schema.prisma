@@ -39,6 +39,9 @@ model User {
   costPlaces      CostPlace[]
   costIngredients CostIngredient[]
   costSettings    CostSettings?
+  costTags        CostTag[]
+  costPremixes    CostPremix[]
+  costRecipes     CostRecipe[]
 
   @@unique([email])
   @@map("user")
@@ -464,6 +467,9 @@ model CostIngredient {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
+  premixLines CostPremixLine[]
+  recipeLines CostRecipeLine[]
+
   @@index([userId, archivedAt])
   @@index([placeId])
 }
@@ -511,4 +517,94 @@ model CostSettings {
   sellsAsBusiness Boolean       @default(false)
   taxPct          Decimal?      @db.Decimal(5, 2)
   updatedAt       DateTime      @updatedAt
+}
+
+// Etiqueta de receta (Pastel, Cupcake, Galleta…): solo sirve para clasificar y filtrar. Se escribe
+// al crear la receta y se sugieren las que ya existen; una en uso no se borra, se archiva.
+model CostTag {
+  id         String       @id @default(cuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  archivedAt DateTime?
+  createdAt  DateTime     @default(now())
+  recipes    CostRecipe[]
+
+  @@unique([userId, name])
+}
+
+// Premezcla: una sub-receta que se prepara una vez y se usa en varias recetas (un betún, un
+// relleno). Se cuesta por lo que de verdad rinde (peso o volumen que le quedó).
+model CostPremix {
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  yieldQty   Decimal?         @db.Decimal(14, 3)
+  yieldUnit  CostUnit         @default(G)
+  archivedAt DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  lines      CostPremixLine[]
+  usedBy     CostRecipeLine[]
+
+  @@index([userId, archivedAt])
+}
+
+model CostPremixLine {
+  id           String         @id @default(cuid())
+  premixId     String
+  premix       CostPremix     @relation(fields: [premixId], references: [id], onDelete: Cascade)
+  position     Int
+  ingredientId String
+  ingredient   CostIngredient @relation(fields: [ingredientId], references: [id])
+  quantity     Decimal        @db.Decimal(14, 3)
+  unit         CostUnit
+
+  @@index([premixId])
+  @@index([ingredientId])
+}
+
+// Receta: una tanda (un pastel, una charola, una docena). Lleva su costo (ingredientes, merma,
+// mano de obra y gasto fijo) pero no precio ni empaque: eso vive en el producto. El rendimiento
+// siempre es en piezas y los nombres pueden repetirse (se distinguen por etiqueta).
+model CostRecipe {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  tagId        String?
+  tag          CostTag?         @relation(fields: [tagId], references: [id], onDelete: SetNull)
+  yieldPieces  Int?
+  laborHours   Decimal?         @db.Decimal(8, 2)
+  ovenHours    Decimal?         @db.Decimal(8, 2)
+  includeLabor Boolean          @default(true)
+  includeFixed Boolean          @default(true)
+  includeWaste Boolean          @default(true)
+  wastePct     Decimal?         @db.Decimal(5, 2)
+  archivedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  lines        CostRecipeLine[]
+
+  @@index([userId, archivedAt])
+  @@index([tagId])
+}
+
+// Un renglón de la receta: un ingrediente o una premezcla (uno de los dos), con su cantidad.
+model CostRecipeLine {
+  id           String          @id @default(cuid())
+  recipeId     String
+  recipe       CostRecipe      @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  position     Int
+  ingredientId String?
+  ingredient   CostIngredient? @relation(fields: [ingredientId], references: [id])
+  premixId     String?
+  premix       CostPremix?     @relation(fields: [premixId], references: [id])
+  quantity     Decimal         @db.Decimal(14, 3)
+  unit         CostUnit
+
+  @@index([recipeId])
+  @@index([ingredientId])
+  @@index([premixId])
 }

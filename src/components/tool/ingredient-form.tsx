@@ -60,6 +60,7 @@ import {
 } from '#/lib/tool-ingredients'
 import type { getIngredient } from '#/lib/tool-ingredients'
 import type { getPlaces } from '#/lib/tool-places'
+import { getIngredientUsage } from '#/lib/tool-recipes'
 
 type Ingredient = Awaited<ReturnType<typeof getIngredient>>
 type Place = Awaited<ReturnType<typeof getPlaces>>[number]
@@ -153,6 +154,7 @@ export function IngredientForm({
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [confirmArchive, setConfirmArchive] = useState(false)
+  const [usage, setUsage] = useState({ recipes: 0, premixes: 0 })
   const [busy, setBusy] = useState(false)
 
   const form = useForm({
@@ -179,6 +181,17 @@ export function IngredientForm({
       }
     },
   })
+
+  // Antes de archivar se cuenta qué recetas y premezclas lo usan, para avisar.
+  async function askArchive() {
+    if (!ingredient) return
+    try {
+      setUsage(await getIngredientUsage({ data: { id: ingredient.id } }))
+    } catch {
+      setUsage({ recipes: 0, premixes: 0 })
+    }
+    setConfirmArchive(true)
+  }
 
   async function archive(archived: boolean) {
     if (!ingredient) return
@@ -652,9 +665,7 @@ export function IngredientForm({
                 variant="outline"
                 disabled={busy}
                 onClick={() =>
-                  ingredient.archived
-                    ? void archive(false)
-                    : setConfirmArchive(true)
+                  ingredient.archived ? void archive(false) : void askArchive()
                 }
               >
                 {ingredient.archived
@@ -671,8 +682,20 @@ export function IngredientForm({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Archivar “{ingredient?.name}”?</AlertDialogTitle>
             <AlertDialogDescription>
-              Dejará de salir en la lista y no podrás elegirlo en recetas
-              nuevas. Puedes restaurarlo cuando quieras.
+              {usage.recipes + usage.premixes > 0
+                ? `Lo usan ${[
+                    usage.recipes > 0
+                      ? `${usage.recipes} ${usage.recipes === 1 ? 'receta' : 'recetas'}`
+                      : '',
+                    usage.premixes > 0
+                      ? `${usage.premixes} ${usage.premixes === 1 ? 'premezcla' : 'premezclas'}`
+                      : '',
+                  ]
+                    .filter(Boolean)
+                    .join(
+                      ' y ',
+                    )}: siguen funcionando, pero ya no podrás elegirlo en nuevas. Puedes restaurarlo cuando quieras.`
+                : 'Dejará de salir en la lista y no podrás elegirlo en recetas nuevas. Ninguna receta lo usa y puedes restaurarlo cuando quieras.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

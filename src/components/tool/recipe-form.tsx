@@ -45,6 +45,7 @@ import { Switch } from '#/components/ui/switch'
 import { recipeBreakdown } from '#/lib/cost-engine'
 import { recipeSchema } from '#/lib/cost-recipes'
 import { formatPrice, parseDecimal } from '#/lib/costs'
+import { getRecipeUsage } from '#/lib/tool-products'
 import { saveRecipe, setRecipeArchived } from '#/lib/tool-recipes'
 import type { getRecipeForm } from '#/lib/tool-recipes'
 import { cn } from '#/lib/utils'
@@ -86,6 +87,7 @@ export function RecipeForm({ data }: { data: Loaded }) {
   const [badLines, setBadLines] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [confirmArchive, setConfirmArchive] = useState(false)
+  const [usedBy, setUsedBy] = useState(0)
   const [busy, setBusy] = useState(false)
 
   const ingById = new Map<string, IngredientOption>(
@@ -168,6 +170,17 @@ export function RecipeForm({ data }: { data: Loaded }) {
       }
     },
   })
+
+  // Antes de archivar se cuenta cuántos productos la usan, para avisar.
+  async function askArchive() {
+    if (!recipe) return
+    try {
+      setUsedBy((await getRecipeUsage({ data: { id: recipe.id } })).products)
+    } catch {
+      setUsedBy(0)
+    }
+    setConfirmArchive(true)
+  }
 
   async function archive(archived: boolean) {
     if (!recipe) return
@@ -617,6 +630,12 @@ export function RecipeForm({ data }: { data: Loaded }) {
                         Aquí no hay precio ni empaque. Eso se define en el
                         producto.
                       </p>
+                      <Link
+                        to="/herramienta/productos"
+                        className="text-sm text-primary underline underline-offset-3"
+                      >
+                        Fijar el precio en el producto →
+                      </Link>
                     </CardContent>
                   </Card>
                 )
@@ -645,9 +664,7 @@ export function RecipeForm({ data }: { data: Loaded }) {
                 variant="outline"
                 disabled={busy}
                 onClick={() =>
-                  recipe.archived
-                    ? void archive(false)
-                    : setConfirmArchive(true)
+                  recipe.archived ? void archive(false) : void askArchive()
                 }
               >
                 {recipe.archived ? 'Restaurar receta' : 'Archivar receta'}
@@ -662,8 +679,9 @@ export function RecipeForm({ data }: { data: Loaded }) {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Archivar “{recipe?.name}”?</AlertDialogTitle>
             <AlertDialogDescription>
-              Dejará de salir en la lista y en productos nuevos. Puedes
-              restaurarla cuando quieras.
+              {usedBy > 0
+                ? `La usan ${usedBy} ${usedBy === 1 ? 'producto' : 'productos'}: siguen funcionando, pero ya no podrás elegirla en productos nuevos. Puedes restaurarla cuando quieras.`
+                : 'Dejará de salir en la lista y en productos nuevos. Ningún producto la usa y puedes restaurarla cuando quieras.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

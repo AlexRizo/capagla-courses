@@ -97,6 +97,7 @@ export function LinesEditor({
   ingredients,
   premixes,
   invalid,
+  labels,
 }: {
   lines: Line[]
   onChange: (lines: Line[]) => void
@@ -104,6 +105,14 @@ export function LinesEditor({
   premixes?: PremixOption[]
   // Claves de renglones con algo mal (se marcan después de intentar guardar).
   invalid?: Set<string>
+  // Textos cuando no son ingredientes (por ejemplo, el empaque de un producto).
+  labels?: {
+    column: string
+    add: string
+    placeholder: string
+    search: string
+    empty: string
+  }
 }) {
   const ingById = new Map(ingredients.map((i) => [i.id, i]))
   const premixById = new Map((premixes ?? []).map((p) => [p.id, p]))
@@ -117,7 +126,8 @@ export function LinesEditor({
           <TableHeader>
             <TableRow>
               <TableHead className="pl-4">
-                {premixes ? 'Ingrediente o premezcla' : 'Ingrediente'}
+                {labels?.column ??
+                  (premixes ? 'Ingrediente o premezcla' : 'Ingrediente')}
               </TableHead>
               <TableHead className="w-52">Cantidad</TableHead>
               <TableHead className="w-24 text-right">Costo</TableHead>
@@ -143,7 +153,10 @@ export function LinesEditor({
                   <TableCell className="py-2 pl-4 align-top">
                     <div className="flex items-center gap-2">
                       <Picker
-                        aria-label={isPremix ? 'Premezcla' : 'Ingrediente'}
+                        aria-label={
+                          labels?.column ??
+                          (isPremix ? 'Premezcla' : 'Ingrediente')
+                        }
                         items={
                           isPremix
                             ? (premixes ?? [])
@@ -176,12 +189,14 @@ export function LinesEditor({
                           update(line.key, { refId: id, unit: next })
                         }}
                         placeholder={
-                          isPremix
+                          labels?.placeholder ??
+                          (isPremix
                             ? 'Elige una premezcla'
-                            : 'Elige un ingrediente'
+                            : 'Elige un ingrediente')
                         }
                         searchPlaceholder={
-                          isPremix ? 'Buscar premezcla' : 'Buscar ingrediente'
+                          labels?.search ??
+                          (isPremix ? 'Buscar premezcla' : 'Buscar ingrediente')
                         }
                         invalid={bad && !line.refId}
                       />
@@ -261,7 +276,8 @@ export function LinesEditor({
                   colSpan={4}
                   className="px-4 py-6 text-center text-muted-foreground"
                 >
-                  Aún no hay nada. Agrega el primero con los botones de abajo.
+                  {labels?.empty ??
+                    'Aún no hay nada. Agrega el primero con los botones de abajo.'}
                 </TableCell>
               </TableRow>
             )}
@@ -285,7 +301,7 @@ export function LinesEditor({
             ])
           }
         >
-          + Agregar ingrediente
+          {labels?.add ?? '+ Agregar ingrediente'}
         </Button>
         {premixes && (
           <Button

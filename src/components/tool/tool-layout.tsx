@@ -53,7 +53,7 @@ const groups: { label: string; items: Item[] }[] = [
   {
     label: 'Costos',
     items: [
-      { label: 'Productos', icon: Package },
+      { label: 'Productos', icon: Package, to: '/herramienta/productos' },
       { label: 'Recetas', icon: BookOpen, to: '/herramienta/recetas' },
       { label: 'Premezclas', icon: Layers, to: '/herramienta/premezclas' },
       {

@@ -28,7 +28,7 @@ import { loadSettings } from '#/lib/tool-settings'
 const n = (v: { toString: () => string } | null) =>
   v === null ? null : Number(v)
 
-type IngredientRow = {
+export type IngredientRow = {
   id: string
   name: string
   kind: 'INGREDIENT' | 'PACKAGING'
@@ -43,7 +43,7 @@ type IngredientRow = {
   archivedAt: Date | null
 }
 
-const toEngine = (i: IngredientRow): EngineIngredient => ({
+export const toEngine = (i: IngredientRow): EngineIngredient => ({
   price: Number(i.price),
   quantity: Number(i.quantity),
   unit: i.unit,
@@ -182,7 +182,7 @@ export const getPremixes = createServerFn()
   })
 
 // Ingredientes que se pueden elegir (los archivados solo si la receta o premezcla ya los usa).
-const ingredientChoices = createServerOnlyFn(
+export const ingredientChoices = createServerOnlyFn(
   async (userId: string, keepIds: string[]) => {
     const rows = await prisma.costIngredient.findMany({
       where: {
@@ -379,20 +379,21 @@ const recipeInclude = {
   },
 }
 
-export const getRecipes = createServerFn()
-  .middleware([requireTool])
-  .handler(async ({ context }) => {
+// El costo de cada receta de la alumna con lo que tiene hoy (ingredientes, premezclas y ajustes).
+// Lo usan la lista de recetas y los productos, que se calculan sobre ellas.
+export const loadRecipeCosts = createServerOnlyFn(
+  async (userId: string, ids?: string[]) => {
     const [recipes, premixes, settings] = await Promise.all([
       prisma.costRecipe.findMany({
-        where: { userId: context.userId },
+        where: { userId, ...(ids ? { id: { in: ids } } : {}) },
         orderBy: { name: 'asc' },
         include: recipeInclude,
       }),
       prisma.costPremix.findMany({
-        where: { userId: context.userId },
+        where: { userId },
         include: premixInclude,
       }),
-      loadSettings(context.userId),
+      loadSettings(userId),
     ])
     const rates = hourlyRates(settings)
     const premixMap = new Map(
@@ -401,17 +402,27 @@ export const getRecipes = createServerFn()
         return [p.id, { family: m.family, perBase: m.perBase }] as const
       }),
     )
-    return recipes.map((r) => ({
-      id: r.id,
-      name: r.name,
-      tag: r.tag?.name ?? null,
-      archived: r.archivedAt !== null,
-      yieldPieces: r.yieldPieces,
-      empty: r.lines.length === 0,
-      total:
-        r.lines.length === 0 ? null : recipeCost(r, premixMap, rates).total,
-    }))
-  })
+    return recipes.map((r) => {
+      const empty = r.lines.length === 0
+      const b = recipeCost(r, premixMap, rates)
+      return {
+        id: r.id,
+        name: r.name,
+        tag: r.tag?.name ?? null,
+        archived: r.archivedAt !== null,
+        yieldPieces: r.yieldPieces,
+        empty,
+        total: empty ? null : b.total,
+        // Solo lo que lleva de ingredientes y premezclas (sin merma, mano de obra ni gasto fijo).
+        ingredients: b.ingredients,
+      }
+    })
+  },
+)
+
+export const getRecipes = createServerFn()
+  .middleware([requireTool])
+  .handler(({ context }) => loadRecipeCosts(context.userId))
 
 // Todo lo que necesita el formulario de una receta (nueva si `id` es null).
 export const getRecipeForm = createServerFn()

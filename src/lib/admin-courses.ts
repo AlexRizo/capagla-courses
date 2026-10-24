@@ -137,6 +137,29 @@ function flatten(items: ItemWithResources[]) {
   return rows
 }
 
+// Lecciones con un video que Bunny aún procesaba al asignarlo: sin duración hasta que termina.
+// Al abrir el editor se revisa y, si ya terminó, se guarda su duración real.
+async function fillVideoDurations(
+  items: {
+    id: string
+    bunnyVideoId: string | null
+    durationSec: number | null
+  }[],
+) {
+  const pending = items.filter((i) => i.bunnyVideoId && i.durationSec === null)
+  await Promise.allSettled(
+    pending.map(async (item) => {
+      const video = await getBunnyVideo(item.bunnyVideoId!)
+      if (!video?.ready) return
+      await prisma.courseItem.update({
+        where: { id: item.id },
+        data: { durationSec: video.durationSec },
+      })
+      item.durationSec = video.durationSec
+    }),
+  )
+}
+
 // Editor de un curso: nombre y árbol de contenido.
 export const getAdminCourse = createServerFn()
   .middleware([requireAdmin])
@@ -152,6 +175,7 @@ export const getAdminCourse = createServerFn()
       },
     })
     if (course?.kind !== 'COURSE') throw notFound()
+    await fillVideoDurations(course.items)
     return {
       name: course.name,
       settings: {
@@ -285,7 +309,12 @@ export const updateLesson = createServerFn({ method: 'POST' })
       const found = await getBunnyVideo(data.bunnyVideoId).catch(() => null)
       if (!found)
         throw new Error('Ese video no está en la biblioteca de Bunny.')
-      video = { bunnyVideoId: found.id, durationSec: found.durationSec }
+      // Un video que Bunny aún procesa no informa su duración: queda vacía y se completa
+      // cuando termina (ver `fillVideoDurations`).
+      video = {
+        bunnyVideoId: found.id,
+        durationSec: found.ready ? found.durationSec : null,
+      }
     }
     const content =
       data.lessonType === 'VIDEO'

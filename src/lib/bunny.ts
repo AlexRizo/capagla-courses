@@ -50,13 +50,24 @@ const toVideo = (v: ApiVideo): BunnyVideo => ({
   ready: v.status === 4,
 })
 
-async function api(path: string) {
+async function api(
+  path: string,
+  init?: { method: 'POST' | 'DELETE'; body?: object },
+) {
   const library = env.BUNNY_LIBRARY_ID
   const key = env.BUNNY_API_KEY
   if (!library || !key) throw new Error('Bunny no está configurado.')
   const response = await fetch(
     `https://video.bunnycdn.com/library/${library}${path}`,
-    { headers: { AccessKey: key, accept: 'application/json' } },
+    {
+      method: init?.method ?? 'GET',
+      headers: {
+        AccessKey: key,
+        accept: 'application/json',
+        ...(init?.body ? { 'content-type': 'application/json' } : {}),
+      },
+      body: init?.body ? JSON.stringify(init.body) : undefined,
+    },
   )
   if (!response.ok) throw new Error(`Bunny respondió ${response.status}.`)
   return response
@@ -83,4 +94,56 @@ export async function getBunnyVideo(id: string) {
   if (!isBunnyId(id)) return null
   const response = await api(`/videos/${id}`)
   return toVideo((await response.json()) as ApiVideo)
+}
+
+// --- Subida desde el panel (TUS, directo del navegador a Bunny) ---
+// El servidor crea el video vacío y entrega una firma de un solo uso para ese video; la clave
+// de la API nunca sale del servidor. Bunny valida `sha256(biblioteca + clave + vencimiento + video)`.
+
+export const MAX_UPLOAD_BYTES = 5 * 1024 ** 3
+const UPLOAD_TTL_SECONDS = 6 * 60 * 60
+
+export const uploadSignature = (
+  library: string,
+  key: string,
+  expire: number,
+  videoId: string,
+) =>
+  createHash('sha256')
+    .update(`${library}${key}${expire}${videoId}`)
+    .digest('hex')
+
+// Nombre del video en Bunny: el del archivo sin extensión.
+export const titleFromFilename = (name: string) =>
+  name
+    .replace(/\.[^./\\]+$/, '')
+    .trim()
+    .slice(0, 200) || 'Video'
+
+export async function createBunnyUpload(title: string) {
+  const library = env.BUNNY_LIBRARY_ID
+  const key = env.BUNNY_API_KEY
+  if (!library || !key) throw new Error('Bunny no está configurado.')
+  const response = await api('/videos', { method: 'POST', body: { title } })
+  const { guid } = (await response.json()) as { guid: string }
+  const expire = Math.floor(Date.now() / 1000) + UPLOAD_TTL_SECONDS
+  return {
+    videoId: guid,
+    title,
+    libraryId: library,
+    expire,
+    signature: uploadSignature(library, key, expire, guid),
+  }
+}
+
+// Borra un video al que nunca llegó el archivo (subida cancelada o fallida). Nunca toca uno
+// que ya recibió el archivo.
+export async function deleteEmptyBunnyVideo(id: string) {
+  if (!isBunnyId(id)) return false
+  const response = await api(`/videos/${id}`)
+  const { status } = (await response.json()) as ApiVideo
+  // 0 creado y vacío, 6 subida fallida.
+  if (status !== 0 && status !== 6) return false
+  await api(`/videos/${id}`, { method: 'DELETE' })
+  return true
 }

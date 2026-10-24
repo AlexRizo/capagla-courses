@@ -44,6 +44,8 @@ import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhoo
 import { Route as HerramientaComprasIndexRouteImport } from './routes/herramienta/compras/index'
 import { Route as HerramientaComprasIdRouteImport } from './routes/herramienta/compras/$id'
 import { Route as HerramientaComprasNuevaRouteImport } from './routes/herramienta/compras/nueva'
+import { Route as HerramientaCotizadorIndexRouteImport } from './routes/herramienta/cotizador/index'
+import { Route as HerramientaCotizadorIdRouteImport } from './routes/herramienta/cotizador/$id'
 import { Route as HerramientaIngredientesIndexRouteImport } from './routes/herramienta/ingredientes/index'
 import { Route as HerramientaIngredientesIdRouteImport } from './routes/herramienta/ingredientes/$id'
 import { Route as HerramientaIngredientesNuevoRouteImport } from './routes/herramienta/ingredientes/nuevo'
@@ -237,6 +239,17 @@ const HerramientaComprasNuevaRoute = HerramientaComprasNuevaRouteImport.update({
   path: '/compras/nueva',
   getParentRoute: () => HerramientaRoute,
 } as any)
+const HerramientaCotizadorIndexRoute =
+  HerramientaCotizadorIndexRouteImport.update({
+    id: '/cotizador/',
+    path: '/cotizador/',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
+const HerramientaCotizadorIdRoute = HerramientaCotizadorIdRouteImport.update({
+  id: '/cotizador/$id',
+  path: '/cotizador/$id',
+  getParentRoute: () => HerramientaRoute,
+} as any)
 const HerramientaIngredientesIndexRoute =
   HerramientaIngredientesIndexRouteImport.update({
     id: '/ingredientes/',
@@ -365,6 +378,7 @@ export interface FileRoutesByFullPath {
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/herramienta/compras/$id': typeof HerramientaComprasIdRoute
   '/herramienta/compras/nueva': typeof HerramientaComprasNuevaRoute
+  '/herramienta/cotizador/$id': typeof HerramientaCotizadorIdRoute
   '/herramienta/ingredientes/$id': typeof HerramientaIngredientesIdRoute
   '/herramienta/ingredientes/nuevo': typeof HerramientaIngredientesNuevoRoute
   '/herramienta/premezclas/$id': typeof HerramientaPremezclasIdRoute
@@ -380,6 +394,7 @@ export interface FileRoutesByFullPath {
   '/admin/promociones/': typeof AdminPromocionesIndexRoute
   '/admin/usuarios/': typeof AdminUsuariosIndexRoute
   '/herramienta/compras/': typeof HerramientaComprasIndexRoute
+  '/herramienta/cotizador/': typeof HerramientaCotizadorIndexRoute
   '/herramienta/ingredientes/': typeof HerramientaIngredientesIndexRoute
   '/herramienta/premezclas/': typeof HerramientaPremezclasIndexRoute
   '/herramienta/producciones/': typeof HerramientaProduccionesIndexRoute
@@ -417,6 +432,7 @@ export interface FileRoutesByTo {
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/herramienta/compras/$id': typeof HerramientaComprasIdRoute
   '/herramienta/compras/nueva': typeof HerramientaComprasNuevaRoute
+  '/herramienta/cotizador/$id': typeof HerramientaCotizadorIdRoute
   '/herramienta/ingredientes/$id': typeof HerramientaIngredientesIdRoute
   '/herramienta/ingredientes/nuevo': typeof HerramientaIngredientesNuevoRoute
   '/herramienta/premezclas/$id': typeof HerramientaPremezclasIdRoute
@@ -432,6 +448,7 @@ export interface FileRoutesByTo {
   '/admin/promociones': typeof AdminPromocionesIndexRoute
   '/admin/usuarios': typeof AdminUsuariosIndexRoute
   '/herramienta/compras': typeof HerramientaComprasIndexRoute
+  '/herramienta/cotizador': typeof HerramientaCotizadorIndexRoute
   '/herramienta/ingredientes': typeof HerramientaIngredientesIndexRoute
   '/herramienta/premezclas': typeof HerramientaPremezclasIndexRoute
   '/herramienta/producciones': typeof HerramientaProduccionesIndexRoute
@@ -472,6 +489,7 @@ export interface FileRoutesById {
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
   '/herramienta/compras/$id': typeof HerramientaComprasIdRoute
   '/herramienta/compras/nueva': typeof HerramientaComprasNuevaRoute
+  '/herramienta/cotizador/$id': typeof HerramientaCotizadorIdRoute
   '/herramienta/ingredientes/$id': typeof HerramientaIngredientesIdRoute
   '/herramienta/ingredientes/nuevo': typeof HerramientaIngredientesNuevoRoute
   '/herramienta/premezclas/$id': typeof HerramientaPremezclasIdRoute
@@ -487,6 +505,7 @@ export interface FileRoutesById {
   '/admin/promociones/': typeof AdminPromocionesIndexRoute
   '/admin/usuarios/': typeof AdminUsuariosIndexRoute
   '/herramienta/compras/': typeof HerramientaComprasIndexRoute
+  '/herramienta/cotizador/': typeof HerramientaCotizadorIndexRoute
   '/herramienta/ingredientes/': typeof HerramientaIngredientesIndexRoute
   '/herramienta/premezclas/': typeof HerramientaPremezclasIndexRoute
   '/herramienta/producciones/': typeof HerramientaProduccionesIndexRoute
@@ -528,6 +547,7 @@ export interface FileRouteTypes {
     | '/api/stripe/webhook'
     | '/herramienta/compras/$id'
     | '/herramienta/compras/nueva'
+    | '/herramienta/cotizador/$id'
     | '/herramienta/ingredientes/$id'
     | '/herramienta/ingredientes/nuevo'
     | '/herramienta/premezclas/$id'
@@ -543,6 +563,7 @@ export interface FileRouteTypes {
     | '/admin/promociones/'
     | '/admin/usuarios/'
     | '/herramienta/compras/'
+    | '/herramienta/cotizador/'
     | '/herramienta/ingredientes/'
     | '/herramienta/premezclas/'
     | '/herramienta/producciones/'
@@ -580,6 +601,7 @@ export interface FileRouteTypes {
     | '/api/stripe/webhook'
     | '/herramienta/compras/$id'
     | '/herramienta/compras/nueva'
+    | '/herramienta/cotizador/$id'
     | '/herramienta/ingredientes/$id'
     | '/herramienta/ingredientes/nuevo'
     | '/herramienta/premezclas/$id'
@@ -595,6 +617,7 @@ export interface FileRouteTypes {
     | '/admin/promociones'
     | '/admin/usuarios'
     | '/herramienta/compras'
+    | '/herramienta/cotizador'
     | '/herramienta/ingredientes'
     | '/herramienta/premezclas'
     | '/herramienta/producciones'
@@ -634,6 +657,7 @@ export interface FileRouteTypes {
     | '/api/stripe/webhook'
     | '/herramienta/compras/$id'
     | '/herramienta/compras/nueva'
+    | '/herramienta/cotizador/$id'
     | '/herramienta/ingredientes/$id'
     | '/herramienta/ingredientes/nuevo'
     | '/herramienta/premezclas/$id'
@@ -649,6 +673,7 @@ export interface FileRouteTypes {
     | '/admin/promociones/'
     | '/admin/usuarios/'
     | '/herramienta/compras/'
+    | '/herramienta/cotizador/'
     | '/herramienta/ingredientes/'
     | '/herramienta/premezclas/'
     | '/herramienta/producciones/'
@@ -925,6 +950,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HerramientaComprasNuevaRouteImport
       parentRoute: typeof HerramientaRoute
     }
+    '/herramienta/cotizador/': {
+      id: '/herramienta/cotizador/'
+      path: '/cotizador'
+      fullPath: '/herramienta/cotizador/'
+      preLoaderRoute: typeof HerramientaCotizadorIndexRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/cotizador/$id': {
+      id: '/herramienta/cotizador/$id'
+      path: '/cotizador/$id'
+      fullPath: '/herramienta/cotizador/$id'
+      preLoaderRoute: typeof HerramientaCotizadorIdRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
     '/herramienta/ingredientes/': {
       id: '/herramienta/ingredientes/'
       path: '/ingredientes'
@@ -1079,6 +1118,7 @@ interface HerramientaRouteChildren {
   HerramientaIndexRoute: typeof HerramientaIndexRoute
   HerramientaComprasIdRoute: typeof HerramientaComprasIdRoute
   HerramientaComprasNuevaRoute: typeof HerramientaComprasNuevaRoute
+  HerramientaCotizadorIdRoute: typeof HerramientaCotizadorIdRoute
   HerramientaIngredientesIdRoute: typeof HerramientaIngredientesIdRoute
   HerramientaIngredientesNuevoRoute: typeof HerramientaIngredientesNuevoRoute
   HerramientaPremezclasIdRoute: typeof HerramientaPremezclasIdRoute
@@ -1090,6 +1130,7 @@ interface HerramientaRouteChildren {
   HerramientaRecetasIdRoute: typeof HerramientaRecetasIdRoute
   HerramientaRecetasNuevaRoute: typeof HerramientaRecetasNuevaRoute
   HerramientaComprasIndexRoute: typeof HerramientaComprasIndexRoute
+  HerramientaCotizadorIndexRoute: typeof HerramientaCotizadorIndexRoute
   HerramientaIngredientesIndexRoute: typeof HerramientaIngredientesIndexRoute
   HerramientaPremezclasIndexRoute: typeof HerramientaPremezclasIndexRoute
   HerramientaProduccionesIndexRoute: typeof HerramientaProduccionesIndexRoute
@@ -1105,6 +1146,7 @@ const HerramientaRouteChildren: HerramientaRouteChildren = {
   HerramientaIndexRoute: HerramientaIndexRoute,
   HerramientaComprasIdRoute: HerramientaComprasIdRoute,
   HerramientaComprasNuevaRoute: HerramientaComprasNuevaRoute,
+  HerramientaCotizadorIdRoute: HerramientaCotizadorIdRoute,
   HerramientaIngredientesIdRoute: HerramientaIngredientesIdRoute,
   HerramientaIngredientesNuevoRoute: HerramientaIngredientesNuevoRoute,
   HerramientaPremezclasIdRoute: HerramientaPremezclasIdRoute,
@@ -1116,6 +1158,7 @@ const HerramientaRouteChildren: HerramientaRouteChildren = {
   HerramientaRecetasIdRoute: HerramientaRecetasIdRoute,
   HerramientaRecetasNuevaRoute: HerramientaRecetasNuevaRoute,
   HerramientaComprasIndexRoute: HerramientaComprasIndexRoute,
+  HerramientaCotizadorIndexRoute: HerramientaCotizadorIndexRoute,
   HerramientaIngredientesIndexRoute: HerramientaIngredientesIndexRoute,
   HerramientaPremezclasIndexRoute: HerramientaPremezclasIndexRoute,
   HerramientaProduccionesIndexRoute: HerramientaProduccionesIndexRoute,

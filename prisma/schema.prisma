@@ -46,6 +46,7 @@ model User {
   costProductions CostProduction[]
   costLists       CostList[]
   costPurchases   CostPurchase[]
+  costQuotes      CostQuote[]
 
   @@unique([email])
   @@map("user")
@@ -644,6 +645,7 @@ model CostProduct {
   recipes        CostProductRecipe[]
   packaging      CostProductPackaging[]
   inProductions  CostProductionItem[]
+  inQuotes       CostQuote[]
 
   @@index([userId, archivedAt])
 }
@@ -768,4 +770,35 @@ model CostPurchaseItem {
 
   @@index([purchaseId])
   @@index([ingredientId])
+}
+
+// Cotizador: un pedido a partir de un producto. Solo guarda lo que se capturó (producto, cantidad,
+// horas extra y extras); el mínimo a cobrar se recalcula con los costos de hoy y el producto no se toca.
+model CostQuote {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId     String
+  product       CostProduct      @relation(fields: [productId], references: [id])
+  quantity      Int
+  // Horas extra de decorado y para conseguir los insumos extra.
+  decorHours    Decimal          @default(0) @db.Decimal(7, 2)
+  sourcingHours Decimal          @default(0) @db.Decimal(7, 2)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  extras        CostQuoteExtra[]
+
+  @@index([userId, updatedAt])
+  @@index([productId])
+}
+
+model CostQuoteExtra {
+  id       String    @id @default(cuid())
+  quoteId  String
+  quote    CostQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  position Int
+  name     String
+  cost     Decimal   @db.Decimal(12, 2)
+
+  @@index([quoteId])
 }

@@ -84,7 +84,11 @@ const groups: { label: string; items: Item[] }[] = [
         icon: CalendarDays,
         to: '/herramienta/producciones',
       },
-      { label: 'Cotizador', icon: Calculator },
+      {
+        label: 'Cotizador',
+        icon: Calculator,
+        to: '/herramienta/cotizador',
+      },
     ],
   },
 ]

@@ -450,3 +450,15 @@
     color: var(--foreground);
   }
 }
+
+/* Imprimir la lista de compra (PDF): solo el contenido, sin menú ni encabezado de la herramienta. */
+@media print {
+  .tool [data-slot='sidebar'],
+  .tool [data-slot='sidebar-gap'],
+  .tool [data-slot='sidebar-inset'] > header {
+    display: none !important;
+  }
+  .tool [data-slot='sidebar-inset'] {
+    background: white;
+  }
+}

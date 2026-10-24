@@ -27,6 +27,7 @@ export function Tracking({
     if (
       pathname.startsWith('/admin') ||
       pathname.startsWith('/herramienta') ||
+      pathname.startsWith('/lista-de-tienda') ||
       pathname.startsWith('/api')
     )
       return

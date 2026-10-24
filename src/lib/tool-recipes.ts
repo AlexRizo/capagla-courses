@@ -415,6 +415,11 @@ export const loadRecipeCosts = createServerOnlyFn(
         total: empty ? null : b.total,
         // Solo lo que lleva de ingredientes y premezclas (sin merma, mano de obra ni gasto fijo).
         ingredients: b.ingredients,
+        // Lo que suman la mano de obra y el gasto fijo, y las horas de cada uno (para Producción).
+        labor: b.labor ?? 0,
+        fixed: b.fixed ?? 0,
+        laborHours: n(r.laborHours) ?? 0,
+        ovenHours: n(r.ovenHours) ?? 0,
       }
     })
   },

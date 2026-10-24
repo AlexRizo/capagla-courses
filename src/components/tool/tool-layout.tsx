@@ -67,7 +67,7 @@ const groups: { label: string; items: Item[] }[] = [
   {
     label: 'Compras',
     items: [
-      { label: 'Lista de compra', icon: ListChecks },
+      { label: 'Lista de compra', icon: ListChecks, to: '/herramienta/lista' },
       { label: 'Registro de compras', icon: Receipt },
       { label: 'Lugares de compra', icon: Store, to: '/herramienta/lugares' },
     ],
@@ -75,7 +75,11 @@ const groups: { label: string; items: Item[] }[] = [
   {
     label: 'Herramientas',
     items: [
-      { label: 'Producción', icon: CalendarDays },
+      {
+        label: 'Producción',
+        icon: CalendarDays,
+        to: '/herramienta/producciones',
+      },
       { label: 'Cotizador', icon: Calculator },
     ],
   },

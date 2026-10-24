@@ -43,6 +43,8 @@ model User {
   costPremixes    CostPremix[]
   costRecipes     CostRecipe[]
   costProducts    CostProduct[]
+  costProductions CostProduction[]
+  costLists       CostList[]
 
   @@unique([email])
   @@map("user")
@@ -471,6 +473,7 @@ model CostIngredient {
   premixLines CostPremixLine[]
   recipeLines CostRecipeLine[]
   packaging   CostProductPackaging[]
+  listEntries CostListEntry[]
 
   @@index([userId, archivedAt])
   @@index([placeId])
@@ -637,6 +640,7 @@ model CostProduct {
   updatedAt      DateTime               @updatedAt
   recipes        CostProductRecipe[]
   packaging      CostProductPackaging[]
+  inProductions  CostProductionItem[]
 
   @@index([userId, archivedAt])
 }
@@ -668,4 +672,66 @@ model CostProductPackaging {
 
   @@index([productId])
   @@index([ingredientId])
+}
+
+// Producción: lo que ya se sabe que se va a hornear (productos y cuántos). De ahí salen su lista de
+// compra y su utilidad esperada; todo se recalcula con los costos del momento. Se guarda 30 días
+// desde el último guardado y después se limpia.
+model CostProduction {
+  id        String               @id @default(cuid())
+  userId    String
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  expiresAt DateTime
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  items     CostProductionItem[]
+  list      CostList?
+
+  @@index([userId, expiresAt])
+}
+
+model CostProductionItem {
+  id           String         @id @default(cuid())
+  productionId String
+  production   CostProduction @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  position     Int
+  productId    String
+  product      CostProduct    @relation(fields: [productId], references: [id])
+  quantity     Int
+
+  @@index([productionId])
+  @@index([productId])
+}
+
+// Lista de compra: una por producción, más una "directa" por alumna (sin producción) para lo que
+// se agrega a mano. Lo que hay que comprar se calcula de la producción; aquí solo se guarda lo
+// que la alumna decide: el orden, el lugar de hoy, "Ya lo tengo", lo comprado y lo agregado a mano.
+model CostList {
+  id           String          @id @default(cuid())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productionId String?         @unique
+  production   CostProduction? @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime        @default(now())
+  entries      CostListEntry[]
+
+  @@index([userId])
+}
+
+model CostListEntry {
+  id           String         @id @default(cuid())
+  listId       String
+  list         CostList       @relation(fields: [listId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   CostIngredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  position     Int
+  // Lugar de compra de hoy: sin valor es el del ingrediente; "none" es "Sin lugar asignado".
+  placeKey     String?
+  haveIt       Boolean        @default(false)
+  bought       Boolean        @default(false)
+  // Paquetes completos agregados a mano.
+  manualPacks  Int            @default(0)
+
+  @@unique([listId, ingredientId])
 }

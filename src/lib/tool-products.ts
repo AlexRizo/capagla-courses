@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { prisma } from '#/db'
 import { ingredientLineCost, lineUnits } from '#/lib/cost-engine'
 import { productSchema, productSummary } from '#/lib/cost-product'
+import type { ProductionMetrics } from '#/lib/cost-shopping'
 import { requireTool } from '#/lib/tool-access'
 import {
   ingredientChoices,
@@ -286,3 +287,48 @@ export const getRecipeUsage = createServerFn()
       },
     }),
   }))
+
+// Lo que de cada producto necesita Producción: costo, precio, dinero para comprar, mano de obra,
+// gasto fijo y horas de una pieza entera, con los costos de hoy. Un producto sin recetas o con una
+// receta sin ingredientes no tiene costo calculado (`metrics: null`).
+export const loadProductMetrics = createServerOnlyFn(
+  async (userId: string, ids?: string[]) => {
+    const [products, costs, settings] = await Promise.all([
+      prisma.costProduct.findMany({
+        where: { userId, ...(ids ? { id: { in: ids } } : {}) },
+        orderBy: { name: 'asc' },
+        include,
+      }),
+      loadRecipeCosts(userId),
+      loadSettings(userId),
+    ])
+    const byId = new Map(costs.map((c) => [c.id, c]))
+    return products.map((p) => {
+      const s = summarize(p, byId, settings)
+      const recipes = p.recipes.map((r) => byId.get(r.recipeId))
+      const sum = (
+        pick: (c: NonNullable<(typeof recipes)[number]>) => number,
+      ) => recipes.reduce((total, c) => total + (c ? pick(c) : 0), 0)
+      const metrics: ProductionMetrics | null = s.incomplete
+        ? null
+        : {
+            cost: s.whole.cost,
+            price: n(p.price),
+            buy: sum((c) => c.ingredients) + s.whole.packaging,
+            labor: sum((c) => c.labor),
+            fixed: sum((c) => c.fixed),
+            laborHours: sum((c) => c.laborHours),
+            ovenHours: sum((c) => c.ovenHours),
+          }
+      return {
+        id: p.id,
+        name: p.name,
+        archived: p.archivedAt !== null,
+        sells: p.sellsSlices
+          ? ('Entero y por rebanada' as const)
+          : ('Entero' as const),
+        metrics,
+      }
+    })
+  },
+)

@@ -245,39 +245,39 @@ Tipografía Inter (no Lato), estilo shadcn con tokens propios (primario magenta 
 
 ## Dudas de la herramienta de costos (para revisar al final)
 
-Decisión del usuario (2026-10-23): mientras se implementa no se frena por dudas; cada una se anota aquí con lo que se hizo por defecto y se revisan todas al final.
+Decisión del usuario (2026-10-23): mientras se implementa no se frena por dudas; cada una se anota aquí con lo que se hizo por defecto y se revisan todas al final. **Revisadas el 2026-10-24:** el usuario aceptó lo hecho por defecto en 16 (D4, D5, D7, D9, D12, D14, D15, D17, D18, D19, D20, D21, D22, D23, D25 y D26); las demás dependen de la chef y están en el documento "Preguntas para la chef: herramienta de costos" (https://claude.ai/artifact/4Ktx5xZ8oQG2XAYCEq1rMw), con 9 preguntas: D1 → P1, D2 → P2, D10 → P3, D11 → P4, D13 → P5, D3 → P6, D8 → P7, D16 → P8, D6 y D24 → P9. Al recibir sus respuestas, aplicar lo que cambie y marcar la duda como decidida.
 
-- [ ] **D1 · Niveles y plan.** El `.md` propone Nivel 1 y Nivel 2 (precio, límites y qué abre cada uno sin definir; Etiquetas y Ajustes "por confirmar"). **Hecho por defecto:** sin niveles; quien tiene la herramienta ve todo el menú. No se muestran "Nivel 1/2" ni "Tu plan" ni topes tipo "10 de 100".
-- [ ] **D2 · Múltiplo por defecto y sobre qué costo.** El `.md` pide confirmar con la chef el múltiplo (1.43 es de ejemplo) y si se aplica al costo total o solo a ingredientes y empaque. **Hecho por defecto:** los campos de Ajustes empiezan vacíos y la alumna elige base (costo total por defecto) y múltiplo.
-- [ ] **D3 · Fórmula del gasto fijo.** Confirmar la de Ajustes (luz + gas + renta ÷ horas al mes + depreciación). **Hecho:** tal como la maqueta, con horas al mes = horas por semana × 4.33 redondeado.
-- [ ] **D4 · Copiar una receta/producto** no está en la maqueta (no se hizo).
-- [ ] **D5 · Extras que agregué sin maqueta** (revisar si se quedan): eliminar lugar de compra, "Ver archivados" y "Restaurar" en las listas, unidad de compra del ingrediente (g, kg, ml, l, pza), "Porcentaje que aprovechas" del desperdicio, quitar/archivar etiquetas, tarjeta de Mis cursos solo con acceso.
-- [ ] **D6 · Cotizador:** cuánto se guardan las cotizaciones y si se archivan como la producción (pendiente del `.md`).
-- [ ] **D7 · Lista de compra:** si recuerda el orden de cada tienda para la próxima vez, y qué hace el PDF/texto/checklist (pendiente del `.md`).
-- [ ] **D8 · Ingredientes flexibles (huevo):** la cantidad se escribe en **gramos por defecto** (la maqueta lo recomienda); confirmar con la chef.
-- [ ] **D9 · Premezclas** solo llevan ingredientes (no premezclas dentro de premezclas); la maqueta no muestra lo contrario.
+- [ ] **D1 · Niveles y plan.** El `.md` propone Nivel 1 y Nivel 2 (precio, límites y qué abre cada uno sin definir; Etiquetas y Ajustes "por confirmar"). **Hecho por defecto:** sin niveles; quien tiene la herramienta ve todo el menú. No se muestran "Nivel 1/2" ni "Tu plan" ni topes tipo "10 de 100". **Pendiente de la chef: pregunta 1.**
+- [ ] **D2 · Múltiplo por defecto y sobre qué costo.** El `.md` pide confirmar con la chef el múltiplo (1.43 es de ejemplo) y si se aplica al costo total o solo a ingredientes y empaque. **Hecho por defecto:** los campos de Ajustes empiezan vacíos y la alumna elige base (costo total por defecto) y múltiplo. **Pendiente de la chef: pregunta 2.**
+- [ ] **D3 · Fórmula del gasto fijo.** Confirmar la de Ajustes (luz + gas + renta ÷ horas al mes + depreciación). **Hecho:** tal como la maqueta, con horas al mes = horas por semana × 4.33 redondeado. **Pendiente de la chef: pregunta 6.**
+- [x] **D4 · Copiar una receta/producto** no está en la maqueta (no se hizo). **Decidido (usuario, 2026-10-24): se queda como está.**
+- [x] **D5 · Extras que agregué sin maqueta** (revisar si se quedan): eliminar lugar de compra, "Ver archivados" y "Restaurar" en las listas, unidad de compra del ingrediente (g, kg, ml, l, pza), "Porcentaje que aprovechas" del desperdicio, quitar/archivar etiquetas, tarjeta de Mis cursos solo con acceso. **Decidido (usuario, 2026-10-24): se queda como está.**
+- [ ] **D6 · Cotizador:** cuánto se guardan las cotizaciones y si se archivan como la producción (pendiente del `.md`). **Pendiente de la chef: pregunta 9.**
+- [x] **D7 · Lista de compra:** si recuerda el orden de cada tienda para la próxima vez, y qué hace el PDF/texto/checklist (pendiente del `.md`). **Decidido (usuario, 2026-10-24): se queda como está.**
+- [ ] **D8 · Ingredientes flexibles (huevo):** la cantidad se escribe en **gramos por defecto** (la maqueta lo recomienda); confirmar con la chef. **Pendiente de la chef: pregunta 7.**
+- [x] **D9 · Premezclas** solo llevan ingredientes (no premezclas dentro de premezclas); la maqueta no muestra lo contrario. **Decidido (usuario, 2026-10-24): se queda como está.**
 ---
 
-- [ ] **D10 · Múltiplo desde el producto.** "Quiero vender a" del producto edita el múltiplo de Ajustes (se guarda al guardar el producto). Confirmar que es lo deseado o si cada producto debe tener el suyo.
-- [ ] **D11 · Costo del entero y "piezas que vendes".** El entero cuesta la receta completa + empaque (como la maqueta); las piezas que vende solo dan el costo por pieza vendible. Confirmar con la chef cómo debe afectar al precio cuando salen menos piezas, y cómo se usará en Producción.
-- [ ] **D12 · Semáforo sin múltiplo.** Sin múltiplo en Ajustes el producto dice "Cubre tu costo" (gris) en vez de amarillo/verde.
-- [ ] **D13 · Impuestos.** Un producto suma el % de Ajustes al precio sugerido si "Vendo como negocio" está activo en él (arranca con el de Ajustes); la maqueta no dice si el impuesto debe verse también en el margen.
-- [ ] **D14 · Estados vacíos de producto.** "Faltan precios" de la maqueta no aplica (un ingrediente siempre lleva precio): se muestran "Sin precio", "Sin recetas" y "Sin ingredientes".
+- [~] **D10 · Múltiplo desde el producto.** "Quiero vender a" del producto edita el múltiplo de Ajustes (se guarda al guardar el producto). Confirmar que es lo deseado o si cada producto debe tener el suyo. **Por ahora se queda como está (usuario, 2026-10-24); queda pendiente la pregunta 3 para la chef.**
+- [ ] **D11 · Costo del entero y "piezas que vendes".** El entero cuesta la receta completa + empaque (como la maqueta); las piezas que vende solo dan el costo por pieza vendible. Confirmar con la chef cómo debe afectar al precio cuando salen menos piezas, y cómo se usará en Producción. **Pendiente de la chef: pregunta 4.**
+- [x] **D12 · Semáforo sin múltiplo.** Sin múltiplo en Ajustes el producto dice "Cubre tu costo" (gris) en vez de amarillo/verde. **Decidido (usuario, 2026-10-24): se queda como está.**
+- [ ] **D13 · Impuestos.** Un producto suma el % de Ajustes al precio sugerido si "Vendo como negocio" está activo en él (arranca con el de Ajustes); la maqueta no dice si el impuesto debe verse también en el margen. **Pendiente de la chef: pregunta 5.**
+- [x] **D14 · Estados vacíos de producto.** "Faltan precios" de la maqueta no aplica (un ingrediente siempre lleva precio): se muestran "Sin precio", "Sin recetas" y "Sin ingredientes". **Decidido (usuario, 2026-10-24): se queda como está.**
 
-- [ ] **D15 · Dos botones de la producción.** "Proyectar producción →" guarda y abre la lista de esa producción; "Ir directo a la lista de compra" abre la lista directa (la maqueta manda los dos a la misma pantalla).
-- [ ] **D16 · Agregar a mano.** La "Cantidad" son paquetes completos (1 → 397 g de dulce de leche, como la maqueta); confirmar con la chef. El botón de quitar lo agregado a mano no está en la maqueta.
-- [ ] **D17 · Rebanadas en producción.** La producción solo cuenta enteros; la maqueta no muestra producir por rebanada.
-- [ ] **D18 · Vencimiento de producciones.** Los 30 días corren desde el último guardado y la limpieza se hace al abrir la lista (sin tarea diaria); la maqueta dice "se guarda 30 días".
-- [ ] **D19 · PDF y compartir.** "Imprimir PDF" usa la impresión del navegador; "Compartir como texto" usa el menú del celular o copia al portapapeles. La lista directa es una sola por alumna.
+- [x] **D15 · Dos botones de la producción.** "Proyectar producción →" guarda y abre la lista de esa producción; "Ir directo a la lista de compra" abre la lista directa (la maqueta manda los dos a la misma pantalla). **Decidido (usuario, 2026-10-24): se queda como está.**
+- [ ] **D16 · Agregar a mano.** La "Cantidad" son paquetes completos (1 → 397 g de dulce de leche, como la maqueta); confirmar con la chef. El botón de quitar lo agregado a mano no está en la maqueta. **Pendiente de la chef: pregunta 8.**
+- [x] **D17 · Rebanadas en producción.** La producción solo cuenta enteros; la maqueta no muestra producir por rebanada. **Decidido (usuario, 2026-10-24): se queda como está.**
+- [x] **D18 · Vencimiento de producciones.** Los 30 días corren desde el último guardado y la limpieza se hace al abrir la lista (sin tarea diaria); la maqueta dice "se guarda 30 días". **Decidido (usuario, 2026-10-24): se queda como está.**
+- [x] **D19 · PDF y compartir.** "Imprimir PDF" usa la impresión del navegador; "Compartir como texto" usa el menú del celular o copia al portapapeles. La lista directa es una sola por alumna. **Decidido (usuario, 2026-10-24): se queda como está.**
 
-- [ ] **D20 · Total pagado de una compra.** Suma el precio de un paquete de cada ingrediente (la maqueta no pide cantidades); si se compraron varios paquetes, el total real sería mayor.
-- [ ] **D21 · Editar o borrar una compra.** El detalle es solo de consulta (sus precios ya se aplicaron y borrarla no los devolvería).
-- [ ] **D22 · Qué trae la compra al abrirla.** La maqueta la muestra con cinco renglones; aquí arranca vacía y se agregan los ingredientes. Confirmar si debe precargar los de la lista de compra de esa tienda.
+- [x] **D20 · Total pagado de una compra.** Suma el precio de un paquete de cada ingrediente (la maqueta no pide cantidades); si se compraron varios paquetes, el total real sería mayor. **Decidido (usuario, 2026-10-24): se queda como está.**
+- [x] **D21 · Editar o borrar una compra.** El detalle es solo de consulta (sus precios ya se aplicaron y borrarla no los devolvería). **Decidido (usuario, 2026-10-24): se queda como está.**
+- [x] **D22 · Qué trae la compra al abrirla.** La maqueta la muestra con cinco renglones; aquí arranca vacía y se agregan los ingredientes. Confirmar si debe precargar los de la lista de compra de esa tienda. **Decidido (usuario, 2026-10-24): se queda como está.**
 
-- [ ] **D23 · Cotizaciones guardadas.** La maqueta solo trae "Guardar cotización" y el `.md` dice "consultarla o repetirla después", sin pantalla para verlas. **Hecho por defecto:** una lista "Cotizaciones guardadas" debajo de la pantalla (producto y enteros, fecha, mínimo recalculado con los costos de hoy); se abre una para editarla (guardar la actualiza) y "Borrar cotización". No hay "guardar como nueva" (como D4). Confirmar si se queda o cómo debe verse.
-- [ ] **D24 · Cuánto se guardan.** Sin vencimiento: se quedan hasta que se borren (el `.md` lo deja por decidir, ver D6 y la regla de 30 días de la producción).
-- [ ] **D25 · Cantidad, horas y tarifa.** La cantidad son enteros; el costo del producto se multiplica por la cantidad y las horas extra no (son del pedido). "Costo del producto" y "Horas habituales" se muestran de un entero. Las horas extra se cobran a la mano de obra de Ajustes (sin gasto fijo, que ya va en el costo del producto). Sin esa tarifa y con horas extra el mínimo no sale.
-- [ ] **D26 · Extras.** Solo nombre y costo (la maqueta). El `.md` dice que pueden ser ingredientes dados de alta o no; aquí no se ofrece elegir un ingrediente, y el costo del extra no se actualiza con el registro de compras.
+- [x] **D23 · Cotizaciones guardadas.** La maqueta solo trae "Guardar cotización" y el `.md` dice "consultarla o repetirla después", sin pantalla para verlas. **Hecho por defecto:** una lista "Cotizaciones guardadas" debajo de la pantalla (producto y enteros, fecha, mínimo recalculado con los costos de hoy); se abre una para editarla (guardar la actualiza) y "Borrar cotización". No hay "guardar como nueva" (como D4). Confirmar si se queda o cómo debe verse. **Decidido (usuario, 2026-10-24): se queda como está.**
+- [ ] **D24 · Cuánto se guardan.** Sin vencimiento: se quedan hasta que se borren (el `.md` lo deja por decidir, ver D6 y la regla de 30 días de la producción). **Pendiente de la chef: pregunta 9.**
+- [x] **D25 · Cantidad, horas y tarifa.** La cantidad son enteros; el costo del producto se multiplica por la cantidad y las horas extra no (son del pedido). "Costo del producto" y "Horas habituales" se muestran de un entero. Las horas extra se cobran a la mano de obra de Ajustes (sin gasto fijo, que ya va en el costo del producto). Sin esa tarifa y con horas extra el mínimo no sale. **Decidido (usuario, 2026-10-24): se queda como está.**
+- [x] **D26 · Extras.** Solo nombre y costo (la maqueta). El `.md` dice que pueden ser ingredientes dados de alta o no; aquí no se ofrece elegir un ingrediente, y el costo del extra no se actualiza con el registro de compras. **Decidido (usuario, 2026-10-24): se queda como está.**
 
 ---
 

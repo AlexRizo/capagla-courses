@@ -6,7 +6,7 @@ import { getConsent, setConsent } from '#/lib/consent'
 
 // Aviso de cookies. La maqueta del panel solo dice que los píxeles se cargan si la persona los
 // acepta; no trae diseño del aviso, así que este es mínimo, con los colores de la landing.
-// Tampoco guarda ni manda nada hasta que elige. No sale en el panel (`/admin`).
+// Tampoco guarda ni manda nada hasta que elige. No sale en el panel (`/admin`) ni en la herramienta de costos (`/herramienta`).
 export function CookieNotice() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   // Sin elección guardada se muestra; se decide ya montado para no chocar con el HTML del servidor.
@@ -17,7 +17,12 @@ export function CookieNotice() {
     setVisible(getConsent() === null)
   }, [])
 
-  if (!visible || pathname.startsWith('/admin')) return null
+  if (
+    !visible ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/herramienta')
+  )
+    return null
 
   function choose(choice: 'accepted' | 'rejected') {
     setConsent(choice)

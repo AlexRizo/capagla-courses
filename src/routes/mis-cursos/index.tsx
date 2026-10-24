@@ -346,27 +346,32 @@ function MisCursos() {
             <FreeCourseCard key={course.slug} course={course} />
           ))}
 
-          <div className="flex items-center gap-3 overflow-hidden rounded-2xl border border-landing-line bg-white p-3 md:flex-wrap md:items-stretch md:gap-0 md:rounded-20 md:p-0">
-            <div className="flex size-21 shrink-0 items-center justify-center rounded-12 bg-landing-ink p-1.5 text-center text-13 font-black text-landing-neon md:size-auto md:min-h-35 md:grow md:basis-70 md:rounded-none md:p-5 md:text-2xl">
-              Herramienta de costos
-            </div>
-            <div className="flex flex-1 flex-col gap-2 md:grow-2 md:basis-100 md:justify-center md:gap-3 md:px-8 md:py-6">
-              <div className="text-13 leading-snug text-landing-muted md:text-15 md:leading-normal">
-                <span className="md:hidden">
-                  Costo por porción y precio sugerido de cada receta.
-                </span>
-                <span className="hidden md:inline">
-                  Calcula el costo por porción y el precio sugerido de cada
-                  receta, con las recetas del curso ya cargadas.
-                </span>
+          {data.toolAccess && (
+            <div className="flex items-center gap-3 overflow-hidden rounded-2xl border border-landing-line bg-white p-3 md:flex-wrap md:items-stretch md:gap-0 md:rounded-20 md:p-0">
+              <div className="flex size-21 shrink-0 items-center justify-center rounded-12 bg-landing-ink p-1.5 text-center text-13 font-black text-landing-neon md:size-auto md:min-h-35 md:grow md:basis-70 md:rounded-none md:p-5 md:text-2xl">
+                Herramienta de costos
               </div>
-              <div>
-                <span className="inline-flex items-center justify-center self-start rounded-lg bg-landing-soft px-3.5 py-2 text-sm font-black text-landing-muted md:min-h-11.5 md:rounded-12 md:px-6 md:py-0 md:text-base">
-                  Próximamente
-                </span>
+              <div className="flex flex-1 flex-col gap-2 md:grow-2 md:basis-100 md:justify-center md:gap-3 md:px-8 md:py-6">
+                <div className="text-13 leading-snug text-landing-muted md:text-15 md:leading-normal">
+                  <span className="md:hidden">
+                    Costo por porción y precio sugerido de cada receta.
+                  </span>
+                  <span className="hidden md:inline">
+                    Calcula el costo por porción y el precio sugerido de cada
+                    receta, con las recetas del curso ya cargadas.
+                  </span>
+                </div>
+                <div>
+                  <Link
+                    to="/herramienta"
+                    className="inline-flex items-center justify-center self-start rounded-lg border-1.5 border-landing-primary px-3.5 py-2 text-sm font-black text-landing-primary no-underline md:min-h-11.5 md:rounded-12 md:px-6 md:py-0 md:text-base"
+                  >
+                    Abrir herramienta
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

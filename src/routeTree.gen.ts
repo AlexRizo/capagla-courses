@@ -16,12 +16,15 @@ import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ClaseGratisRouteImport } from './routes/clase-gratis'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as GraciasRouteImport } from './routes/gracias'
+import { Route as HerramientaRouteImport } from './routes/herramienta'
 import { Route as MisCursosRouteImport } from './routes/mis-cursos'
 import { Route as RevisaTuCorreoRouteImport } from './routes/revisa-tu-correo'
 import { Route as AdminMarketingRouteImport } from './routes/admin/marketing'
 import { Route as AdminPreguntasRouteImport } from './routes/admin/preguntas'
 import { Route as ApiUploadsRouteImport } from './routes/api/uploads'
 import { Route as CursosSlugRouteImport } from './routes/cursos/$slug'
+import { Route as HerramientaIndexRouteImport } from './routes/herramienta/index'
+import { Route as HerramientaLugaresRouteImport } from './routes/herramienta/lugares'
 import { Route as MisCursosIndexRouteImport } from './routes/mis-cursos/index'
 import { Route as AdminCursosIndexRouteImport } from './routes/admin/cursos/index'
 import { Route as AdminCursosSlugRouteImport } from './routes/admin/cursos/$slug'
@@ -34,6 +37,9 @@ import { Route as ApiRecetariosSlugRouteImport } from './routes/api/recetarios/$
 import { Route as ApiRecetasNameRouteImport } from './routes/api/recetas/$name'
 import { Route as ApiRecursosNameRouteImport } from './routes/api/recursos/$name'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
+import { Route as HerramientaIngredientesIndexRouteImport } from './routes/herramienta/ingredientes/index'
+import { Route as HerramientaIngredientesIdRouteImport } from './routes/herramienta/ingredientes/$id'
+import { Route as HerramientaIngredientesNuevoRouteImport } from './routes/herramienta/ingredientes/nuevo'
 import { Route as MisCursosSlugIndexRouteImport } from './routes/mis-cursos/$slug/index'
 import { Route as MisCursosSlugLessonIdRouteImport } from './routes/mis-cursos/$slug/$lessonId'
 
@@ -72,6 +78,11 @@ const GraciasRoute = GraciasRouteImport.update({
   path: '/gracias',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HerramientaRoute = HerramientaRouteImport.update({
+  id: '/herramienta',
+  path: '/herramienta',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MisCursosRoute = MisCursosRouteImport.update({
   id: '/mis-cursos',
   path: '/mis-cursos',
@@ -101,6 +112,16 @@ const CursosSlugRoute = CursosSlugRouteImport.update({
   id: '/cursos/$slug',
   path: '/cursos/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const HerramientaIndexRoute = HerramientaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => HerramientaRoute,
+} as any)
+const HerramientaLugaresRoute = HerramientaLugaresRouteImport.update({
+  id: '/lugares',
+  path: '/lugares',
+  getParentRoute: () => HerramientaRoute,
 } as any)
 const MisCursosIndexRoute = MisCursosIndexRouteImport.update({
   id: '/',
@@ -162,6 +183,24 @@ const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
   path: '/api/stripe/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HerramientaIngredientesIndexRoute =
+  HerramientaIngredientesIndexRouteImport.update({
+    id: '/ingredientes/',
+    path: '/ingredientes/',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
+const HerramientaIngredientesIdRoute =
+  HerramientaIngredientesIdRouteImport.update({
+    id: '/ingredientes/$id',
+    path: '/ingredientes/$id',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
+const HerramientaIngredientesNuevoRoute =
+  HerramientaIngredientesNuevoRouteImport.update({
+    id: '/ingredientes/nuevo',
+    path: '/ingredientes/nuevo',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
 const MisCursosSlugIndexRoute = MisCursosSlugIndexRouteImport.update({
   id: '/$slug/',
   path: '/$slug/',
@@ -181,12 +220,15 @@ export interface FileRoutesByFullPath {
   '/clase-gratis': typeof ClaseGratisRoute
   '/entrar': typeof EntrarRoute
   '/gracias': typeof GraciasRoute
+  '/herramienta': typeof HerramientaRouteWithChildren
   '/mis-cursos': typeof MisCursosRouteWithChildren
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
+  '/herramienta/lugares': typeof HerramientaLugaresRoute
+  '/herramienta/': typeof HerramientaIndexRoute
   '/mis-cursos/': typeof MisCursosIndexRoute
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
@@ -196,10 +238,13 @@ export interface FileRoutesByFullPath {
   '/api/recetas/$name': typeof ApiRecetasNameRoute
   '/api/recursos/$name': typeof ApiRecursosNameRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/herramienta/ingredientes/$id': typeof HerramientaIngredientesIdRoute
+  '/herramienta/ingredientes/nuevo': typeof HerramientaIngredientesNuevoRoute
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
   '/admin/cursos/': typeof AdminCursosIndexRoute
   '/admin/promociones/': typeof AdminPromocionesIndexRoute
   '/admin/usuarios/': typeof AdminUsuariosIndexRoute
+  '/herramienta/ingredientes/': typeof HerramientaIngredientesIndexRoute
   '/mis-cursos/$slug/': typeof MisCursosSlugIndexRoute
 }
 export interface FileRoutesByTo {
@@ -215,6 +260,8 @@ export interface FileRoutesByTo {
   '/admin/preguntas': typeof AdminPreguntasRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
+  '/herramienta/lugares': typeof HerramientaLugaresRoute
+  '/herramienta': typeof HerramientaIndexRoute
   '/mis-cursos': typeof MisCursosIndexRoute
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
@@ -224,10 +271,13 @@ export interface FileRoutesByTo {
   '/api/recetas/$name': typeof ApiRecetasNameRoute
   '/api/recursos/$name': typeof ApiRecursosNameRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/herramienta/ingredientes/$id': typeof HerramientaIngredientesIdRoute
+  '/herramienta/ingredientes/nuevo': typeof HerramientaIngredientesNuevoRoute
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
   '/admin/cursos': typeof AdminCursosIndexRoute
   '/admin/promociones': typeof AdminPromocionesIndexRoute
   '/admin/usuarios': typeof AdminUsuariosIndexRoute
+  '/herramienta/ingredientes': typeof HerramientaIngredientesIndexRoute
   '/mis-cursos/$slug': typeof MisCursosSlugIndexRoute
 }
 export interface FileRoutesById {
@@ -239,12 +289,15 @@ export interface FileRoutesById {
   '/clase-gratis': typeof ClaseGratisRoute
   '/entrar': typeof EntrarRoute
   '/gracias': typeof GraciasRoute
+  '/herramienta': typeof HerramientaRouteWithChildren
   '/mis-cursos': typeof MisCursosRouteWithChildren
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
+  '/herramienta/lugares': typeof HerramientaLugaresRoute
+  '/herramienta/': typeof HerramientaIndexRoute
   '/mis-cursos/': typeof MisCursosIndexRoute
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
@@ -254,10 +307,13 @@ export interface FileRoutesById {
   '/api/recetas/$name': typeof ApiRecetasNameRoute
   '/api/recursos/$name': typeof ApiRecursosNameRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/herramienta/ingredientes/$id': typeof HerramientaIngredientesIdRoute
+  '/herramienta/ingredientes/nuevo': typeof HerramientaIngredientesNuevoRoute
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
   '/admin/cursos/': typeof AdminCursosIndexRoute
   '/admin/promociones/': typeof AdminPromocionesIndexRoute
   '/admin/usuarios/': typeof AdminUsuariosIndexRoute
+  '/herramienta/ingredientes/': typeof HerramientaIngredientesIndexRoute
   '/mis-cursos/$slug/': typeof MisCursosSlugIndexRoute
 }
 export interface FileRouteTypes {
@@ -270,12 +326,15 @@ export interface FileRouteTypes {
     | '/clase-gratis'
     | '/entrar'
     | '/gracias'
+    | '/herramienta'
     | '/mis-cursos'
     | '/revisa-tu-correo'
     | '/admin/marketing'
     | '/admin/preguntas'
     | '/api/uploads'
     | '/cursos/$slug'
+    | '/herramienta/lugares'
+    | '/herramienta/'
     | '/mis-cursos/'
     | '/admin/cursos/$slug'
     | '/admin/promociones/$id'
@@ -285,10 +344,13 @@ export interface FileRouteTypes {
     | '/api/recetas/$name'
     | '/api/recursos/$name'
     | '/api/stripe/webhook'
+    | '/herramienta/ingredientes/$id'
+    | '/herramienta/ingredientes/nuevo'
     | '/mis-cursos/$slug/$lessonId'
     | '/admin/cursos/'
     | '/admin/promociones/'
     | '/admin/usuarios/'
+    | '/herramienta/ingredientes/'
     | '/mis-cursos/$slug/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -304,6 +366,8 @@ export interface FileRouteTypes {
     | '/admin/preguntas'
     | '/api/uploads'
     | '/cursos/$slug'
+    | '/herramienta/lugares'
+    | '/herramienta'
     | '/mis-cursos'
     | '/admin/cursos/$slug'
     | '/admin/promociones/$id'
@@ -313,10 +377,13 @@ export interface FileRouteTypes {
     | '/api/recetas/$name'
     | '/api/recursos/$name'
     | '/api/stripe/webhook'
+    | '/herramienta/ingredientes/$id'
+    | '/herramienta/ingredientes/nuevo'
     | '/mis-cursos/$slug/$lessonId'
     | '/admin/cursos'
     | '/admin/promociones'
     | '/admin/usuarios'
+    | '/herramienta/ingredientes'
     | '/mis-cursos/$slug'
   id:
     | '__root__'
@@ -327,12 +394,15 @@ export interface FileRouteTypes {
     | '/clase-gratis'
     | '/entrar'
     | '/gracias'
+    | '/herramienta'
     | '/mis-cursos'
     | '/revisa-tu-correo'
     | '/admin/marketing'
     | '/admin/preguntas'
     | '/api/uploads'
     | '/cursos/$slug'
+    | '/herramienta/lugares'
+    | '/herramienta/'
     | '/mis-cursos/'
     | '/admin/cursos/$slug'
     | '/admin/promociones/$id'
@@ -342,10 +412,13 @@ export interface FileRouteTypes {
     | '/api/recetas/$name'
     | '/api/recursos/$name'
     | '/api/stripe/webhook'
+    | '/herramienta/ingredientes/$id'
+    | '/herramienta/ingredientes/nuevo'
     | '/mis-cursos/$slug/$lessonId'
     | '/admin/cursos/'
     | '/admin/promociones/'
     | '/admin/usuarios/'
+    | '/herramienta/ingredientes/'
     | '/mis-cursos/$slug/'
   fileRoutesById: FileRoutesById
 }
@@ -357,6 +430,7 @@ export interface RootRouteChildren {
   ClaseGratisRoute: typeof ClaseGratisRoute
   EntrarRoute: typeof EntrarRoute
   GraciasRoute: typeof GraciasRoute
+  HerramientaRoute: typeof HerramientaRouteWithChildren
   MisCursosRoute: typeof MisCursosRouteWithChildren
   RevisaTuCorreoRoute: typeof RevisaTuCorreoRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
@@ -419,6 +493,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GraciasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/herramienta': {
+      id: '/herramienta'
+      path: '/herramienta'
+      fullPath: '/herramienta'
+      preLoaderRoute: typeof HerramientaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mis-cursos': {
       id: '/mis-cursos'
       path: '/mis-cursos'
@@ -460,6 +541,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/cursos/$slug'
       preLoaderRoute: typeof CursosSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/herramienta/': {
+      id: '/herramienta/'
+      path: '/'
+      fullPath: '/herramienta/'
+      preLoaderRoute: typeof HerramientaIndexRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/lugares': {
+      id: '/herramienta/lugares'
+      path: '/lugares'
+      fullPath: '/herramienta/lugares'
+      preLoaderRoute: typeof HerramientaLugaresRouteImport
+      parentRoute: typeof HerramientaRoute
     }
     '/mis-cursos/': {
       id: '/mis-cursos/'
@@ -545,6 +640,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/herramienta/ingredientes/': {
+      id: '/herramienta/ingredientes/'
+      path: '/ingredientes'
+      fullPath: '/herramienta/ingredientes/'
+      preLoaderRoute: typeof HerramientaIngredientesIndexRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/ingredientes/$id': {
+      id: '/herramienta/ingredientes/$id'
+      path: '/ingredientes/$id'
+      fullPath: '/herramienta/ingredientes/$id'
+      preLoaderRoute: typeof HerramientaIngredientesIdRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/ingredientes/nuevo': {
+      id: '/herramienta/ingredientes/nuevo'
+      path: '/ingredientes/nuevo'
+      fullPath: '/herramienta/ingredientes/nuevo'
+      preLoaderRoute: typeof HerramientaIngredientesNuevoRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
     '/mis-cursos/$slug/': {
       id: '/mis-cursos/$slug/'
       path: '/$slug'
@@ -586,6 +702,26 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface HerramientaRouteChildren {
+  HerramientaLugaresRoute: typeof HerramientaLugaresRoute
+  HerramientaIndexRoute: typeof HerramientaIndexRoute
+  HerramientaIngredientesIdRoute: typeof HerramientaIngredientesIdRoute
+  HerramientaIngredientesNuevoRoute: typeof HerramientaIngredientesNuevoRoute
+  HerramientaIngredientesIndexRoute: typeof HerramientaIngredientesIndexRoute
+}
+
+const HerramientaRouteChildren: HerramientaRouteChildren = {
+  HerramientaLugaresRoute: HerramientaLugaresRoute,
+  HerramientaIndexRoute: HerramientaIndexRoute,
+  HerramientaIngredientesIdRoute: HerramientaIngredientesIdRoute,
+  HerramientaIngredientesNuevoRoute: HerramientaIngredientesNuevoRoute,
+  HerramientaIngredientesIndexRoute: HerramientaIngredientesIndexRoute,
+}
+
+const HerramientaRouteWithChildren = HerramientaRoute._addFileChildren(
+  HerramientaRouteChildren,
+)
+
 interface MisCursosRouteChildren {
   MisCursosIndexRoute: typeof MisCursosIndexRoute
   MisCursosSlugLessonIdRoute: typeof MisCursosSlugLessonIdRoute
@@ -610,6 +746,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClaseGratisRoute: ClaseGratisRoute,
   EntrarRoute: EntrarRoute,
   GraciasRoute: GraciasRoute,
+  HerramientaRoute: HerramientaRouteWithChildren,
   MisCursosRoute: MisCursosRouteWithChildren,
   RevisaTuCorreoRoute: RevisaTuCorreoRoute,
   ApiUploadsRoute: ApiUploadsRoute,

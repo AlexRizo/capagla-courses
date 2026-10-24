@@ -18,24 +18,26 @@ enum Role {
 }
 
 model User {
-  id             String           @id
-  name           String
-  email          String
-  emailVerified  Boolean          @default(false)
-  image          String?
-  role           Role             @default(STUDENT)
+  id              String           @id
+  name            String
+  email           String
+  emailVerified   Boolean          @default(false)
+  image           String?
+  role            Role             @default(STUDENT)
   // Cuenta suspendida desde el panel: no puede entrar ni conserva sesiones.
-  suspendedAt    DateTime?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  sessions       Session[]
-  accounts       Account[]
-  orders         Order[]
-  enrollments    Enrollment[]
-  lessonProgress LessonProgress[]
-  lessonMoments  LessonMoment[]
-  questions      LessonQuestion[]
-  lead           Lead?
+  suspendedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  sessions        Session[]
+  accounts        Account[]
+  orders          Order[]
+  enrollments     Enrollment[]
+  lessonProgress  LessonProgress[]
+  lessonMoments   LessonMoment[]
+  questions       LessonQuestion[]
+  lead            Lead?
+  costPlaces      CostPlace[]
+  costIngredients CostIngredient[]
 
   @@unique([email])
   @@map("user")
@@ -275,12 +277,12 @@ model LessonMoment {
 // Quien se registró con su correo en "Clase gratis": ve los bloques gratis de los cursos sin comprar.
 // Guarda cuándo aceptó el aviso de privacidad y recibir correos (el permiso no se pierde si luego compra).
 model Lead {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  email     String   @unique
-  consentAt DateTime
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  email            String   @unique
+  consentAt        DateTime
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   // Atribución con la que llegó y si aceptó las cookies de medición (ver `Order`).
   attribution      Json?
   marketingConsent Boolean?
@@ -405,4 +407,62 @@ model Enrollment {
   product   Product  @relation(fields: [productId], references: [id])
 
   @@unique([userId, productId])
+}
+
+// --- Herramienta de costos (cada alumna con acceso tiene sus propios datos) ---
+
+enum CostItemKind {
+  INGREDIENT
+  PACKAGING
+}
+
+// Unidad en que se compra: g y kg (peso), ml y l (volumen), pza (pieza).
+enum CostUnit {
+  G
+  KG
+  ML
+  L
+  PZA
+}
+
+// Tienda o proveedor. Un ingrediente sin lugar cae en "Sin lugar asignado" en la lista de compra.
+model CostPlace {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  note        String?
+  createdAt   DateTime         @default(now())
+  ingredients CostIngredient[]
+
+  @@index([userId])
+}
+
+// Ingrediente o empaque: lo que se compra. El costo por gramo, mililitro o pieza se calcula
+// al vuelo (lib/costs.ts); solo se guardan el precio y la cantidad de compra.
+model CostIngredient {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  kind         CostItemKind @default(INGREDIENT)
+  placeId      String?
+  place        CostPlace?   @relation(fields: [placeId], references: [id], onDelete: SetNull)
+  price        Decimal      @db.Decimal(12, 2)
+  quantity     Decimal      @db.Decimal(14, 3)
+  unit         CostUnit
+  // Uso flexible (solo piezas): se pesaron `sampleCount` piezas y pesaron `sampleGrams` g en total.
+  flexible     Boolean      @default(false)
+  sampleCount  Int?
+  sampleGrams  Decimal?     @db.Decimal(14, 3)
+  // Desperdicio: porcentaje que se aprovecha (1 a 99).
+  wasteEnabled Boolean      @default(false)
+  yieldPct     Int?
+  // Archivar en vez de borrar: lo que ya lo usa sigue funcionando.
+  archivedAt   DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([userId, archivedAt])
+  @@index([placeId])
 }

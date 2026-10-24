@@ -146,6 +146,12 @@ export const getMyCourses = createServerFn().handler(async () => {
       isAdmin,
     },
     hasPassword: credential !== null,
+    // La herramienta de costos: una administradora siempre; una alumna con la herramienta vigente.
+    toolAccess:
+      isAdmin ||
+      enrollments.some(
+        (e) => e.product.kind === 'TOOL' && e.expiresAt > new Date(),
+      ),
     freeCourses,
     courses: courses.map(({ product, expiresAt }) => ({
       slug: product.slug,

@@ -121,6 +121,49 @@
   --sidebar: oklch(0.212 0.019 322.12);
 }
 
+/* Herramienta de costos: tokens de su maqueta (sidebar morado oscuro, contenido gris claro, semáforo). */
+.tool {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0.008 326);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0.008 326);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0.008 326);
+  --primary: oklch(0.496 0.265 301.924);
+  --primary-foreground: oklch(0.977 0.014 308.299);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.96 0.003 325.6);
+  --muted-foreground: oklch(0.542 0.034 322.5);
+  --accent: oklch(0.96 0.003 325.6);
+  --accent-foreground: oklch(0.212 0.019 322.12);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0.005 325.62);
+  --input: oklch(0.922 0.005 325.62);
+  --ring: oklch(0.711 0.019 323.02);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.235 0.07 306);
+  --sidebar-foreground: oklch(0.96 0.01 310);
+  --sidebar-primary: oklch(0.62 0.25 303);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.31 0.09 305);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.32 0.07 306);
+  --sidebar-ring: oklch(0.62 0.25 303);
+  --sidebar-muted: oklch(0.76 0.04 310);
+  --sidebar-active: oklch(0.45 0.19 303);
+  --sidebar-card: oklch(0.29 0.08 306);
+  --page: #f3f1f3;
+  --tabs: oklch(0.9 0.008 325);
+  --success: oklch(0.448 0.119 151.328);
+  --success-soft: oklch(0.962 0.044 156.743);
+  --warning: oklch(0.473 0.137 46.201);
+  --warning-soft: oklch(0.962 0.059 95.617);
+  --danger: oklch(0.444 0.177 26.899);
+  --danger-soft: oklch(0.936 0.032 17.717);
+  font-family: var(--font-tool);
+}
+
 /* Reproductor del curso (vista de alumna): paleta clara y oscura de la maqueta, solo dentro de .player */
 .player {
   /* La maqueta no fija interlineado: es el natural de la fuente (Tailwind trae 1.5 y uno propio por tamaño). */
@@ -178,6 +221,7 @@
 @theme {
   --font-sans: 'Lato', system-ui, sans-serif;
   --font-admin: 'Inter', system-ui, sans-serif;
+  --font-tool: 'Geist', system-ui, sans-serif;
 
   --color-landing-ink: #2a1233;
   --color-landing-muted: #5b4663;
@@ -341,6 +385,17 @@
   --color-player-ok: var(--player-ok);
   --color-player-ok-line: var(--player-ok-line);
   --color-player-ok-text: var(--player-ok-text);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-card: var(--sidebar-card);
+  --color-page: var(--page);
+  --color-tabs: var(--tabs);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
   --color-landing-primary: var(--landing-primary);
   --color-landing-primary-foreground: var(--landing-primary-foreground);
   --color-landing-accent: var(--landing-accent);

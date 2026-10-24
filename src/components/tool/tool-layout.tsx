@@ -68,7 +68,11 @@ const groups: { label: string; items: Item[] }[] = [
     label: 'Compras',
     items: [
       { label: 'Lista de compra', icon: ListChecks, to: '/herramienta/lista' },
-      { label: 'Registro de compras', icon: Receipt },
+      {
+        label: 'Registro de compras',
+        icon: Receipt,
+        to: '/herramienta/compras',
+      },
       { label: 'Lugares de compra', icon: Store, to: '/herramienta/lugares' },
     ],
   },

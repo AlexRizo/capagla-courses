@@ -192,8 +192,9 @@ function Ingredientes() {
         <Info />
         <AlertTitle>Cómo se actualizan los precios</AlertTitle>
         <AlertDescription>
-          Cambias cada precio a mano desde el ingrediente. Los cambios se
-          aplican a todas las recetas que lo usan.
+          Cambias cada precio a mano desde el ingrediente, o los actualizas al
+          registrar una compra, donde ves el último precio y cuánto cambió. Los
+          cambios se aplican a todas las recetas que lo usan.
         </AlertDescription>
       </Alert>
     </>

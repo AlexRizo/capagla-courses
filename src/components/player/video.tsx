@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import { Volume2, VolumeX } from 'lucide-react'
+import type HlsJs from 'hls.js'
 
 import { clock, partAt } from '#/lib/duration'
 import type { VideoPart } from '#/lib/duration'
@@ -141,6 +142,24 @@ export function VideoPlayer({
   const onNewSignature = useRef<(() => void) | null>(null)
   // Con HLS nativo (Safari sin hls.js) no se puede cambiar la URL de cada descarga.
   const native = useRef<{ url: string } | null>(null)
+  // Con hls.js, un error de media (p. ej. de decodificación, sobre todo en Safari) se intenta
+  // recuperar una vez volviendo a conectar el `<video>` antes de darlo por fallido.
+  const hlsRef = useRef<HlsJs | null>(null)
+  const recovered = useRef(false)
+  function onVideoError(video: HTMLVideoElement) {
+    console.error(
+      '[video] error del elemento',
+      video.error?.code,
+      video.error?.message,
+    )
+    const hls = hlsRef.current
+    if (hls && !recovered.current) {
+      recovered.current = true
+      hls.recoverMediaError()
+      return
+    }
+    setFailed(true)
+  }
   useEffect(() => {
     srcRef.current = src
     onNewSignature.current?.()
@@ -189,6 +208,7 @@ export function VideoPlayer({
     const url = srcRef.current
     if (!video) return
     setFailed(false)
+    recovered.current = false
     native.current = null
     if (!isHls) {
       video.src = url
@@ -225,11 +245,22 @@ export function VideoPlayer({
             }
             return
           }
-          if (error.fatal) setFailed(true)
+          if (!error.fatal) return
+          console.error('[video] hls.js', error.type, error.details)
+          if (error.type === Hls.ErrorTypes.MEDIA_ERROR && !recovered.current) {
+            recovered.current = true
+            hls.recoverMediaError()
+            return
+          }
+          setFailed(true)
         })
         hls.loadSource(url)
         hls.attachMedia(video)
-        stop = () => hls.destroy()
+        hlsRef.current = hls
+        stop = () => {
+          hlsRef.current = null
+          hls.destroy()
+        }
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         native.current = { url }
         video.src = url
@@ -439,7 +470,7 @@ export function VideoPlayer({
           wake()
         }}
         onPause={() => setPlaying(false)}
-        onError={() => setFailed(true)}
+        onError={(e) => onVideoError(e.currentTarget)}
         className={cn(
           'absolute inset-0 size-full object-contain',
           hidden ? 'cursor-none' : 'cursor-pointer',

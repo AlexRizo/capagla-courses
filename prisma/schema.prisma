@@ -38,6 +38,7 @@ model User {
   lead            Lead?
   costPlaces      CostPlace[]
   costIngredients CostIngredient[]
+  costSettings    CostSettings?
 
   @@unique([email])
   @@map("user")
@@ -465,4 +466,49 @@ model CostIngredient {
 
   @@index([userId, archivedAt])
   @@index([placeId])
+}
+
+// Cómo se calcula la mano de obra por hora: lo que se quiere ganar al mes, el salario mínimo
+// diario entre 8 horas, o no sumarla.
+enum CostLaborMode {
+  WANTED
+  MINIMUM_WAGE
+  NONE
+}
+
+// Sobre qué costo se aplica el múltiplo del precio.
+enum CostPriceBase {
+  TOTAL
+  INGREDIENTS
+}
+
+// Ajustes de costos de una alumna: se escriben una sola vez y se usan en todas sus recetas. Todo
+// lo que se calcula (gasto fijo por hora, mano de obra por hora) sale al vuelo de estos datos
+// (lib/cost-settings.ts); aquí solo se guarda lo que ella escribe.
+model CostSettings {
+  userId          String        @id
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Tus horas
+  hoursPerWeek    Decimal?      @db.Decimal(6, 2)
+  // Gasto fijo por hora: luz, gas, renta y depreciación del horno
+  ovenKw          Decimal?      @db.Decimal(8, 3)
+  kwhPrice        Decimal?      @db.Decimal(10, 3)
+  gasKgPerHour    Decimal?      @db.Decimal(8, 3)
+  gasPricePerKg   Decimal?      @db.Decimal(10, 2)
+  rentMonthly     Decimal?      @db.Decimal(12, 2)
+  rentSharePct    Decimal?      @db.Decimal(5, 2)
+  equipCost       Decimal?      @db.Decimal(12, 2)
+  equipLifeHours  Decimal?      @db.Decimal(12, 2)
+  // Mano de obra por hora
+  laborMode       CostLaborMode @default(WANTED)
+  wantedMonthly   Decimal?      @db.Decimal(12, 2)
+  dailyMinWage    Decimal?      @db.Decimal(10, 2)
+  // Cómo se fija el precio: vender a N veces el costo (un múltiplo, no un porcentaje)
+  multiplier      Decimal?      @db.Decimal(6, 2)
+  defaultWastePct Decimal?      @db.Decimal(5, 2)
+  priceBase       CostPriceBase @default(TOTAL)
+  // Impuestos, solo si vende como negocio
+  sellsAsBusiness Boolean       @default(false)
+  taxPct          Decimal?      @db.Decimal(5, 2)
+  updatedAt       DateTime      @updatedAt
 }

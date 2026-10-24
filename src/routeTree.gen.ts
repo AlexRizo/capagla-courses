@@ -24,6 +24,7 @@ import { Route as AdminPreguntasRouteImport } from './routes/admin/preguntas'
 import { Route as ApiUploadsRouteImport } from './routes/api/uploads'
 import { Route as CursosSlugRouteImport } from './routes/cursos/$slug'
 import { Route as HerramientaIndexRouteImport } from './routes/herramienta/index'
+import { Route as HerramientaAjustesRouteImport } from './routes/herramienta/ajustes'
 import { Route as HerramientaLugaresRouteImport } from './routes/herramienta/lugares'
 import { Route as MisCursosIndexRouteImport } from './routes/mis-cursos/index'
 import { Route as AdminCursosIndexRouteImport } from './routes/admin/cursos/index'
@@ -116,6 +117,11 @@ const CursosSlugRoute = CursosSlugRouteImport.update({
 const HerramientaIndexRoute = HerramientaIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => HerramientaRoute,
+} as any)
+const HerramientaAjustesRoute = HerramientaAjustesRouteImport.update({
+  id: '/ajustes',
+  path: '/ajustes',
   getParentRoute: () => HerramientaRoute,
 } as any)
 const HerramientaLugaresRoute = HerramientaLugaresRouteImport.update({
@@ -227,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/admin/preguntas': typeof AdminPreguntasRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
+  '/herramienta/ajustes': typeof HerramientaAjustesRoute
   '/herramienta/lugares': typeof HerramientaLugaresRoute
   '/herramienta/': typeof HerramientaIndexRoute
   '/mis-cursos/': typeof MisCursosIndexRoute
@@ -260,6 +267,7 @@ export interface FileRoutesByTo {
   '/admin/preguntas': typeof AdminPreguntasRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
+  '/herramienta/ajustes': typeof HerramientaAjustesRoute
   '/herramienta/lugares': typeof HerramientaLugaresRoute
   '/herramienta': typeof HerramientaIndexRoute
   '/mis-cursos': typeof MisCursosIndexRoute
@@ -296,6 +304,7 @@ export interface FileRoutesById {
   '/admin/preguntas': typeof AdminPreguntasRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
+  '/herramienta/ajustes': typeof HerramientaAjustesRoute
   '/herramienta/lugares': typeof HerramientaLugaresRoute
   '/herramienta/': typeof HerramientaIndexRoute
   '/mis-cursos/': typeof MisCursosIndexRoute
@@ -333,6 +342,7 @@ export interface FileRouteTypes {
     | '/admin/preguntas'
     | '/api/uploads'
     | '/cursos/$slug'
+    | '/herramienta/ajustes'
     | '/herramienta/lugares'
     | '/herramienta/'
     | '/mis-cursos/'
@@ -366,6 +376,7 @@ export interface FileRouteTypes {
     | '/admin/preguntas'
     | '/api/uploads'
     | '/cursos/$slug'
+    | '/herramienta/ajustes'
     | '/herramienta/lugares'
     | '/herramienta'
     | '/mis-cursos'
@@ -401,6 +412,7 @@ export interface FileRouteTypes {
     | '/admin/preguntas'
     | '/api/uploads'
     | '/cursos/$slug'
+    | '/herramienta/ajustes'
     | '/herramienta/lugares'
     | '/herramienta/'
     | '/mis-cursos/'
@@ -547,6 +559,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/herramienta/'
       preLoaderRoute: typeof HerramientaIndexRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/ajustes': {
+      id: '/herramienta/ajustes'
+      path: '/ajustes'
+      fullPath: '/herramienta/ajustes'
+      preLoaderRoute: typeof HerramientaAjustesRouteImport
       parentRoute: typeof HerramientaRoute
     }
     '/herramienta/lugares': {
@@ -703,6 +722,7 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface HerramientaRouteChildren {
+  HerramientaAjustesRoute: typeof HerramientaAjustesRoute
   HerramientaLugaresRoute: typeof HerramientaLugaresRoute
   HerramientaIndexRoute: typeof HerramientaIndexRoute
   HerramientaIngredientesIdRoute: typeof HerramientaIngredientesIdRoute
@@ -711,6 +731,7 @@ interface HerramientaRouteChildren {
 }
 
 const HerramientaRouteChildren: HerramientaRouteChildren = {
+  HerramientaAjustesRoute: HerramientaAjustesRoute,
   HerramientaLugaresRoute: HerramientaLugaresRoute,
   HerramientaIndexRoute: HerramientaIndexRoute,
   HerramientaIngredientesIdRoute: HerramientaIngredientesIdRoute,

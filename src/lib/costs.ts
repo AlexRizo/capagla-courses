@@ -56,14 +56,17 @@ export function ingredientCosts(i: Priced) {
   }
 }
 
-const money = (value: number, decimals: number) =>
+const money = (value: number, decimals: number, maxDecimals = decimals) =>
   `$${value.toLocaleString('es-MX', {
     minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
+    maximumFractionDigits: maxDecimals,
   })}`
 
 // "$251.00": lo que se paga.
 export const formatPrice = (value: number) => money(value, 2)
+
+// "$6,000" o "$13.85": una cantidad con sus centavos solo si los tiene.
+export const formatAmount = (value: number) => money(value, 0, 2)
 
 // Costo de una unidad: tres decimales (un gramo cuesta centavos) y dos si ya es de varios pesos
 // ($0.013, $1.394, $8.80).

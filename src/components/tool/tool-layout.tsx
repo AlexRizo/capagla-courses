@@ -80,7 +80,11 @@ const groups: { label: string; items: Item[] }[] = [
     ],
   },
 ]
-const settings: Item = { label: 'Ajustes de costos', icon: SlidersHorizontal }
+const settings: Item = {
+  label: 'Ajustes de costos',
+  icon: SlidersHorizontal,
+  to: '/herramienta/ajustes',
+}
 
 const active =
   'data-[active=true]:bg-sidebar-active data-[active=true]:text-sidebar-accent-foreground'
@@ -128,10 +132,14 @@ export function ToolLayout({ children }: { children: React.ReactNode }) {
     return () => document.documentElement.classList.remove('tool')
   }, [])
 
-  const group = groups.find((g) =>
-    g.items.some((i) => i.to && pathname.startsWith(i.to)),
-  )
-  const current = group?.items.find((i) => i.to && pathname.startsWith(i.to))
+  // Dónde está la persona, para las migas de pan (Ajustes cuelga del grupo Costos).
+  const places = [
+    ...groups.flatMap((g) => g.items.map((item) => ({ group: g.label, item }))),
+    { group: 'Costos', item: settings },
+  ]
+  const here = places.find((p) => p.item.to && pathname.startsWith(p.item.to))
+  const group = here && { label: here.group }
+  const current = here?.item
 
   return (
     <div className="tool font-tool">

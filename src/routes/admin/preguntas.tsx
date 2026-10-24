@@ -5,8 +5,10 @@ import { QuestionDialog } from '#/components/admin/question-dialog'
 import {
   getAdminQuestions,
   getAssistantInfo,
+  saveAssistantLimits,
   saveAssistantMaxChars,
 } from '#/lib/admin-questions'
+import { BURST_PER_MINUTE, DAILY_ASSISTANT_LIMIT } from '#/lib/assistant-limits'
 import { cn } from '#/lib/utils'
 
 export const Route = createFileRoute('/admin/preguntas')({
@@ -134,7 +136,7 @@ function Preguntas() {
         )}
       </div>
 
-      <AssistantCard maxChars={assistant.maxChars} />
+      <AssistantCard assistant={assistant} />
 
       {open && current && (
         <QuestionDialog
@@ -150,10 +152,20 @@ function Preguntas() {
 }
 
 // Ajuste del asistente: se guarda al salir del campo.
-function AssistantCard({ maxChars }: { maxChars: number }) {
+type AssistantInfo = Awaited<ReturnType<typeof getAssistantInfo>>
+
+const money = (usd: number) =>
+  usd < 0.01 ? 'menos de $0.01 USD' : `$${usd.toFixed(2)} USD`
+
+function AssistantCard({ assistant }: { assistant: AssistantInfo }) {
+  const { maxChars, studentsEnabled, dailyLimit, usage } = assistant
   const router = useRouter()
   const [value, setValue] = useState(String(maxChars))
+  const [limit, setLimit] = useState(String(dailyLimit))
+  // El interruptor cambia al instante; si el guardado falla, vuelve a lo guardado.
+  const [on, setOn] = useState(studentsEnabled)
   const [error, setError] = useState<string | null>(null)
+  const [limitError, setLimitError] = useState<string | null>(null)
 
   async function save() {
     const number = Number(value)
@@ -164,6 +176,19 @@ function AssistantCard({ maxChars }: { maxChars: number }) {
       return setError(result.error)
     }
     setError(null)
+    await router.invalidate()
+  }
+
+  async function saveLimits(enabled: boolean, nextLimit: number) {
+    const result = await saveAssistantLimits({
+      data: { enabled, dailyLimit: nextLimit },
+    })
+    if (result.error) {
+      setLimit(String(dailyLimit))
+      setOn(studentsEnabled)
+      return setLimitError(result.error)
+    }
+    setLimitError(null)
     await router.invalidate()
   }
 
@@ -188,6 +213,61 @@ function AssistantCard({ maxChars }: { maxChars: number }) {
           Si no cabe, el asistente lo dice y ofrece mandarla a la chef.
         </span>
         {error && <span className="text-xs text-destructive">{error}</span>}
+      </div>
+
+      <div className="flex flex-col gap-1.5 border-t border-border pt-3">
+        <label className="flex items-center gap-2 text-13 font-medium">
+          <input
+            id="students-enabled"
+            type="checkbox"
+            checked={on}
+            onChange={(e) => {
+              setOn(e.target.checked)
+              void saveLimits(e.target.checked, Number(limit) || dailyLimit)
+            }}
+          />
+          Asistente activo para las alumnas
+        </label>
+        <span className="text-xs text-muted-foreground">
+          Apagado, “Preguntar” va directo a la chef. El borrador para la chef
+          sigue funcionando.
+        </span>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="daily-limit" className="text-13 font-medium">
+          Tope de preguntas en 24 horas (todas las alumnas juntas)
+        </label>
+        <input
+          id="daily-limit"
+          type="text"
+          inputMode="numeric"
+          value={limit}
+          onChange={(e) => setLimit(e.target.value.replace(/\D/g, ''))}
+          onBlur={() => {
+            const number = Number(limit)
+            if (number !== dailyLimit) void saveLimits(on, number)
+          }}
+          onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+          className="box-border h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground"
+        />
+        <span className="text-xs text-muted-foreground">
+          Al llegar al tope, “Preguntar” va directo a la chef hasta que pasen
+          las 24 horas. Cada alumna puede hacer {DAILY_ASSISTANT_LIMIT} al día,{' '}
+          {BURST_PER_MINUTE} por minuto y una a la vez.
+        </span>
+        {limitError && (
+          <span className="text-xs text-destructive">{limitError}</span>
+        )}
+      </div>
+      <div className="rounded-md bg-muted px-3 py-2 text-13 leading-normal">
+        Últimas 24 horas: <strong>{usage.questions}</strong> de {dailyLimit}{' '}
+        preguntas · gasto estimado <strong>{money(usage.costUsd)}</strong>
+        {usage.failed > 0 && <> · {usage.failed} con error</>}
+        {usage.refused > 0 && <> · {usage.refused} rechazadas por el modelo</>}
+        <div className="text-xs text-muted-foreground">
+          Es una estimación con los tokens que informa el modelo; la cifra real
+          es la de tu cuenta de Anthropic.
+        </div>
       </div>
       <div className="text-13 leading-normal text-muted-foreground">
         Los votos de la alumna (me sirvió / no me sirvió) se guardan para un

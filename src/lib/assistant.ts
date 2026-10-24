@@ -16,6 +16,9 @@ export type TextModel = (prompt: {
   user: string
   // Tope de salida aproximado, para que el proveedor lo ponga como límite de tokens.
   maxTokens: number
+  // Los tokens que gastó la llamada, en cuanto el proveedor los informa (también si después se
+  // niega o falla): sirve para llevar el gasto (`assistant-usage.ts`).
+  onUsage?: (usage: { input: number; output: number }) => void
 }) => Promise<string>
 
 // PROVEEDOR: Claude (`lib/assistant-model.ts`). Con `ANTHROPIC_API_KEY` en el entorno hay
@@ -43,8 +46,7 @@ export const assistantEnabled = () => getTextModel() !== null
 export const DEFAULT_MAX_CHARS = 600
 export const MIN_MAX_CHARS = 100
 export const MAX_MAX_CHARS = 2000
-// Preguntas que una alumna puede hacerle al asistente por día (controla el gasto).
-export const DAILY_ASSISTANT_LIMIT = 30
+// Los límites de preguntas por alumna y global están en `assistant-limits.ts`.
 // Un borrador para la chef no pasa de esto (el máximo de una respuesta publicada es 2000).
 const DRAFT_MAX_CHARS = 1500
 
@@ -195,11 +197,15 @@ export async function answerQuestion(
   itemId: string,
   question: string,
   model: TextModel | null = getTextModel(),
+  onUsage?: (usage: { input: number; output: number }) => void,
 ) {
   if (!model) throw new Error('No hay un proveedor de IA conectado.')
   const maxChars = await getMaxChars()
   const text = (
-    await model(ask(await lessonContext(itemId), question, maxChars))
+    await model({
+      ...ask(await lessonContext(itemId), question, maxChars),
+      onUsage,
+    })
   ).trim()
   if (!text) throw new Error('El asistente no devolvió respuesta.')
   return text.length > maxChars ? TOO_LONG : text

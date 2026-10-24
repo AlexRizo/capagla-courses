@@ -38,7 +38,7 @@ export function anthropicTextModel(options: {
     timeout: 60_000,
   })
 
-  return async ({ system, user, maxTokens }) => {
+  return async ({ system, user, maxTokens, onUsage }) => {
     try {
       const response = await client.messages.create({
         model: ASSISTANT_MODEL,
@@ -47,6 +47,11 @@ export function anthropicTextModel(options: {
         messages: [{ role: 'user', content: user }],
         // Responder con lo que dice la lección no necesita razonar a fondo: es más rápido y barato.
         output_config: { effort: 'low' },
+      })
+      // Los tokens se informan antes que nada: una negativa o un texto vacío también cuestan.
+      onUsage?.({
+        input: response.usage.input_tokens,
+        output: response.usage.output_tokens,
       })
       // Un filtro de seguridad puede negarse (HTTP 200 con este motivo): no hay respuesta.
       if (response.stop_reason === 'refusal') {

@@ -153,6 +153,45 @@ describe('anthropicTextModel', () => {
     await expect(model()(prompt)).rejects.toThrow(/cyber/)
   })
 
+  it('informa los tokens que gastó, también si el modelo se niega o no devuelve texto', async () => {
+    const used: { input: number; output: number }[] = []
+    const onUsage = (u: { input: number; output: number }) => used.push(u)
+    reply = {
+      status: 200,
+      body: message([text('Hola.')], 'end_turn', {
+        usage: { input_tokens: 4600, output_tokens: 270 },
+      }),
+    }
+    await model()({ ...prompt, onUsage })
+    expect(used).toEqual([{ input: 4600, output: 270 }])
+
+    reply = {
+      status: 200,
+      body: message([], 'refusal', {
+        stop_details: { type: 'refusal', category: 'cyber', explanation: null },
+        usage: { input_tokens: 4500, output_tokens: 7 },
+      }),
+    }
+    await expect(model()({ ...prompt, onUsage })).rejects.toBeInstanceOf(
+      AssistantRefusal,
+    )
+    expect(used.at(-1)).toEqual({ input: 4500, output: 7 })
+
+    reply = {
+      status: 200,
+      body: message([], 'end_turn', {
+        usage: { input_tokens: 4400, output_tokens: 3 },
+      }),
+    }
+    await expect(model()({ ...prompt, onUsage })).rejects.toThrow()
+    expect(used.at(-1)).toEqual({ input: 4400, output: 3 })
+    expect(used).toHaveLength(3)
+  })
+
+  it('sin onUsage funciona igual', async () => {
+    expect(await model()(prompt)).toBe('Respuesta de prueba.')
+  })
+
   it('un error de la API falla y el registro no lleva la pregunta ni la lección', async () => {
     reply = {
       status: 401,

@@ -134,7 +134,9 @@ export function Questions({
         const result = await askAssistant({
           data: { lessonId, text: text.trim() },
         })
-        if (result.error) return setError(result.error)
+        if (!result.id) {
+          return setError(result.error ?? 'No pudimos enviar tu pregunta.')
+        }
         setAsked({ id: result.id, answer: result.answer ?? null })
         return
       }

@@ -5,11 +5,9 @@ import { getRequestHeaders } from '@tanstack/react-start/server'
 import { z } from 'zod'
 
 import { prisma } from '#/db'
-import {
-  DAILY_ASSISTANT_LIMIT,
-  answerQuestion,
-  assistantEnabled,
-} from '#/lib/assistant'
+import { answerQuestion, assistantEnabled } from '#/lib/assistant'
+import { AssistantRefusal } from '#/lib/assistant-model'
+import { finishSlot, reserveSlot, studentsCanAsk } from '#/lib/assistant-usage'
 import { readSession } from '#/lib/auth'
 import { signedPlaybackUrl } from '#/lib/bunny'
 import { ago } from '#/lib/ago'
@@ -165,8 +163,9 @@ export const getPlayer = createServerFn()
     const seenCount = order.filter((o) => seen.has(o.lesson.id)).length
     return {
       preview,
-      // Hay un proveedor de IA: "Preguntar" lo consulta primero (ver `lib/assistant.ts`).
-      assistant: assistantEnabled(),
+      // Hay un proveedor de IA y no está apagado ni en su tope: "Preguntar" lo consulta primero
+      // (ver `lib/assistant.ts` y `lib/assistant-usage.ts`).
+      assistant: assistantEnabled() && (await studentsCanAsk()),
       course: { slug: course.slug, name: course.name },
       user: {
         name: session.user.name,
@@ -365,25 +364,31 @@ export const askAssistant = createServerFn({ method: 'POST' })
     const { session, lesson } = await requireLessonAccess(data.lessonId)
     if (!assistantEnabled())
       return { error: 'El asistente no está disponible.' }
-    const today = await prisma.lessonQuestion.count({
-      where: {
-        userId: session.user.id,
-        status: { in: ['ASSISTANT', 'PENDING'] },
-        assistantAnswer: { not: null },
-        createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-      },
-    })
-    if (today >= DAILY_ASSISTANT_LIMIT) {
-      return {
-        error:
-          'Llegaste al límite de preguntas al asistente por hoy. Puedes mandarle tu pregunta a la chef.',
-      }
-    }
+    // El lugar se reserva ANTES de llamar al modelo (y los límites cuentan también las peticiones
+    // simultáneas y los fallos): ver `lib/assistant-usage.ts`.
+    const slot = await reserveSlot(session.user.id, lesson.id)
+    if (!slot.ok) return { error: slot.message }
     let answer: string | null = null
+    const spent: { input?: number; output?: number } = {}
+    let outcome: 'OK' | 'REFUSED' | 'FAILED' = 'OK'
     try {
-      answer = await answerQuestion(lesson.id, data.text)
+      answer = await answerQuestion(lesson.id, data.text, undefined, (u) => {
+        spent.input = u.input
+        spent.output = u.output
+      })
     } catch (error) {
+      outcome = error instanceof AssistantRefusal ? 'REFUSED' : 'FAILED'
       console.error('[asistente] No se pudo responder:', error)
+    }
+    try {
+      await finishSlot(slot.id, {
+        outcome,
+        inputTokens: spent.input,
+        outputTokens: spent.output,
+      })
+    } catch (error) {
+      // La reserva queda como "en curso": sigue contando para los límites.
+      console.error('[asistente] No se pudo cerrar el registro de uso:', error)
     }
     const question = await prisma.lessonQuestion.create({
       data: {

@@ -47,6 +47,7 @@ model User {
   costLists       CostList[]
   costPurchases   CostPurchase[]
   costQuotes      CostQuote[]
+  assistantUsage  AssistantUsage[]
 
   @@unique([email])
   @@map("user")
@@ -322,9 +323,39 @@ model LessonTranscript {
 
 // Ajustes del asistente de IA (una sola fila, id "main").
 model AssistantSettings {
-  id       String @id @default("main")
+  id         String  @id @default("main")
   // Máximo de caracteres por respuesta del asistente.
-  maxChars Int    @default(600)
+  maxChars   Int     @default(600)
+  // Interruptor para las alumnas: apagado, "Preguntar" va directo a la chef.
+  enabled    Boolean @default(true)
+  // Tope global: preguntas al asistente en 24 horas, sumando a todas las alumnas.
+  dailyLimit Int     @default(2000)
+}
+
+enum AssistantOutcome {
+  // Reservada: el modelo aún no responde (o el servidor se cayó antes de terminar).
+  RESERVED
+  OK
+  // El modelo se negó a responder.
+  REFUSED
+  // Falló la llamada: no cuenta para el tope diario, sí para el límite por minuto.
+  FAILED
+}
+
+// Una fila por pregunta de una alumna al asistente, creada ANTES de llamar al modelo: así los
+// límites cuentan también las peticiones simultáneas y los fallos, y queda lo que se gastó.
+model AssistantUsage {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId       String
+  outcome      AssistantOutcome @default(RESERVED)
+  inputTokens  Int?
+  outputTokens Int?
+  createdAt    DateTime         @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }
 
 // Pregunta de una alumna a la chef sobre una lección. Mientras está PENDING solo la ve ella;

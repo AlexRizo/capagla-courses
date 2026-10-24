@@ -24,6 +24,8 @@ model User {
   emailVerified  Boolean          @default(false)
   image          String?
   role           Role             @default(STUDENT)
+  // Cuenta suspendida desde el panel: no puede entrar ni conserva sesiones.
+  suspendedAt    DateTime?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   sessions       Session[]

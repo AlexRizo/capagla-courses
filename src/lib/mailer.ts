@@ -66,6 +66,8 @@ export async function sendMail(mail: Mail) {
 export type LinkPurpose =
   | { kind: 'login' }
   | { kind: 'free-class' }
+  // Cuenta creada desde el panel de usuarios.
+  | { kind: 'invite'; admin: boolean }
   // `renewedUntil`: fecha en que vence el acceso renovado (solo en una renovación).
   | { kind: 'purchase'; items: string[]; renewedUntil?: string }
   // No se manda correo: el enlace se entrega a `onLink` (para abrir la sesión en el servidor).

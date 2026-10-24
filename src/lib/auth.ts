@@ -1,4 +1,5 @@
 import { betterAuth } from 'better-auth'
+import { APIError } from 'better-auth/api'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { magicLink } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
@@ -27,6 +28,27 @@ export const auth = betterAuth({
         defaultValue: 'STUDENT',
         input: false,
       },
+      // Cuenta suspendida desde el panel (ver lib/admin-users.ts). Solo lectura para el cliente.
+      suspendedAt: { type: 'date', required: false, input: false },
+    },
+  },
+  // Una cuenta suspendida no puede abrir sesión por ningún camino (enlace, contraseña o
+  // la que se abre al pagar).
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
+          const user = await prisma.user.findUnique({
+            where: { id: session.userId },
+            select: { suspendedAt: true },
+          })
+          if (user?.suspendedAt) {
+            throw new APIError('FORBIDDEN', {
+              message: 'Esta cuenta está suspendida.',
+            })
+          }
+        },
+      },
     },
   },
   plugins: [
@@ -48,7 +70,9 @@ export const auth = betterAuth({
 // session"; aquí se trata como "sin sesión" para que las guardas manden a /entrar.
 export async function readSession(headers: Headers) {
   try {
-    return await auth.api.getSession({ headers })
+    const session = await auth.api.getSession({ headers })
+    // Defensa extra: al suspender se borran sus sesiones, pero una suspendida nunca cuenta.
+    return session?.user.suspendedAt ? null : session
   } catch (error) {
     console.error('[sesión] No se pudo leer la sesión:', error)
     return null

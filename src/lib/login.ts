@@ -25,6 +25,9 @@ export const startLogin = createServerFn({ method: 'POST' })
       include: { accounts: { where: { providerId: 'credential' } } },
     })
 
+    // Una cuenta suspendida se trata como si no existiera: misma respuesta y sin correo.
+    if (user?.suspendedAt) return { next: 'link' as const }
+
     if (user?.accounts.length && !data.forceLink) {
       return { next: 'password' as const }
     }

@@ -27,6 +27,8 @@ import { Route as AdminCursosIndexRouteImport } from './routes/admin/cursos/inde
 import { Route as AdminCursosSlugRouteImport } from './routes/admin/cursos/$slug'
 import { Route as AdminPromocionesIndexRouteImport } from './routes/admin/promociones/index'
 import { Route as AdminPromocionesIdRouteImport } from './routes/admin/promociones/$id'
+import { Route as AdminUsuariosIndexRouteImport } from './routes/admin/usuarios/index'
+import { Route as AdminUsuariosIdRouteImport } from './routes/admin/usuarios/$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiRecetariosSlugRouteImport } from './routes/api/recetarios/$slug'
 import { Route as ApiRecetasNameRouteImport } from './routes/api/recetas/$name'
@@ -125,6 +127,16 @@ const AdminPromocionesIdRoute = AdminPromocionesIdRouteImport.update({
   path: '/promociones/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminUsuariosIndexRoute = AdminUsuariosIndexRouteImport.update({
+  id: '/usuarios/',
+  path: '/usuarios/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsuariosIdRoute = AdminUsuariosIdRouteImport.update({
+  id: '/usuarios/$id',
+  path: '/usuarios/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -178,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/mis-cursos/': typeof MisCursosIndexRoute
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
+  '/admin/usuarios/$id': typeof AdminUsuariosIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/recetarios/$slug': typeof ApiRecetariosSlugRoute
   '/api/recetas/$name': typeof ApiRecetasNameRoute
@@ -186,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
   '/admin/cursos/': typeof AdminCursosIndexRoute
   '/admin/promociones/': typeof AdminPromocionesIndexRoute
+  '/admin/usuarios/': typeof AdminUsuariosIndexRoute
   '/mis-cursos/$slug/': typeof MisCursosSlugIndexRoute
 }
 export interface FileRoutesByTo {
@@ -204,6 +218,7 @@ export interface FileRoutesByTo {
   '/mis-cursos': typeof MisCursosIndexRoute
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
+  '/admin/usuarios/$id': typeof AdminUsuariosIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/recetarios/$slug': typeof ApiRecetariosSlugRoute
   '/api/recetas/$name': typeof ApiRecetasNameRoute
@@ -212,6 +227,7 @@ export interface FileRoutesByTo {
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
   '/admin/cursos': typeof AdminCursosIndexRoute
   '/admin/promociones': typeof AdminPromocionesIndexRoute
+  '/admin/usuarios': typeof AdminUsuariosIndexRoute
   '/mis-cursos/$slug': typeof MisCursosSlugIndexRoute
 }
 export interface FileRoutesById {
@@ -232,6 +248,7 @@ export interface FileRoutesById {
   '/mis-cursos/': typeof MisCursosIndexRoute
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
+  '/admin/usuarios/$id': typeof AdminUsuariosIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/recetarios/$slug': typeof ApiRecetariosSlugRoute
   '/api/recetas/$name': typeof ApiRecetasNameRoute
@@ -240,6 +257,7 @@ export interface FileRoutesById {
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
   '/admin/cursos/': typeof AdminCursosIndexRoute
   '/admin/promociones/': typeof AdminPromocionesIndexRoute
+  '/admin/usuarios/': typeof AdminUsuariosIndexRoute
   '/mis-cursos/$slug/': typeof MisCursosSlugIndexRoute
 }
 export interface FileRouteTypes {
@@ -261,6 +279,7 @@ export interface FileRouteTypes {
     | '/mis-cursos/'
     | '/admin/cursos/$slug'
     | '/admin/promociones/$id'
+    | '/admin/usuarios/$id'
     | '/api/auth/$'
     | '/api/recetarios/$slug'
     | '/api/recetas/$name'
@@ -269,6 +288,7 @@ export interface FileRouteTypes {
     | '/mis-cursos/$slug/$lessonId'
     | '/admin/cursos/'
     | '/admin/promociones/'
+    | '/admin/usuarios/'
     | '/mis-cursos/$slug/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -287,6 +307,7 @@ export interface FileRouteTypes {
     | '/mis-cursos'
     | '/admin/cursos/$slug'
     | '/admin/promociones/$id'
+    | '/admin/usuarios/$id'
     | '/api/auth/$'
     | '/api/recetarios/$slug'
     | '/api/recetas/$name'
@@ -295,6 +316,7 @@ export interface FileRouteTypes {
     | '/mis-cursos/$slug/$lessonId'
     | '/admin/cursos'
     | '/admin/promociones'
+    | '/admin/usuarios'
     | '/mis-cursos/$slug'
   id:
     | '__root__'
@@ -314,6 +336,7 @@ export interface FileRouteTypes {
     | '/mis-cursos/'
     | '/admin/cursos/$slug'
     | '/admin/promociones/$id'
+    | '/admin/usuarios/$id'
     | '/api/auth/$'
     | '/api/recetarios/$slug'
     | '/api/recetas/$name'
@@ -322,6 +345,7 @@ export interface FileRouteTypes {
     | '/mis-cursos/$slug/$lessonId'
     | '/admin/cursos/'
     | '/admin/promociones/'
+    | '/admin/usuarios/'
     | '/mis-cursos/$slug/'
   fileRoutesById: FileRoutesById
 }
@@ -472,6 +496,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPromocionesIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/usuarios/': {
+      id: '/admin/usuarios/'
+      path: '/usuarios'
+      fullPath: '/admin/usuarios/'
+      preLoaderRoute: typeof AdminUsuariosIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/usuarios/$id': {
+      id: '/admin/usuarios/$id'
+      path: '/usuarios/$id'
+      fullPath: '/admin/usuarios/$id'
+      preLoaderRoute: typeof AdminUsuariosIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -529,8 +567,10 @@ interface AdminRouteChildren {
   AdminPreguntasRoute: typeof AdminPreguntasRoute
   AdminCursosSlugRoute: typeof AdminCursosSlugRoute
   AdminPromocionesIdRoute: typeof AdminPromocionesIdRoute
+  AdminUsuariosIdRoute: typeof AdminUsuariosIdRoute
   AdminCursosIndexRoute: typeof AdminCursosIndexRoute
   AdminPromocionesIndexRoute: typeof AdminPromocionesIndexRoute
+  AdminUsuariosIndexRoute: typeof AdminUsuariosIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -538,8 +578,10 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPreguntasRoute: AdminPreguntasRoute,
   AdminCursosSlugRoute: AdminCursosSlugRoute,
   AdminPromocionesIdRoute: AdminPromocionesIdRoute,
+  AdminUsuariosIdRoute: AdminUsuariosIdRoute,
   AdminCursosIndexRoute: AdminCursosIndexRoute,
   AdminPromocionesIndexRoute: AdminPromocionesIndexRoute,
+  AdminUsuariosIndexRoute: AdminUsuariosIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

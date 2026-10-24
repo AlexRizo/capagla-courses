@@ -76,6 +76,22 @@ export function accessLinkMail(
       text: `${title}\n\nGracias por registrarte. Entra con este enlace y empieza cuando quieras; no necesitas contraseña.${textTail}`,
     }
   }
+  if (purpose.kind === 'invite') {
+    const title = 'Tu cuenta en Capagla está lista'
+    const what = purpose.admin
+      ? 'Se creó una cuenta para ti en Capagla con acceso al panel de administración.'
+      : 'Se creó una cuenta para ti en Capagla.'
+    return {
+      to,
+      subject: 'Tu cuenta en Capagla está lista',
+      html: layout(title, [
+        p(`${what} Entra con este botón; no necesitas contraseña.`),
+        button(url, 'Entrar a Capagla'),
+        expiryNote(url),
+      ]),
+      text: `${title}\n\n${what} Entra con este enlace; no necesitas contraseña.${textTail}`,
+    }
+  }
   if (purpose.kind === 'purchase' && purpose.renewedUntil) {
     const title = '¡Listo, renovaste tu acceso!'
     const list = purpose.items.map((i) => `• ${i}`).join('\n')

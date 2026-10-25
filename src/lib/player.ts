@@ -7,6 +7,11 @@ import { z } from 'zod'
 import { prisma } from '#/db'
 import { answerQuestion, assistantEnabled } from '#/lib/assistant'
 import { AssistantRefusal } from '#/lib/assistant-model'
+import {
+  OFF_TOPIC_MESSAGE,
+  prefilter,
+  prefilterMessage,
+} from '#/lib/assistant-scope'
 import { finishSlot, reserveSlot, studentsCanAsk } from '#/lib/assistant-usage'
 import { readSession } from '#/lib/auth'
 import { signedPlaybackUrl } from '#/lib/bunny'
@@ -368,28 +373,55 @@ export const askAssistant = createServerFn({ method: 'POST' })
     // simultáneas y los fallos): ver `lib/assistant-usage.ts`.
     const slot = await reserveSlot(session.user.id, lesson.id)
     if (!slot.ok) return { error: slot.message }
+    const close = async (result: Parameters<typeof finishSlot>[1]) => {
+      try {
+        await finishSlot(slot.id, result)
+      } catch (error) {
+        // La reserva queda como "en curso": sigue contando para los límites.
+        console.error(
+          '[asistente] No se pudo cerrar el registro de uso:',
+          error,
+        )
+      }
+    }
+    // Lo obvio (código, enlaces, órdenes al asistente) se descarta sin llamar al modelo. Cuenta
+    // como una pregunta de la alumna, pero no para el tope global (no gasta).
+    const filter = prefilter(data.text)
+    if (!filter.ok) {
+      await close({ outcome: 'FILTERED' })
+      return { error: prefilterMessage(filter.reason) }
+    }
     let answer: string | null = null
+    let offTopic = false
     const spent: { input?: number; output?: number } = {}
-    let outcome: 'OK' | 'REFUSED' | 'FAILED' = 'OK'
+    let outcome: 'OK' | 'REFUSED' | 'FAILED' | 'OFF_TOPIC' = 'OK'
     try {
-      answer = await answerQuestion(lesson.id, data.text, undefined, (u) => {
-        spent.input = u.input
-        spent.output = u.output
-      })
+      const result = await answerQuestion(
+        lesson.id,
+        data.text,
+        undefined,
+        (u) => {
+          spent.input = u.input
+          spent.output = u.output
+        },
+      )
+      if (result.offTopic) {
+        offTopic = true
+        outcome = 'OFF_TOPIC'
+      } else {
+        answer = result.text
+      }
     } catch (error) {
       outcome = error instanceof AssistantRefusal ? 'REFUSED' : 'FAILED'
       console.error('[asistente] No se pudo responder:', error)
     }
-    try {
-      await finishSlot(slot.id, {
-        outcome,
-        inputTokens: spent.input,
-        outputTokens: spent.output,
-      })
-    } catch (error) {
-      // La reserva queda como "en curso": sigue contando para los límites.
-      console.error('[asistente] No se pudo cerrar el registro de uso:', error)
-    }
+    await close({
+      outcome,
+      inputTokens: spent.input,
+      outputTokens: spent.output,
+    })
+    // Una pregunta ajena no se guarda (no llega a la chef) ni ofrece mandarla a ella.
+    if (offTopic) return { error: OFF_TOPIC_MESSAGE }
     const question = await prisma.lessonQuestion.create({
       data: {
         userId: session.user.id,

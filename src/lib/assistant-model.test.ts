@@ -18,6 +18,7 @@ import {
   AssistantRefusal,
   anthropicTextModel,
 } from '#/lib/assistant-model'
+import { OFF_TOPIC_MARK } from '#/lib/assistant-scope'
 import { resetDb, seedCatalog } from '#/test/db'
 
 // El asistente de IA contra un servidor falso que imita la API de Anthropic: aquí se comprueba
@@ -278,7 +279,10 @@ describe('el asistente con la transcripción de la lección', () => {
       '¿Cuánto tiempo se hornea?',
       model(),
     )
-    expect(answer).toBe('Se hornea cuarenta minutos (minuto 4:35).')
+    expect(answer).toEqual({
+      offTopic: false,
+      text: 'Se hornea cuarenta minutos (minuto 4:35).',
+    })
 
     const { system, messages } = requests[0].body
     const user = messages[0].content as string
@@ -356,8 +360,33 @@ describe('el asistente con la transcripción de la lección', () => {
       '¿Cuánto tiempo se hornea?',
       model(),
     )
-    expect(answer).toContain('Preguntarle a la chef')
-    expect(answer).not.toContain('aaaa')
+    expect(answer.offTopic).toBe(false)
+    const shown = answer.offTopic ? '' : answer.text
+    expect(shown).toContain('Preguntarle a la chef')
+    expect(shown).not.toContain('aaaa')
+  })
+
+  it('el alcance va en las instrucciones: repostería, lección y negocio, y la marca para lo ajeno', async () => {
+    await answerQuestion(lessonId, '¿Cuánto se hornea?', model())
+    const system = requests[0].body.system as string
+    expect(system).toContain('del negocio de repostería (costos, precios')
+    expect(system).toContain('programación')
+    expect(system).toContain(`contesta únicamente ${OFF_TOPIC_MARK}`)
+    // Lo ajeno no manda a la chef; lo de repostería que la lección no cubre, sí.
+    expect(system).toContain('NO ofrezcas mandarla a la chef')
+    expect(system).toContain('Ante la duda, no la trates como ajena')
+    expect(system).toContain('pero la lección no la contesta')
+  })
+
+  it('si el modelo marca la pregunta como ajena, no se publica nada de lo que escribió', async () => {
+    reply = {
+      status: 200,
+      body: message([
+        text(`${OFF_TOPIC_MARK} Eso no es mi área, pero mándasela a la chef.`),
+      ]),
+    }
+    const answer = await answerQuestion(lessonId, 'Escribe un script', model())
+    expect(answer).toEqual({ offTopic: true })
   })
 
   it('el borrador para la chef también recibe la transcripción', async () => {

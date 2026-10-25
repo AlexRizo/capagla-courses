@@ -1,9 +1,11 @@
 import { prisma } from '#/db'
 import {
   DEFAULT_GLOBAL_LIMIT,
+  OFF_TOPIC_STREAK,
   RESERVATION_TTL_MS,
   decideSlot,
   estimateCostUsd,
+  isPaused,
 } from '#/lib/assistant-limits'
 import type { SlotDecision } from '#/lib/assistant-limits'
 
@@ -12,6 +14,10 @@ import type { SlotDecision } from '#/lib/assistant-limits'
 
 const MINUTE_MS = 60_000
 const DAY_MS = 24 * 60 * 60 * 1000
+// Lo que gasta de verdad el tope global: sin los fallos ni lo que el filtro previo descartó.
+const SPENT = {
+  outcome: { notIn: ['FAILED', 'FILTERED'] as ('FAILED' | 'FILTERED')[] },
+}
 
 export async function loadAssistantLimits() {
   const row = await prisma.assistantSettings.findUnique({
@@ -55,8 +61,17 @@ export async function reserveSlot(
         where: { ...mine, ...counted, createdAt: since(DAY_MS) },
       }),
       globalDay: await tx.assistantUsage.count({
-        where: { ...counted, createdAt: since(DAY_MS) },
+        where: { ...SPENT, createdAt: since(DAY_MS) },
       }),
+      paused: isPaused(
+        await tx.assistantUsage.findMany({
+          where: { ...mine, outcome: { notIn: ['RESERVED', 'FAILED'] } },
+          orderBy: { createdAt: 'desc' },
+          take: OFF_TOPIC_STREAK,
+          select: { outcome: true, createdAt: true },
+        }),
+        now,
+      ),
     }
     const decision = decideSlot(
       {
@@ -77,7 +92,7 @@ export async function reserveSlot(
 export async function finishSlot(
   id: string,
   result: {
-    outcome: 'OK' | 'REFUSED' | 'FAILED'
+    outcome: 'OK' | 'REFUSED' | 'FAILED' | 'OFF_TOPIC' | 'FILTERED'
     inputTokens?: number
     outputTokens?: number
   },
@@ -98,10 +113,7 @@ export async function studentsCanAsk() {
   const limits = await loadAssistantLimits()
   if (!limits.enabled) return false
   const globalDay = await prisma.assistantUsage.count({
-    where: {
-      outcome: { not: 'FAILED' },
-      createdAt: { gt: new Date(Date.now() - DAY_MS) },
-    },
+    where: { ...SPENT, createdAt: { gt: new Date(Date.now() - DAY_MS) } },
   })
   return globalDay < limits.dailyLimit
 }
@@ -126,9 +138,12 @@ export async function usageSummary() {
   )
   return {
     // Con respuesta del modelo o en curso: lo que cuenta para el tope.
-    questions: count('OK') + count('REFUSED') + count('RESERVED'),
+    questions:
+      count('OK') + count('REFUSED') + count('OFF_TOPIC') + count('RESERVED'),
     failed: count('FAILED'),
     refused: count('REFUSED'),
+    // Preguntas ajenas: las que marcó el modelo y las que descartó el filtro previo.
+    offTopic: count('OFF_TOPIC') + count('FILTERED'),
     inputTokens,
     outputTokens,
     costUsd: estimateCostUsd(inputTokens, outputTokens),

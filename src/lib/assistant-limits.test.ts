@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest'
 import {
   BURST_PER_MINUTE,
   DAILY_ASSISTANT_LIMIT,
+  OFF_TOPIC_PAUSE_MS,
   decideSlot,
   estimateCostUsd,
+  isPaused,
 } from '#/lib/assistant-limits'
 import type { SlotCounts } from '#/lib/assistant-limits'
 
@@ -14,6 +16,7 @@ const none: SlotCounts = {
   lastMinute: 0,
   userDay: 0,
   globalDay: 0,
+  paused: false,
 }
 const reason = (settings: typeof on, counts: Partial<SlotCounts>) => {
   const d = decideSlot(settings, { ...none, ...counts })
@@ -51,15 +54,28 @@ describe('decideSlot', () => {
     expect(reason(on, { userDay: 15 })).toBe('daily')
   })
 
-  it('el orden: interruptor, tope global, en curso, minuto y día', () => {
-    const all = { inFlight: 1, lastMinute: 9, userDay: 99, globalDay: 5000 }
+  it('en pausa por preguntas ajenas: espera, y no se ofrece mandarla a la chef', () => {
+    expect(reason(on, { paused: true })).toBe('paused')
+    const d = decideSlot(on, { ...none, paused: true })
+    expect(!d.ok && d.message).toContain('una hora')
+    expect(!d.ok && d.message).not.toContain('chef')
+  })
+
+  it('el orden: interruptor, tope global, en curso, pausa, minuto y día', () => {
+    const all = {
+      inFlight: 1,
+      lastMinute: 9,
+      userDay: 99,
+      globalDay: 5000,
+      paused: true,
+    }
     expect(reason({ ...on, enabled: false }, all)).toBe('off')
     expect(reason(on, all)).toBe('global')
     expect(reason(on, { ...all, globalDay: 0 })).toBe('busy')
-    expect(reason(on, { ...all, globalDay: 0, inFlight: 0 })).toBe('rate')
-    expect(
-      reason(on, { ...all, globalDay: 0, inFlight: 0, lastMinute: 0 }),
-    ).toBe('daily')
+    const free = { ...all, globalDay: 0, inFlight: 0 }
+    expect(reason(on, free)).toBe('paused')
+    expect(reason(on, { ...free, paused: false })).toBe('rate')
+    expect(reason(on, { ...free, paused: false, lastMinute: 0 })).toBe('daily')
   })
 
   it('todo mensaje de bloqueo ofrece o sugiere un camino a la alumna', () => {
@@ -68,6 +84,7 @@ describe('decideSlot', () => {
       { inFlight: 1 },
       { lastMinute: 5 },
       { userDay: 15 },
+      { paused: true },
     ]) {
       const d = decideSlot(on, { ...none, ...counts })
       expect(d.ok).toBe(false)
@@ -75,6 +92,41 @@ describe('decideSlot', () => {
     }
     const off = decideSlot({ ...on, enabled: false }, none)
     expect(!off.ok && off.message).toContain('chef')
+  })
+})
+
+describe('isPaused', () => {
+  const now = Date.now()
+  const row = (outcome: string, minutesAgo: number) => ({
+    outcome,
+    createdAt: new Date(now - minutesAgo * 60_000),
+  })
+  const off = [row('OFF_TOPIC', 1), row('FILTERED', 2), row('OFF_TOPIC', 3)]
+
+  it('tres ajenas seguidas pausan, sean del modelo o del filtro previo', () => {
+    expect(isPaused(off, now)).toBe(true)
+  })
+
+  it('dos no pausan, ni tres con una buena en medio', () => {
+    expect(isPaused(off.slice(0, 2), now)).toBe(false)
+    expect(
+      isPaused([off[0], row('OK', 2), off[2], row('OFF_TOPIC', 4)], now),
+    ).toBe(false)
+  })
+
+  it('la pausa dura una hora desde la última', () => {
+    expect(OFF_TOPIC_PAUSE_MS).toBe(60 * 60 * 1000)
+    const at = (m: number) => [
+      row('OFF_TOPIC', m),
+      row('OFF_TOPIC', m + 1),
+      row('OFF_TOPIC', m + 2),
+    ]
+    expect(isPaused(at(59), now)).toBe(true)
+    expect(isPaused(at(61), now)).toBe(false)
+  })
+
+  it('solo miran las 3 más recientes: una buena después de la racha la rompe', () => {
+    expect(isPaused([row('OK', 0), ...off.slice(0, 2)], now)).toBe(false)
   })
 })
 

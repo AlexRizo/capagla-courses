@@ -253,7 +253,10 @@ function AssistantCard({ assistant }: { assistant: AssistantInfo }) {
         <span className="text-xs text-muted-foreground">
           Al llegar al tope, “Preguntar” va directo a la chef hasta que pasen
           las 24 horas. Cada alumna puede hacer {DAILY_ASSISTANT_LIMIT} al día,{' '}
-          {BURST_PER_MINUTE} por minuto y una a la vez.
+          {BURST_PER_MINUTE} por minuto y una a la vez. Una pregunta que no es
+          de repostería no se responde y cuenta como una de las{' '}
+          {DAILY_ASSISTANT_LIMIT}
+          de la alumna; tres seguidas pausan el asistente una hora para ella.
         </span>
         {limitError && (
           <span className="text-xs text-destructive">{limitError}</span>
@@ -264,6 +267,7 @@ function AssistantCard({ assistant }: { assistant: AssistantInfo }) {
         preguntas · gasto estimado <strong>{money(usage.costUsd)}</strong>
         {usage.failed > 0 && <> · {usage.failed} con error</>}
         {usage.refused > 0 && <> · {usage.refused} rechazadas por el modelo</>}
+        {usage.offTopic > 0 && <> · {usage.offTopic} de otro tema</>}
         <div className="text-xs text-muted-foreground">
           Es una estimación con los tokens que informa el modelo; la cifra real
           es la de tu cuenta de Anthropic.

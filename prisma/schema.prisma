@@ -340,6 +340,10 @@ enum AssistantOutcome {
   REFUSED
   // Falló la llamada: no cuenta para el tope diario, sí para el límite por minuto.
   FAILED
+  // El modelo avisó que la pregunta es de otro tema (cuenta como una pregunta de la alumna).
+  OFF_TOPIC
+  // El filtro previo la descartó sin llamar al modelo: cuenta para la alumna, no para el tope global.
+  FILTERED
 }
 
 // Una fila por pregunta de una alumna al asistente, creada ANTES de llamar al modelo: así los

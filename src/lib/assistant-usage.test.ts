@@ -18,7 +18,8 @@ const HOUR = 60 * MIN
 const user = (id: string) =>
   prisma.user.create({ data: { id, name: id, email: `${id}@ejemplo.test` } })
 
-type Outcome = 'RESERVED' | 'OK' | 'REFUSED' | 'FAILED'
+type Outcome =
+  'RESERVED' | 'OK' | 'REFUSED' | 'FAILED' | 'OFF_TOPIC' | 'FILTERED'
 const seed = (
   userId: string,
   count: number,
@@ -129,6 +130,86 @@ describe('reserveSlot: ráfaga y tope diario por alumna', () => {
   })
 })
 
+describe('reserveSlot: preguntas ajenas', () => {
+  const seedAt = (outcome: Outcome, minutesAgo: number) =>
+    prisma.assistantUsage.create({
+      data: {
+        userId: 'ana',
+        itemId: 'leccion-1',
+        outcome,
+        createdAt: new Date(Date.now() - minutesAgo * MIN),
+      },
+    })
+
+  it('una ajena cuenta como una de las 15 del día', async () => {
+    await seed('ana', DAILY_ASSISTANT_LIMIT - 1, 2 * HOUR)
+    await seedAt('OFF_TOPIC', 90)
+    expect(reasonOf(await reserveSlot('ana', 'leccion-1'))).toBe('daily')
+  })
+
+  it('una descartada por el filtro previo también cuenta para la alumna', async () => {
+    await seed('ana', DAILY_ASSISTANT_LIMIT - 1, 2 * HOUR)
+    await seedAt('FILTERED', 90)
+    expect(reasonOf(await reserveSlot('ana', 'leccion-1'))).toBe('daily')
+  })
+
+  it('tres ajenas seguidas pausan una hora; después, no', async () => {
+    await seedAt('OFF_TOPIC', 10)
+    await seedAt('FILTERED', 9)
+    expect(reasonOf(await reserveSlot('ana', 'leccion-1'))).toBe('ok')
+    await resetDb()
+    await user('ana')
+    await seedAt('OFF_TOPIC', 12)
+    await seedAt('FILTERED', 11)
+    await seedAt('OFF_TOPIC', 10)
+    expect(reasonOf(await reserveSlot('ana', 'leccion-1'))).toBe('paused')
+    await resetDb()
+    await user('ana')
+    await seedAt('OFF_TOPIC', 64)
+    await seedAt('OFF_TOPIC', 63)
+    await seedAt('OFF_TOPIC', 62)
+    expect(reasonOf(await reserveSlot('ana', 'leccion-1'))).toBe('ok')
+  })
+
+  it('una pregunta buena, o un fallo en medio de la racha, no la rompen mal', async () => {
+    await seedAt('OFF_TOPIC', 12)
+    await seedAt('OFF_TOPIC', 11)
+    await seedAt('OK', 10)
+    await seedAt('OFF_TOPIC', 9)
+    expect(reasonOf(await reserveSlot('ana', 'leccion-1'))).toBe('ok')
+    await resetDb()
+    await user('ana')
+    await seedAt('OFF_TOPIC', 12)
+    await seedAt('OFF_TOPIC', 11)
+    await seedAt('FAILED', 10)
+    await seedAt('OFF_TOPIC', 9)
+    expect(reasonOf(await reserveSlot('ana', 'leccion-1'))).toBe('paused')
+  })
+
+  it('la pausa de una alumna no afecta a otra', async () => {
+    await user('beto')
+    await seedAt('OFF_TOPIC', 3)
+    await seedAt('OFF_TOPIC', 2)
+    await seedAt('OFF_TOPIC', 1)
+    expect(reasonOf(await reserveSlot('ana', 'leccion-1'))).toBe('paused')
+    expect(reasonOf(await reserveSlot('beto', 'leccion-1'))).toBe('ok')
+  })
+
+  it('las descartadas por el filtro no gastan el tope global; las del modelo sí', async () => {
+    await user('beto')
+    await setLimits({ dailyLimit: 10 })
+    await seed('beto', 10, 2 * HOUR, 'FILTERED')
+    expect(reasonOf(await reserveSlot('ana', 'leccion-1'))).toBe('ok')
+    expect(await studentsCanAsk()).toBe(true)
+    await resetDb()
+    await user('ana')
+    await user('beto')
+    await setLimits({ dailyLimit: 10 })
+    await seed('beto', 10, 2 * HOUR, 'OFF_TOPIC')
+    expect(reasonOf(await reserveSlot('ana', 'leccion-1'))).toBe('global')
+  })
+})
+
 describe('reserveSlot: interruptor y tope global', () => {
   it('sin configuración guardada está encendido con tope de 2,000', async () => {
     expect(reasonOf(await reserveSlot('ana', 'leccion-1'))).toBe('ok')
@@ -202,6 +283,14 @@ describe('finishSlot y usageSummary', () => {
           outputTokens: 10,
         },
         { userId: 'ana', itemId: 'l', outcome: 'FAILED' },
+        { userId: 'ana', itemId: 'l', outcome: 'FILTERED' },
+        {
+          userId: 'ana',
+          itemId: 'l',
+          outcome: 'OFF_TOPIC',
+          inputTokens: 4600,
+          outputTokens: 5,
+        },
         {
           userId: 'ana',
           itemId: 'l',
@@ -213,12 +302,14 @@ describe('finishSlot y usageSummary', () => {
       ],
     })
     const s = await usageSummary()
-    expect(s.questions).toBe(2)
+    // OK, REFUSED y la que marcó el modelo; la del filtro previo no gastó.
+    expect(s.questions).toBe(3)
     expect(s.failed).toBe(1)
     expect(s.refused).toBe(1)
-    expect(s.inputTokens).toBe(9200)
-    expect(s.outputTokens).toBe(280)
-    expect(s.costUsd).toBeCloseTo((9200 * 0.1 + 280 * 0.5) / 1_000_000, 8)
+    expect(s.offTopic).toBe(2)
+    expect(s.inputTokens).toBe(13800)
+    expect(s.outputTokens).toBe(285)
+    expect(s.costUsd).toBeCloseTo((13800 * 0.1 + 285 * 0.5) / 1_000_000, 8)
   })
 
   it('sin uso el resumen es cero', async () => {
@@ -226,6 +317,7 @@ describe('finishSlot y usageSummary', () => {
       questions: 0,
       failed: 0,
       refused: 0,
+      offTopic: 0,
       inputTokens: 0,
       outputTokens: 0,
       costUsd: 0,

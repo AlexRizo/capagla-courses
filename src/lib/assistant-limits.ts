@@ -12,6 +12,9 @@ export const MAX_GLOBAL_LIMIT = 100_000
 // Una reserva sin terminar (el servidor se cayó a la mitad) deja de contar como "en curso" a
 // los 3 minutos: el modelo tarda 60 s como máximo y el SDK reintenta 2 veces.
 export const RESERVATION_TTL_MS = 3 * 60 * 1000
+// Tres preguntas ajenas seguidas pausan al asistente una hora para esa alumna.
+export const OFF_TOPIC_STREAK = 3
+export const OFF_TOPIC_PAUSE_MS = 60 * 60 * 1000
 
 const OFF =
   'El asistente no está disponible por ahora. Puedes mandarle tu pregunta a la chef.'
@@ -23,20 +26,38 @@ export type SlotCounts = {
   lastMinute: number
   // Preguntas de esta alumna en 24 horas, sin las fallidas.
   userDay: number
-  // Preguntas de todas en 24 horas, sin las fallidas.
+  // Preguntas de todas en 24 horas, sin las fallidas ni las que descartó el filtro previo (no
+  // llamaron al modelo, no gastan).
   globalDay: number
+  // Las últimas preguntas de esta alumna eran ajenas y la pausa sigue (ver `isPaused`).
+  paused: boolean
 }
 
 export type SlotDecision =
   | { ok: true }
   | {
       ok: false
-      reason: 'off' | 'global' | 'busy' | 'rate' | 'daily'
+      reason: 'off' | 'global' | 'busy' | 'paused' | 'rate' | 'daily'
       message: string
     }
 
+// ¿Está en pausa por preguntas ajenas? Las últimas 3 preguntas terminadas (sin las fallidas),
+// de la más reciente a la más antigua, son todas ajenas y la más reciente fue hace menos de una hora.
+export function isPaused(
+  recent: { outcome: string; createdAt: Date }[],
+  now: number,
+) {
+  const last = recent.slice(0, OFF_TOPIC_STREAK)
+  return (
+    last.length === OFF_TOPIC_STREAK &&
+    last.every((r) => r.outcome === 'OFF_TOPIC' || r.outcome === 'FILTERED') &&
+    now - last[0].createdAt.getTime() < OFF_TOPIC_PAUSE_MS
+  )
+}
+
 // ¿Puede esta alumna preguntar ahora? Se revisa en este orden: el interruptor y el tope global
-// (no dependen de ella), luego su ráfaga y por último su tope diario.
+// (no dependen de ella), luego lo que hace ahora (una a la vez, pausa por preguntas ajenas),
+// su ráfaga y por último su tope diario.
 export function decideSlot(
   settings: { enabled: boolean; dailyLimit: number },
   counts: SlotCounts,
@@ -50,6 +71,14 @@ export function decideSlot(
       ok: false,
       reason: 'busy',
       message: 'Espera a que termine tu pregunta anterior.',
+    }
+  }
+  if (counts.paused) {
+    return {
+      ok: false,
+      reason: 'paused',
+      message:
+        'Tus últimas preguntas no eran de repostería ni de las lecciones, así que el asistente se pausa una hora para ti. Después puedes volver a preguntar.',
     }
   }
   if (counts.lastMinute >= BURST_PER_MINUTE) {

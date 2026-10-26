@@ -105,6 +105,74 @@ describe('createOrder', () => {
     expect(order.amountMxn).toBe(397)
   })
 
+  it('la herramienta sola se vende a precio normal, sin promoción ni curso', async () => {
+    const order = await createOrder({
+      ...buyer,
+      withTool: false,
+      product: 'herramienta-costos',
+    })
+    expect(order.amountMxn).toBe(catalog.tool.priceMxn)
+    expect(order.promotionId).toBeNull()
+    const items = await prisma.orderItem.findMany({
+      where: { orderId: order.id },
+    })
+    expect(items.map((i) => i.productId)).toEqual([catalog.tool.id])
+    // Al pagar queda inscrita a la herramienta (y a nada más).
+    await completeOrder(order.id)
+    const enrollments = await prisma.enrollment.findMany()
+    expect(enrollments.map((e) => e.productId)).toEqual([catalog.tool.id])
+  })
+
+  it('la compra suelta no vende cursos ni herramientas en borrador', async () => {
+    await expect(
+      createOrder({ ...buyer, withTool: false, product: 'postres-navidad' }),
+    ).rejects.toThrow('No está a la venta')
+    await expect(
+      createOrder({ ...buyer, withTool: false, product: 'no-existe' }),
+    ).rejects.toThrow('No está a la venta')
+    await prisma.product.update({
+      where: { id: catalog.tool.id },
+      data: { status: 'DRAFT' },
+    })
+    await expect(
+      createOrder({
+        ...buyer,
+        withTool: false,
+        product: 'herramienta-costos',
+      }),
+    ).rejects.toThrow('No está a la venta')
+  })
+
+  it('quien ya tiene la herramienta vigente no la paga otra vez', async () => {
+    const first = await createOrder({
+      ...buyer,
+      withTool: false,
+      product: 'herramienta-costos',
+    })
+    await completeOrder(first.id)
+    await expect(
+      createOrder({
+        ...buyer,
+        withTool: false,
+        product: 'herramienta-costos',
+      }),
+    ).rejects.toThrow(AlreadyOwnedError)
+  })
+
+  it('la herramienta sigue vendiéndose como casilla de la promoción', async () => {
+    await seedPromotion()
+    const order = await createOrder({
+      ...buyer,
+      withTool: true,
+      promo: 'navidad',
+    })
+    const items = await prisma.orderItem.findMany({
+      where: { orderId: order.id },
+    })
+    expect(items.map((i) => i.productId)).toContain(catalog.tool.id)
+    expect(order.amountMxn).toBe(497)
+  })
+
   it('no vende un curso en borrador', async () => {
     await prisma.product.update({
       where: { id: catalog.course.id },

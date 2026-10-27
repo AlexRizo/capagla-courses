@@ -16,8 +16,10 @@ import { finishSlot, reserveSlot, studentsCanAsk } from '#/lib/assistant-usage'
 import { readSession } from '#/lib/auth'
 import { signedPlaybackUrl } from '#/lib/bunny'
 import { ago } from '#/lib/ago'
-import { parseParts, partAt } from '#/lib/duration'
+import { parseParts } from '#/lib/duration'
+import { momentName } from '#/lib/moment-name'
 import { RECIPE_BOOK_URL_PREFIX } from '#/lib/recipe-books'
+import type { TranscriptLine } from '#/lib/transcript'
 import {
   buildPlayerTree,
   lessonPosition,
@@ -275,7 +277,8 @@ export const setLessonSeen = createServerFn({ method: 'POST' })
 
 const MAX_MOMENTS = 50
 
-// "Marcar este momento": el nombre lo pone el servidor (la parte del video en la que va).
+// "Marcar este momento": el nombre lo pone el servidor (la parte del video en la que va o, sin
+// partes, lo que se dice en ese segundo; `lib/moment-name.ts`) y la alumna lo puede cambiar.
 export const addMoment = createServerFn({ method: 'POST' })
   .validator(
     z.object({
@@ -289,9 +292,16 @@ export const addMoment = createServerFn({ method: 'POST' })
     if ((await prisma.lessonMoment.count({ where: mine })) >= MAX_MOMENTS) {
       return { error: `Máximo ${MAX_MOMENTS} momentos por lección.` }
     }
-    const part = partAt(parseParts(lesson.videoParts), data.seconds)
+    const transcript = await prisma.lessonTranscript.findUnique({
+      where: { itemId: lesson.id },
+    })
+    const name = momentName(
+      lesson.videoParts,
+      (transcript?.lines ?? []) as TranscriptLine[],
+      data.seconds,
+    )
     await prisma.lessonMoment.create({
-      data: { ...mine, seconds: data.seconds, name: part?.title ?? 'Momento' },
+      data: { ...mine, seconds: data.seconds, name },
     })
     return {}
   })

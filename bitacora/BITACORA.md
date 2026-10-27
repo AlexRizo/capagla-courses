@@ -81,9 +81,9 @@ Leyenda: `[ ]` pendiente · `[x]` terminado · `[~]` en curso · `[!]` bloqueado
 Decisiones ya tomadas (repaso con el usuario): se lanza **sin clase gratis**; la transcripción 06-01 **no se carga**; sin promoción el curso cuesta $897; el curso de costos **no va en las promociones**; Brevo y `soporte@capagla.com` listos. Las 16 diferencias recetario/video y los videos de marketing (`mkt-01`, `mkt-02`) **no bloquean**.
 
 **Antes de desplegar (usuario):** (2026-10-27: la clave de desarrollo de Anthropic que se imprimió por error en la sesión ya fue **rotada** por el usuario.)
-- [ ] Crear una **clave de Anthropic nueva solo para Capagla**, con límite de gasto mensual (la de desarrollo no va a producción).
-- [ ] Claves de **Stripe `live`** (de preferencia una restringida `rk_...`) y registrar el dominio para Apple Pay.
-- [ ] Tener el dominio público (https) para `BETTER_AUTH_URL`.
+- [x] (confirmado por el usuario, 2026-10-27; no verificable desde aquí) Crear una **clave de Anthropic nueva solo para Capagla**, con límite de gasto mensual (la de desarrollo no va a producción).
+- [x] (confirmado por el usuario, 2026-10-27) Claves de **Stripe `live`** (de preferencia una restringida `rk_...`) y registrar el dominio para Apple Pay.
+- [x] (confirmado por el usuario, 2026-10-27) Tener el dominio público (https) para `BETTER_AUTH_URL`.
 
 **En Railway:**
 - [ ] Postgres de Railway → `DATABASE_URL`.

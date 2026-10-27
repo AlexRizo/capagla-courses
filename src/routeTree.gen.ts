@@ -16,12 +16,19 @@ import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ClaseGratisRouteImport } from './routes/clase-gratis'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as GraciasRouteImport } from './routes/gracias'
+import { Route as HerramientaRouteImport } from './routes/herramienta'
+import { Route as ListaDeTiendaRouteImport } from './routes/lista-de-tienda'
 import { Route as MisCursosRouteImport } from './routes/mis-cursos'
 import { Route as RevisaTuCorreoRouteImport } from './routes/revisa-tu-correo'
 import { Route as AdminMarketingRouteImport } from './routes/admin/marketing'
 import { Route as AdminPreguntasRouteImport } from './routes/admin/preguntas'
 import { Route as ApiUploadsRouteImport } from './routes/api/uploads'
 import { Route as CursosSlugRouteImport } from './routes/cursos/$slug'
+import { Route as HerramientaIndexRouteImport } from './routes/herramienta/index'
+import { Route as HerramientaAjustesRouteImport } from './routes/herramienta/ajustes'
+import { Route as HerramientaEtiquetasRouteImport } from './routes/herramienta/etiquetas'
+import { Route as HerramientaListaRouteImport } from './routes/herramienta/lista'
+import { Route as HerramientaLugaresRouteImport } from './routes/herramienta/lugares'
 import { Route as MisCursosIndexRouteImport } from './routes/mis-cursos/index'
 import { Route as AdminCursosIndexRouteImport } from './routes/admin/cursos/index'
 import { Route as AdminCursosSlugRouteImport } from './routes/admin/cursos/$slug'
@@ -34,6 +41,26 @@ import { Route as ApiRecetariosSlugRouteImport } from './routes/api/recetarios/$
 import { Route as ApiRecetasNameRouteImport } from './routes/api/recetas/$name'
 import { Route as ApiRecursosNameRouteImport } from './routes/api/recursos/$name'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
+import { Route as HerramientaComprasIndexRouteImport } from './routes/herramienta/compras/index'
+import { Route as HerramientaComprasIdRouteImport } from './routes/herramienta/compras/$id'
+import { Route as HerramientaComprasNuevaRouteImport } from './routes/herramienta/compras/nueva'
+import { Route as HerramientaCotizadorIndexRouteImport } from './routes/herramienta/cotizador/index'
+import { Route as HerramientaCotizadorIdRouteImport } from './routes/herramienta/cotizador/$id'
+import { Route as HerramientaIngredientesIndexRouteImport } from './routes/herramienta/ingredientes/index'
+import { Route as HerramientaIngredientesIdRouteImport } from './routes/herramienta/ingredientes/$id'
+import { Route as HerramientaIngredientesNuevoRouteImport } from './routes/herramienta/ingredientes/nuevo'
+import { Route as HerramientaPremezclasIndexRouteImport } from './routes/herramienta/premezclas/index'
+import { Route as HerramientaPremezclasIdRouteImport } from './routes/herramienta/premezclas/$id'
+import { Route as HerramientaPremezclasNuevaRouteImport } from './routes/herramienta/premezclas/nueva'
+import { Route as HerramientaProduccionesIndexRouteImport } from './routes/herramienta/producciones/index'
+import { Route as HerramientaProduccionesIdRouteImport } from './routes/herramienta/producciones/$id'
+import { Route as HerramientaProduccionesNuevaRouteImport } from './routes/herramienta/producciones/nueva'
+import { Route as HerramientaProductosIndexRouteImport } from './routes/herramienta/productos/index'
+import { Route as HerramientaProductosIdRouteImport } from './routes/herramienta/productos/$id'
+import { Route as HerramientaProductosNuevoRouteImport } from './routes/herramienta/productos/nuevo'
+import { Route as HerramientaRecetasIndexRouteImport } from './routes/herramienta/recetas/index'
+import { Route as HerramientaRecetasIdRouteImport } from './routes/herramienta/recetas/$id'
+import { Route as HerramientaRecetasNuevaRouteImport } from './routes/herramienta/recetas/nueva'
 import { Route as MisCursosSlugIndexRouteImport } from './routes/mis-cursos/$slug/index'
 import { Route as MisCursosSlugLessonIdRouteImport } from './routes/mis-cursos/$slug/$lessonId'
 
@@ -72,6 +99,16 @@ const GraciasRoute = GraciasRouteImport.update({
   path: '/gracias',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HerramientaRoute = HerramientaRouteImport.update({
+  id: '/herramienta',
+  path: '/herramienta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ListaDeTiendaRoute = ListaDeTiendaRouteImport.update({
+  id: '/lista-de-tienda',
+  path: '/lista-de-tienda',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MisCursosRoute = MisCursosRouteImport.update({
   id: '/mis-cursos',
   path: '/mis-cursos',
@@ -101,6 +138,31 @@ const CursosSlugRoute = CursosSlugRouteImport.update({
   id: '/cursos/$slug',
   path: '/cursos/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const HerramientaIndexRoute = HerramientaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => HerramientaRoute,
+} as any)
+const HerramientaAjustesRoute = HerramientaAjustesRouteImport.update({
+  id: '/ajustes',
+  path: '/ajustes',
+  getParentRoute: () => HerramientaRoute,
+} as any)
+const HerramientaEtiquetasRoute = HerramientaEtiquetasRouteImport.update({
+  id: '/etiquetas',
+  path: '/etiquetas',
+  getParentRoute: () => HerramientaRoute,
+} as any)
+const HerramientaListaRoute = HerramientaListaRouteImport.update({
+  id: '/lista',
+  path: '/lista',
+  getParentRoute: () => HerramientaRoute,
+} as any)
+const HerramientaLugaresRoute = HerramientaLugaresRouteImport.update({
+  id: '/lugares',
+  path: '/lugares',
+  getParentRoute: () => HerramientaRoute,
 } as any)
 const MisCursosIndexRoute = MisCursosIndexRouteImport.update({
   id: '/',
@@ -162,6 +224,117 @@ const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
   path: '/api/stripe/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HerramientaComprasIndexRoute = HerramientaComprasIndexRouteImport.update({
+  id: '/compras/',
+  path: '/compras/',
+  getParentRoute: () => HerramientaRoute,
+} as any)
+const HerramientaComprasIdRoute = HerramientaComprasIdRouteImport.update({
+  id: '/compras/$id',
+  path: '/compras/$id',
+  getParentRoute: () => HerramientaRoute,
+} as any)
+const HerramientaComprasNuevaRoute = HerramientaComprasNuevaRouteImport.update({
+  id: '/compras/nueva',
+  path: '/compras/nueva',
+  getParentRoute: () => HerramientaRoute,
+} as any)
+const HerramientaCotizadorIndexRoute =
+  HerramientaCotizadorIndexRouteImport.update({
+    id: '/cotizador/',
+    path: '/cotizador/',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
+const HerramientaCotizadorIdRoute = HerramientaCotizadorIdRouteImport.update({
+  id: '/cotizador/$id',
+  path: '/cotizador/$id',
+  getParentRoute: () => HerramientaRoute,
+} as any)
+const HerramientaIngredientesIndexRoute =
+  HerramientaIngredientesIndexRouteImport.update({
+    id: '/ingredientes/',
+    path: '/ingredientes/',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
+const HerramientaIngredientesIdRoute =
+  HerramientaIngredientesIdRouteImport.update({
+    id: '/ingredientes/$id',
+    path: '/ingredientes/$id',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
+const HerramientaIngredientesNuevoRoute =
+  HerramientaIngredientesNuevoRouteImport.update({
+    id: '/ingredientes/nuevo',
+    path: '/ingredientes/nuevo',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
+const HerramientaPremezclasIndexRoute =
+  HerramientaPremezclasIndexRouteImport.update({
+    id: '/premezclas/',
+    path: '/premezclas/',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
+const HerramientaPremezclasIdRoute = HerramientaPremezclasIdRouteImport.update({
+  id: '/premezclas/$id',
+  path: '/premezclas/$id',
+  getParentRoute: () => HerramientaRoute,
+} as any)
+const HerramientaPremezclasNuevaRoute =
+  HerramientaPremezclasNuevaRouteImport.update({
+    id: '/premezclas/nueva',
+    path: '/premezclas/nueva',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
+const HerramientaProduccionesIndexRoute =
+  HerramientaProduccionesIndexRouteImport.update({
+    id: '/producciones/',
+    path: '/producciones/',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
+const HerramientaProduccionesIdRoute =
+  HerramientaProduccionesIdRouteImport.update({
+    id: '/producciones/$id',
+    path: '/producciones/$id',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
+const HerramientaProduccionesNuevaRoute =
+  HerramientaProduccionesNuevaRouteImport.update({
+    id: '/producciones/nueva',
+    path: '/producciones/nueva',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
+const HerramientaProductosIndexRoute =
+  HerramientaProductosIndexRouteImport.update({
+    id: '/productos/',
+    path: '/productos/',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
+const HerramientaProductosIdRoute = HerramientaProductosIdRouteImport.update({
+  id: '/productos/$id',
+  path: '/productos/$id',
+  getParentRoute: () => HerramientaRoute,
+} as any)
+const HerramientaProductosNuevoRoute =
+  HerramientaProductosNuevoRouteImport.update({
+    id: '/productos/nuevo',
+    path: '/productos/nuevo',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
+const HerramientaRecetasIndexRoute = HerramientaRecetasIndexRouteImport.update({
+  id: '/recetas/',
+  path: '/recetas/',
+  getParentRoute: () => HerramientaRoute,
+} as any)
+const HerramientaRecetasIdRoute = HerramientaRecetasIdRouteImport.update({
+  id: '/recetas/$id',
+  path: '/recetas/$id',
+  getParentRoute: () => HerramientaRoute,
+} as any)
+const HerramientaRecetasNuevaRoute = HerramientaRecetasNuevaRouteImport.update({
+  id: '/recetas/nueva',
+  path: '/recetas/nueva',
+  getParentRoute: () => HerramientaRoute,
+} as any)
 const MisCursosSlugIndexRoute = MisCursosSlugIndexRouteImport.update({
   id: '/$slug/',
   path: '/$slug/',
@@ -181,12 +354,19 @@ export interface FileRoutesByFullPath {
   '/clase-gratis': typeof ClaseGratisRoute
   '/entrar': typeof EntrarRoute
   '/gracias': typeof GraciasRoute
+  '/herramienta': typeof HerramientaRouteWithChildren
+  '/lista-de-tienda': typeof ListaDeTiendaRoute
   '/mis-cursos': typeof MisCursosRouteWithChildren
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
+  '/herramienta/ajustes': typeof HerramientaAjustesRoute
+  '/herramienta/etiquetas': typeof HerramientaEtiquetasRoute
+  '/herramienta/lista': typeof HerramientaListaRoute
+  '/herramienta/lugares': typeof HerramientaLugaresRoute
+  '/herramienta/': typeof HerramientaIndexRoute
   '/mis-cursos/': typeof MisCursosIndexRoute
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
@@ -196,10 +376,30 @@ export interface FileRoutesByFullPath {
   '/api/recetas/$name': typeof ApiRecetasNameRoute
   '/api/recursos/$name': typeof ApiRecursosNameRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/herramienta/compras/$id': typeof HerramientaComprasIdRoute
+  '/herramienta/compras/nueva': typeof HerramientaComprasNuevaRoute
+  '/herramienta/cotizador/$id': typeof HerramientaCotizadorIdRoute
+  '/herramienta/ingredientes/$id': typeof HerramientaIngredientesIdRoute
+  '/herramienta/ingredientes/nuevo': typeof HerramientaIngredientesNuevoRoute
+  '/herramienta/premezclas/$id': typeof HerramientaPremezclasIdRoute
+  '/herramienta/premezclas/nueva': typeof HerramientaPremezclasNuevaRoute
+  '/herramienta/producciones/$id': typeof HerramientaProduccionesIdRoute
+  '/herramienta/producciones/nueva': typeof HerramientaProduccionesNuevaRoute
+  '/herramienta/productos/$id': typeof HerramientaProductosIdRoute
+  '/herramienta/productos/nuevo': typeof HerramientaProductosNuevoRoute
+  '/herramienta/recetas/$id': typeof HerramientaRecetasIdRoute
+  '/herramienta/recetas/nueva': typeof HerramientaRecetasNuevaRoute
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
   '/admin/cursos/': typeof AdminCursosIndexRoute
   '/admin/promociones/': typeof AdminPromocionesIndexRoute
   '/admin/usuarios/': typeof AdminUsuariosIndexRoute
+  '/herramienta/compras/': typeof HerramientaComprasIndexRoute
+  '/herramienta/cotizador/': typeof HerramientaCotizadorIndexRoute
+  '/herramienta/ingredientes/': typeof HerramientaIngredientesIndexRoute
+  '/herramienta/premezclas/': typeof HerramientaPremezclasIndexRoute
+  '/herramienta/producciones/': typeof HerramientaProduccionesIndexRoute
+  '/herramienta/productos/': typeof HerramientaProductosIndexRoute
+  '/herramienta/recetas/': typeof HerramientaRecetasIndexRoute
   '/mis-cursos/$slug/': typeof MisCursosSlugIndexRoute
 }
 export interface FileRoutesByTo {
@@ -210,11 +410,17 @@ export interface FileRoutesByTo {
   '/clase-gratis': typeof ClaseGratisRoute
   '/entrar': typeof EntrarRoute
   '/gracias': typeof GraciasRoute
+  '/lista-de-tienda': typeof ListaDeTiendaRoute
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
+  '/herramienta/ajustes': typeof HerramientaAjustesRoute
+  '/herramienta/etiquetas': typeof HerramientaEtiquetasRoute
+  '/herramienta/lista': typeof HerramientaListaRoute
+  '/herramienta/lugares': typeof HerramientaLugaresRoute
+  '/herramienta': typeof HerramientaIndexRoute
   '/mis-cursos': typeof MisCursosIndexRoute
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
@@ -224,10 +430,30 @@ export interface FileRoutesByTo {
   '/api/recetas/$name': typeof ApiRecetasNameRoute
   '/api/recursos/$name': typeof ApiRecursosNameRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/herramienta/compras/$id': typeof HerramientaComprasIdRoute
+  '/herramienta/compras/nueva': typeof HerramientaComprasNuevaRoute
+  '/herramienta/cotizador/$id': typeof HerramientaCotizadorIdRoute
+  '/herramienta/ingredientes/$id': typeof HerramientaIngredientesIdRoute
+  '/herramienta/ingredientes/nuevo': typeof HerramientaIngredientesNuevoRoute
+  '/herramienta/premezclas/$id': typeof HerramientaPremezclasIdRoute
+  '/herramienta/premezclas/nueva': typeof HerramientaPremezclasNuevaRoute
+  '/herramienta/producciones/$id': typeof HerramientaProduccionesIdRoute
+  '/herramienta/producciones/nueva': typeof HerramientaProduccionesNuevaRoute
+  '/herramienta/productos/$id': typeof HerramientaProductosIdRoute
+  '/herramienta/productos/nuevo': typeof HerramientaProductosNuevoRoute
+  '/herramienta/recetas/$id': typeof HerramientaRecetasIdRoute
+  '/herramienta/recetas/nueva': typeof HerramientaRecetasNuevaRoute
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
   '/admin/cursos': typeof AdminCursosIndexRoute
   '/admin/promociones': typeof AdminPromocionesIndexRoute
   '/admin/usuarios': typeof AdminUsuariosIndexRoute
+  '/herramienta/compras': typeof HerramientaComprasIndexRoute
+  '/herramienta/cotizador': typeof HerramientaCotizadorIndexRoute
+  '/herramienta/ingredientes': typeof HerramientaIngredientesIndexRoute
+  '/herramienta/premezclas': typeof HerramientaPremezclasIndexRoute
+  '/herramienta/producciones': typeof HerramientaProduccionesIndexRoute
+  '/herramienta/productos': typeof HerramientaProductosIndexRoute
+  '/herramienta/recetas': typeof HerramientaRecetasIndexRoute
   '/mis-cursos/$slug': typeof MisCursosSlugIndexRoute
 }
 export interface FileRoutesById {
@@ -239,12 +465,19 @@ export interface FileRoutesById {
   '/clase-gratis': typeof ClaseGratisRoute
   '/entrar': typeof EntrarRoute
   '/gracias': typeof GraciasRoute
+  '/herramienta': typeof HerramientaRouteWithChildren
+  '/lista-de-tienda': typeof ListaDeTiendaRoute
   '/mis-cursos': typeof MisCursosRouteWithChildren
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
+  '/herramienta/ajustes': typeof HerramientaAjustesRoute
+  '/herramienta/etiquetas': typeof HerramientaEtiquetasRoute
+  '/herramienta/lista': typeof HerramientaListaRoute
+  '/herramienta/lugares': typeof HerramientaLugaresRoute
+  '/herramienta/': typeof HerramientaIndexRoute
   '/mis-cursos/': typeof MisCursosIndexRoute
   '/admin/cursos/$slug': typeof AdminCursosSlugRoute
   '/admin/promociones/$id': typeof AdminPromocionesIdRoute
@@ -254,10 +487,30 @@ export interface FileRoutesById {
   '/api/recetas/$name': typeof ApiRecetasNameRoute
   '/api/recursos/$name': typeof ApiRecursosNameRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
+  '/herramienta/compras/$id': typeof HerramientaComprasIdRoute
+  '/herramienta/compras/nueva': typeof HerramientaComprasNuevaRoute
+  '/herramienta/cotizador/$id': typeof HerramientaCotizadorIdRoute
+  '/herramienta/ingredientes/$id': typeof HerramientaIngredientesIdRoute
+  '/herramienta/ingredientes/nuevo': typeof HerramientaIngredientesNuevoRoute
+  '/herramienta/premezclas/$id': typeof HerramientaPremezclasIdRoute
+  '/herramienta/premezclas/nueva': typeof HerramientaPremezclasNuevaRoute
+  '/herramienta/producciones/$id': typeof HerramientaProduccionesIdRoute
+  '/herramienta/producciones/nueva': typeof HerramientaProduccionesNuevaRoute
+  '/herramienta/productos/$id': typeof HerramientaProductosIdRoute
+  '/herramienta/productos/nuevo': typeof HerramientaProductosNuevoRoute
+  '/herramienta/recetas/$id': typeof HerramientaRecetasIdRoute
+  '/herramienta/recetas/nueva': typeof HerramientaRecetasNuevaRoute
   '/mis-cursos/$slug/$lessonId': typeof MisCursosSlugLessonIdRoute
   '/admin/cursos/': typeof AdminCursosIndexRoute
   '/admin/promociones/': typeof AdminPromocionesIndexRoute
   '/admin/usuarios/': typeof AdminUsuariosIndexRoute
+  '/herramienta/compras/': typeof HerramientaComprasIndexRoute
+  '/herramienta/cotizador/': typeof HerramientaCotizadorIndexRoute
+  '/herramienta/ingredientes/': typeof HerramientaIngredientesIndexRoute
+  '/herramienta/premezclas/': typeof HerramientaPremezclasIndexRoute
+  '/herramienta/producciones/': typeof HerramientaProduccionesIndexRoute
+  '/herramienta/productos/': typeof HerramientaProductosIndexRoute
+  '/herramienta/recetas/': typeof HerramientaRecetasIndexRoute
   '/mis-cursos/$slug/': typeof MisCursosSlugIndexRoute
 }
 export interface FileRouteTypes {
@@ -270,12 +523,19 @@ export interface FileRouteTypes {
     | '/clase-gratis'
     | '/entrar'
     | '/gracias'
+    | '/herramienta'
+    | '/lista-de-tienda'
     | '/mis-cursos'
     | '/revisa-tu-correo'
     | '/admin/marketing'
     | '/admin/preguntas'
     | '/api/uploads'
     | '/cursos/$slug'
+    | '/herramienta/ajustes'
+    | '/herramienta/etiquetas'
+    | '/herramienta/lista'
+    | '/herramienta/lugares'
+    | '/herramienta/'
     | '/mis-cursos/'
     | '/admin/cursos/$slug'
     | '/admin/promociones/$id'
@@ -285,10 +545,30 @@ export interface FileRouteTypes {
     | '/api/recetas/$name'
     | '/api/recursos/$name'
     | '/api/stripe/webhook'
+    | '/herramienta/compras/$id'
+    | '/herramienta/compras/nueva'
+    | '/herramienta/cotizador/$id'
+    | '/herramienta/ingredientes/$id'
+    | '/herramienta/ingredientes/nuevo'
+    | '/herramienta/premezclas/$id'
+    | '/herramienta/premezclas/nueva'
+    | '/herramienta/producciones/$id'
+    | '/herramienta/producciones/nueva'
+    | '/herramienta/productos/$id'
+    | '/herramienta/productos/nuevo'
+    | '/herramienta/recetas/$id'
+    | '/herramienta/recetas/nueva'
     | '/mis-cursos/$slug/$lessonId'
     | '/admin/cursos/'
     | '/admin/promociones/'
     | '/admin/usuarios/'
+    | '/herramienta/compras/'
+    | '/herramienta/cotizador/'
+    | '/herramienta/ingredientes/'
+    | '/herramienta/premezclas/'
+    | '/herramienta/producciones/'
+    | '/herramienta/productos/'
+    | '/herramienta/recetas/'
     | '/mis-cursos/$slug/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -299,11 +579,17 @@ export interface FileRouteTypes {
     | '/clase-gratis'
     | '/entrar'
     | '/gracias'
+    | '/lista-de-tienda'
     | '/revisa-tu-correo'
     | '/admin/marketing'
     | '/admin/preguntas'
     | '/api/uploads'
     | '/cursos/$slug'
+    | '/herramienta/ajustes'
+    | '/herramienta/etiquetas'
+    | '/herramienta/lista'
+    | '/herramienta/lugares'
+    | '/herramienta'
     | '/mis-cursos'
     | '/admin/cursos/$slug'
     | '/admin/promociones/$id'
@@ -313,10 +599,30 @@ export interface FileRouteTypes {
     | '/api/recetas/$name'
     | '/api/recursos/$name'
     | '/api/stripe/webhook'
+    | '/herramienta/compras/$id'
+    | '/herramienta/compras/nueva'
+    | '/herramienta/cotizador/$id'
+    | '/herramienta/ingredientes/$id'
+    | '/herramienta/ingredientes/nuevo'
+    | '/herramienta/premezclas/$id'
+    | '/herramienta/premezclas/nueva'
+    | '/herramienta/producciones/$id'
+    | '/herramienta/producciones/nueva'
+    | '/herramienta/productos/$id'
+    | '/herramienta/productos/nuevo'
+    | '/herramienta/recetas/$id'
+    | '/herramienta/recetas/nueva'
     | '/mis-cursos/$slug/$lessonId'
     | '/admin/cursos'
     | '/admin/promociones'
     | '/admin/usuarios'
+    | '/herramienta/compras'
+    | '/herramienta/cotizador'
+    | '/herramienta/ingredientes'
+    | '/herramienta/premezclas'
+    | '/herramienta/producciones'
+    | '/herramienta/productos'
+    | '/herramienta/recetas'
     | '/mis-cursos/$slug'
   id:
     | '__root__'
@@ -327,12 +633,19 @@ export interface FileRouteTypes {
     | '/clase-gratis'
     | '/entrar'
     | '/gracias'
+    | '/herramienta'
+    | '/lista-de-tienda'
     | '/mis-cursos'
     | '/revisa-tu-correo'
     | '/admin/marketing'
     | '/admin/preguntas'
     | '/api/uploads'
     | '/cursos/$slug'
+    | '/herramienta/ajustes'
+    | '/herramienta/etiquetas'
+    | '/herramienta/lista'
+    | '/herramienta/lugares'
+    | '/herramienta/'
     | '/mis-cursos/'
     | '/admin/cursos/$slug'
     | '/admin/promociones/$id'
@@ -342,10 +655,30 @@ export interface FileRouteTypes {
     | '/api/recetas/$name'
     | '/api/recursos/$name'
     | '/api/stripe/webhook'
+    | '/herramienta/compras/$id'
+    | '/herramienta/compras/nueva'
+    | '/herramienta/cotizador/$id'
+    | '/herramienta/ingredientes/$id'
+    | '/herramienta/ingredientes/nuevo'
+    | '/herramienta/premezclas/$id'
+    | '/herramienta/premezclas/nueva'
+    | '/herramienta/producciones/$id'
+    | '/herramienta/producciones/nueva'
+    | '/herramienta/productos/$id'
+    | '/herramienta/productos/nuevo'
+    | '/herramienta/recetas/$id'
+    | '/herramienta/recetas/nueva'
     | '/mis-cursos/$slug/$lessonId'
     | '/admin/cursos/'
     | '/admin/promociones/'
     | '/admin/usuarios/'
+    | '/herramienta/compras/'
+    | '/herramienta/cotizador/'
+    | '/herramienta/ingredientes/'
+    | '/herramienta/premezclas/'
+    | '/herramienta/producciones/'
+    | '/herramienta/productos/'
+    | '/herramienta/recetas/'
     | '/mis-cursos/$slug/'
   fileRoutesById: FileRoutesById
 }
@@ -357,6 +690,8 @@ export interface RootRouteChildren {
   ClaseGratisRoute: typeof ClaseGratisRoute
   EntrarRoute: typeof EntrarRoute
   GraciasRoute: typeof GraciasRoute
+  HerramientaRoute: typeof HerramientaRouteWithChildren
+  ListaDeTiendaRoute: typeof ListaDeTiendaRoute
   MisCursosRoute: typeof MisCursosRouteWithChildren
   RevisaTuCorreoRoute: typeof RevisaTuCorreoRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
@@ -419,6 +754,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GraciasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/herramienta': {
+      id: '/herramienta'
+      path: '/herramienta'
+      fullPath: '/herramienta'
+      preLoaderRoute: typeof HerramientaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lista-de-tienda': {
+      id: '/lista-de-tienda'
+      path: '/lista-de-tienda'
+      fullPath: '/lista-de-tienda'
+      preLoaderRoute: typeof ListaDeTiendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mis-cursos': {
       id: '/mis-cursos'
       path: '/mis-cursos'
@@ -460,6 +809,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/cursos/$slug'
       preLoaderRoute: typeof CursosSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/herramienta/': {
+      id: '/herramienta/'
+      path: '/'
+      fullPath: '/herramienta/'
+      preLoaderRoute: typeof HerramientaIndexRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/ajustes': {
+      id: '/herramienta/ajustes'
+      path: '/ajustes'
+      fullPath: '/herramienta/ajustes'
+      preLoaderRoute: typeof HerramientaAjustesRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/etiquetas': {
+      id: '/herramienta/etiquetas'
+      path: '/etiquetas'
+      fullPath: '/herramienta/etiquetas'
+      preLoaderRoute: typeof HerramientaEtiquetasRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/lista': {
+      id: '/herramienta/lista'
+      path: '/lista'
+      fullPath: '/herramienta/lista'
+      preLoaderRoute: typeof HerramientaListaRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/lugares': {
+      id: '/herramienta/lugares'
+      path: '/lugares'
+      fullPath: '/herramienta/lugares'
+      preLoaderRoute: typeof HerramientaLugaresRouteImport
+      parentRoute: typeof HerramientaRoute
     }
     '/mis-cursos/': {
       id: '/mis-cursos/'
@@ -545,6 +929,146 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/herramienta/compras/': {
+      id: '/herramienta/compras/'
+      path: '/compras'
+      fullPath: '/herramienta/compras/'
+      preLoaderRoute: typeof HerramientaComprasIndexRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/compras/$id': {
+      id: '/herramienta/compras/$id'
+      path: '/compras/$id'
+      fullPath: '/herramienta/compras/$id'
+      preLoaderRoute: typeof HerramientaComprasIdRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/compras/nueva': {
+      id: '/herramienta/compras/nueva'
+      path: '/compras/nueva'
+      fullPath: '/herramienta/compras/nueva'
+      preLoaderRoute: typeof HerramientaComprasNuevaRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/cotizador/': {
+      id: '/herramienta/cotizador/'
+      path: '/cotizador'
+      fullPath: '/herramienta/cotizador/'
+      preLoaderRoute: typeof HerramientaCotizadorIndexRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/cotizador/$id': {
+      id: '/herramienta/cotizador/$id'
+      path: '/cotizador/$id'
+      fullPath: '/herramienta/cotizador/$id'
+      preLoaderRoute: typeof HerramientaCotizadorIdRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/ingredientes/': {
+      id: '/herramienta/ingredientes/'
+      path: '/ingredientes'
+      fullPath: '/herramienta/ingredientes/'
+      preLoaderRoute: typeof HerramientaIngredientesIndexRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/ingredientes/$id': {
+      id: '/herramienta/ingredientes/$id'
+      path: '/ingredientes/$id'
+      fullPath: '/herramienta/ingredientes/$id'
+      preLoaderRoute: typeof HerramientaIngredientesIdRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/ingredientes/nuevo': {
+      id: '/herramienta/ingredientes/nuevo'
+      path: '/ingredientes/nuevo'
+      fullPath: '/herramienta/ingredientes/nuevo'
+      preLoaderRoute: typeof HerramientaIngredientesNuevoRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/premezclas/': {
+      id: '/herramienta/premezclas/'
+      path: '/premezclas'
+      fullPath: '/herramienta/premezclas/'
+      preLoaderRoute: typeof HerramientaPremezclasIndexRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/premezclas/$id': {
+      id: '/herramienta/premezclas/$id'
+      path: '/premezclas/$id'
+      fullPath: '/herramienta/premezclas/$id'
+      preLoaderRoute: typeof HerramientaPremezclasIdRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/premezclas/nueva': {
+      id: '/herramienta/premezclas/nueva'
+      path: '/premezclas/nueva'
+      fullPath: '/herramienta/premezclas/nueva'
+      preLoaderRoute: typeof HerramientaPremezclasNuevaRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/producciones/': {
+      id: '/herramienta/producciones/'
+      path: '/producciones'
+      fullPath: '/herramienta/producciones/'
+      preLoaderRoute: typeof HerramientaProduccionesIndexRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/producciones/$id': {
+      id: '/herramienta/producciones/$id'
+      path: '/producciones/$id'
+      fullPath: '/herramienta/producciones/$id'
+      preLoaderRoute: typeof HerramientaProduccionesIdRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/producciones/nueva': {
+      id: '/herramienta/producciones/nueva'
+      path: '/producciones/nueva'
+      fullPath: '/herramienta/producciones/nueva'
+      preLoaderRoute: typeof HerramientaProduccionesNuevaRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/productos/': {
+      id: '/herramienta/productos/'
+      path: '/productos'
+      fullPath: '/herramienta/productos/'
+      preLoaderRoute: typeof HerramientaProductosIndexRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/productos/$id': {
+      id: '/herramienta/productos/$id'
+      path: '/productos/$id'
+      fullPath: '/herramienta/productos/$id'
+      preLoaderRoute: typeof HerramientaProductosIdRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/productos/nuevo': {
+      id: '/herramienta/productos/nuevo'
+      path: '/productos/nuevo'
+      fullPath: '/herramienta/productos/nuevo'
+      preLoaderRoute: typeof HerramientaProductosNuevoRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/recetas/': {
+      id: '/herramienta/recetas/'
+      path: '/recetas'
+      fullPath: '/herramienta/recetas/'
+      preLoaderRoute: typeof HerramientaRecetasIndexRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/recetas/$id': {
+      id: '/herramienta/recetas/$id'
+      path: '/recetas/$id'
+      fullPath: '/herramienta/recetas/$id'
+      preLoaderRoute: typeof HerramientaRecetasIdRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/recetas/nueva': {
+      id: '/herramienta/recetas/nueva'
+      path: '/recetas/nueva'
+      fullPath: '/herramienta/recetas/nueva'
+      preLoaderRoute: typeof HerramientaRecetasNuevaRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
     '/mis-cursos/$slug/': {
       id: '/mis-cursos/$slug/'
       path: '/$slug'
@@ -586,6 +1110,66 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface HerramientaRouteChildren {
+  HerramientaAjustesRoute: typeof HerramientaAjustesRoute
+  HerramientaEtiquetasRoute: typeof HerramientaEtiquetasRoute
+  HerramientaListaRoute: typeof HerramientaListaRoute
+  HerramientaLugaresRoute: typeof HerramientaLugaresRoute
+  HerramientaIndexRoute: typeof HerramientaIndexRoute
+  HerramientaComprasIdRoute: typeof HerramientaComprasIdRoute
+  HerramientaComprasNuevaRoute: typeof HerramientaComprasNuevaRoute
+  HerramientaCotizadorIdRoute: typeof HerramientaCotizadorIdRoute
+  HerramientaIngredientesIdRoute: typeof HerramientaIngredientesIdRoute
+  HerramientaIngredientesNuevoRoute: typeof HerramientaIngredientesNuevoRoute
+  HerramientaPremezclasIdRoute: typeof HerramientaPremezclasIdRoute
+  HerramientaPremezclasNuevaRoute: typeof HerramientaPremezclasNuevaRoute
+  HerramientaProduccionesIdRoute: typeof HerramientaProduccionesIdRoute
+  HerramientaProduccionesNuevaRoute: typeof HerramientaProduccionesNuevaRoute
+  HerramientaProductosIdRoute: typeof HerramientaProductosIdRoute
+  HerramientaProductosNuevoRoute: typeof HerramientaProductosNuevoRoute
+  HerramientaRecetasIdRoute: typeof HerramientaRecetasIdRoute
+  HerramientaRecetasNuevaRoute: typeof HerramientaRecetasNuevaRoute
+  HerramientaComprasIndexRoute: typeof HerramientaComprasIndexRoute
+  HerramientaCotizadorIndexRoute: typeof HerramientaCotizadorIndexRoute
+  HerramientaIngredientesIndexRoute: typeof HerramientaIngredientesIndexRoute
+  HerramientaPremezclasIndexRoute: typeof HerramientaPremezclasIndexRoute
+  HerramientaProduccionesIndexRoute: typeof HerramientaProduccionesIndexRoute
+  HerramientaProductosIndexRoute: typeof HerramientaProductosIndexRoute
+  HerramientaRecetasIndexRoute: typeof HerramientaRecetasIndexRoute
+}
+
+const HerramientaRouteChildren: HerramientaRouteChildren = {
+  HerramientaAjustesRoute: HerramientaAjustesRoute,
+  HerramientaEtiquetasRoute: HerramientaEtiquetasRoute,
+  HerramientaListaRoute: HerramientaListaRoute,
+  HerramientaLugaresRoute: HerramientaLugaresRoute,
+  HerramientaIndexRoute: HerramientaIndexRoute,
+  HerramientaComprasIdRoute: HerramientaComprasIdRoute,
+  HerramientaComprasNuevaRoute: HerramientaComprasNuevaRoute,
+  HerramientaCotizadorIdRoute: HerramientaCotizadorIdRoute,
+  HerramientaIngredientesIdRoute: HerramientaIngredientesIdRoute,
+  HerramientaIngredientesNuevoRoute: HerramientaIngredientesNuevoRoute,
+  HerramientaPremezclasIdRoute: HerramientaPremezclasIdRoute,
+  HerramientaPremezclasNuevaRoute: HerramientaPremezclasNuevaRoute,
+  HerramientaProduccionesIdRoute: HerramientaProduccionesIdRoute,
+  HerramientaProduccionesNuevaRoute: HerramientaProduccionesNuevaRoute,
+  HerramientaProductosIdRoute: HerramientaProductosIdRoute,
+  HerramientaProductosNuevoRoute: HerramientaProductosNuevoRoute,
+  HerramientaRecetasIdRoute: HerramientaRecetasIdRoute,
+  HerramientaRecetasNuevaRoute: HerramientaRecetasNuevaRoute,
+  HerramientaComprasIndexRoute: HerramientaComprasIndexRoute,
+  HerramientaCotizadorIndexRoute: HerramientaCotizadorIndexRoute,
+  HerramientaIngredientesIndexRoute: HerramientaIngredientesIndexRoute,
+  HerramientaPremezclasIndexRoute: HerramientaPremezclasIndexRoute,
+  HerramientaProduccionesIndexRoute: HerramientaProduccionesIndexRoute,
+  HerramientaProductosIndexRoute: HerramientaProductosIndexRoute,
+  HerramientaRecetasIndexRoute: HerramientaRecetasIndexRoute,
+}
+
+const HerramientaRouteWithChildren = HerramientaRoute._addFileChildren(
+  HerramientaRouteChildren,
+)
+
 interface MisCursosRouteChildren {
   MisCursosIndexRoute: typeof MisCursosIndexRoute
   MisCursosSlugLessonIdRoute: typeof MisCursosSlugLessonIdRoute
@@ -610,6 +1194,8 @@ const rootRouteChildren: RootRouteChildren = {
   ClaseGratisRoute: ClaseGratisRoute,
   EntrarRoute: EntrarRoute,
   GraciasRoute: GraciasRoute,
+  HerramientaRoute: HerramientaRouteWithChildren,
+  ListaDeTiendaRoute: ListaDeTiendaRoute,
   MisCursosRoute: MisCursosRouteWithChildren,
   RevisaTuCorreoRoute: RevisaTuCorreoRoute,
   ApiUploadsRoute: ApiUploadsRoute,

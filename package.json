@@ -30,7 +30,8 @@
     "db:import-transcripts": "tsx prisma/import-transcripts.ts",
     "db:import-lesson-texts": "tsx prisma/import-lesson-texts.ts",
     "db:import-lesson-resources": "tsx prisma/import-lesson-resources.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "eval:assistant": "tsx scripts/eval-assistant-scope.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
@@ -60,6 +61,7 @@
     "better-auth": "^1.5.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "cn": "^0.4.0",
     "dotenv": "^18.0.7",
     "hls.js": "^1.7.3",

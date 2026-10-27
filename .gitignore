@@ -13,3 +13,6 @@ __unconfig*
 todos.json
 public/uploads
 private-uploads
+
+# Maqueta exportada de la herramienta de costos (3 MB, vive como artifact); solo se versiona el .md
+herramienta-de-costos/maqueta-herramienta-de-costos.html

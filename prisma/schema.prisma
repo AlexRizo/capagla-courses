@@ -18,24 +18,36 @@ enum Role {
 }
 
 model User {
-  id             String           @id
-  name           String
-  email          String
-  emailVerified  Boolean          @default(false)
-  image          String?
-  role           Role             @default(STUDENT)
+  id              String           @id
+  name            String
+  email           String
+  emailVerified   Boolean          @default(false)
+  image           String?
+  role            Role             @default(STUDENT)
   // Cuenta suspendida desde el panel: no puede entrar ni conserva sesiones.
-  suspendedAt    DateTime?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  sessions       Session[]
-  accounts       Account[]
-  orders         Order[]
-  enrollments    Enrollment[]
-  lessonProgress LessonProgress[]
-  lessonMoments  LessonMoment[]
-  questions      LessonQuestion[]
-  lead           Lead?
+  suspendedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  sessions        Session[]
+  accounts        Account[]
+  orders          Order[]
+  enrollments     Enrollment[]
+  lessonProgress  LessonProgress[]
+  lessonMoments   LessonMoment[]
+  questions       LessonQuestion[]
+  lead            Lead?
+  costPlaces      CostPlace[]
+  costIngredients CostIngredient[]
+  costSettings    CostSettings?
+  costTags        CostTag[]
+  costPremixes    CostPremix[]
+  costRecipes     CostRecipe[]
+  costProducts    CostProduct[]
+  costProductions CostProduction[]
+  costLists       CostList[]
+  costPurchases   CostPurchase[]
+  costQuotes      CostQuote[]
+  assistantUsage  AssistantUsage[]
 
   @@unique([email])
   @@map("user")
@@ -275,12 +287,12 @@ model LessonMoment {
 // Quien se registró con su correo en "Clase gratis": ve los bloques gratis de los cursos sin comprar.
 // Guarda cuándo aceptó el aviso de privacidad y recibir correos (el permiso no se pierde si luego compra).
 model Lead {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  email     String   @unique
-  consentAt DateTime
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  email            String   @unique
+  consentAt        DateTime
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   // Atribución con la que llegó y si aceptó las cookies de medición (ver `Order`).
   attribution      Json?
   marketingConsent Boolean?
@@ -311,9 +323,43 @@ model LessonTranscript {
 
 // Ajustes del asistente de IA (una sola fila, id "main").
 model AssistantSettings {
-  id       String @id @default("main")
+  id         String  @id @default("main")
   // Máximo de caracteres por respuesta del asistente.
-  maxChars Int    @default(600)
+  maxChars   Int     @default(600)
+  // Interruptor para las alumnas: apagado, "Preguntar" va directo a la chef.
+  enabled    Boolean @default(true)
+  // Tope global: preguntas al asistente en 24 horas, sumando a todas las alumnas.
+  dailyLimit Int     @default(2000)
+}
+
+enum AssistantOutcome {
+  // Reservada: el modelo aún no responde (o el servidor se cayó antes de terminar).
+  RESERVED
+  OK
+  // El modelo se negó a responder.
+  REFUSED
+  // Falló la llamada: no cuenta para el tope diario, sí para el límite por minuto.
+  FAILED
+  // El modelo avisó que la pregunta es de otro tema (cuenta como una pregunta de la alumna).
+  OFF_TOPIC
+  // El filtro previo la descartó sin llamar al modelo: cuenta para la alumna, no para el tope global.
+  FILTERED
+}
+
+// Una fila por pregunta de una alumna al asistente, creada ANTES de llamar al modelo: así los
+// límites cuentan también las peticiones simultáneas y los fallos, y queda lo que se gastó.
+model AssistantUsage {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId       String
+  outcome      AssistantOutcome @default(RESERVED)
+  inputTokens  Int?
+  outputTokens Int?
+  createdAt    DateTime         @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }
 
 // Pregunta de una alumna a la chef sobre una lección. Mientras está PENDING solo la ve ella;
@@ -405,4 +451,389 @@ model Enrollment {
   product   Product  @relation(fields: [productId], references: [id])
 
   @@unique([userId, productId])
+}
+
+// --- Herramienta de costos (cada alumna con acceso tiene sus propios datos) ---
+
+enum CostItemKind {
+  INGREDIENT
+  PACKAGING
+}
+
+// Unidad en que se compra: g y kg (peso), ml y l (volumen), pza (pieza).
+enum CostUnit {
+  G
+  KG
+  ML
+  L
+  PZA
+}
+
+// Tienda o proveedor. Un ingrediente sin lugar cae en "Sin lugar asignado" en la lista de compra.
+model CostPlace {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  note          String?
+  createdAt     DateTime         @default(now())
+  ingredients   CostIngredient[]
+  costPurchases CostPurchase[]
+
+  @@index([userId])
+}
+
+// Ingrediente o empaque: lo que se compra. El costo por gramo, mililitro o pieza se calcula
+// al vuelo (lib/costs.ts); solo se guardan el precio y la cantidad de compra.
+model CostIngredient {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  kind         CostItemKind @default(INGREDIENT)
+  placeId      String?
+  place        CostPlace?   @relation(fields: [placeId], references: [id], onDelete: SetNull)
+  price        Decimal      @db.Decimal(12, 2)
+  quantity     Decimal      @db.Decimal(14, 3)
+  unit         CostUnit
+  // Uso flexible (solo piezas): se pesaron `sampleCount` piezas y pesaron `sampleGrams` g en total.
+  flexible     Boolean      @default(false)
+  sampleCount  Int?
+  sampleGrams  Decimal?     @db.Decimal(14, 3)
+  // Desperdicio: porcentaje que se aprovecha (1 a 99).
+  wasteEnabled Boolean      @default(false)
+  yieldPct     Int?
+  // Archivar en vez de borrar: lo que ya lo usa sigue funcionando.
+  archivedAt   DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  premixLines   CostPremixLine[]
+  recipeLines   CostRecipeLine[]
+  packaging     CostProductPackaging[]
+  listEntries   CostListEntry[]
+  purchaseItems CostPurchaseItem[]
+
+  @@index([userId, archivedAt])
+  @@index([placeId])
+}
+
+// Cómo se calcula la mano de obra por hora: lo que se quiere ganar al mes, el salario mínimo
+// diario entre 8 horas, o no sumarla.
+enum CostLaborMode {
+  WANTED
+  MINIMUM_WAGE
+  NONE
+}
+
+// Sobre qué costo se aplica el múltiplo del precio.
+enum CostPriceBase {
+  TOTAL
+  INGREDIENTS
+}
+
+// Ajustes de costos de una alumna: se escriben una sola vez y se usan en todas sus recetas. Todo
+// lo que se calcula (gasto fijo por hora, mano de obra por hora) sale al vuelo de estos datos
+// (lib/cost-settings.ts); aquí solo se guarda lo que ella escribe.
+model CostSettings {
+  userId          String        @id
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Tus horas
+  hoursPerWeek    Decimal?      @db.Decimal(6, 2)
+  // Gasto fijo por hora: luz, gas, renta y depreciación del horno
+  ovenKw          Decimal?      @db.Decimal(8, 3)
+  kwhPrice        Decimal?      @db.Decimal(10, 3)
+  gasKgPerHour    Decimal?      @db.Decimal(8, 3)
+  gasPricePerKg   Decimal?      @db.Decimal(10, 2)
+  rentMonthly     Decimal?      @db.Decimal(12, 2)
+  rentSharePct    Decimal?      @db.Decimal(5, 2)
+  equipCost       Decimal?      @db.Decimal(12, 2)
+  equipLifeHours  Decimal?      @db.Decimal(12, 2)
+  // Mano de obra por hora
+  laborMode       CostLaborMode @default(WANTED)
+  wantedMonthly   Decimal?      @db.Decimal(12, 2)
+  dailyMinWage    Decimal?      @db.Decimal(10, 2)
+  // Cómo se fija el precio: vender a N veces el costo (un múltiplo, no un porcentaje)
+  multiplier      Decimal?      @db.Decimal(6, 2)
+  defaultWastePct Decimal?      @db.Decimal(5, 2)
+  priceBase       CostPriceBase @default(TOTAL)
+  // Impuestos, solo si vende como negocio
+  sellsAsBusiness Boolean       @default(false)
+  taxPct          Decimal?      @db.Decimal(5, 2)
+  updatedAt       DateTime      @updatedAt
+}
+
+// Etiqueta de receta (Pastel, Cupcake, Galleta…): solo sirve para clasificar y filtrar. Se escribe
+// al crear la receta y se sugieren las que ya existen; una en uso no se borra, se archiva.
+model CostTag {
+  id         String       @id @default(cuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  archivedAt DateTime?
+  createdAt  DateTime     @default(now())
+  recipes    CostRecipe[]
+
+  @@unique([userId, name])
+}
+
+// Premezcla: una sub-receta que se prepara una vez y se usa en varias recetas (un betún, un
+// relleno). Se cuesta por lo que de verdad rinde (peso o volumen que le quedó).
+model CostPremix {
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  yieldQty   Decimal?         @db.Decimal(14, 3)
+  yieldUnit  CostUnit         @default(G)
+  archivedAt DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  lines      CostPremixLine[]
+  usedBy     CostRecipeLine[]
+
+  @@index([userId, archivedAt])
+}
+
+model CostPremixLine {
+  id           String         @id @default(cuid())
+  premixId     String
+  premix       CostPremix     @relation(fields: [premixId], references: [id], onDelete: Cascade)
+  position     Int
+  ingredientId String
+  ingredient   CostIngredient @relation(fields: [ingredientId], references: [id])
+  quantity     Decimal        @db.Decimal(14, 3)
+  unit         CostUnit
+
+  @@index([premixId])
+  @@index([ingredientId])
+}
+
+// Receta: una tanda (un pastel, una charola, una docena). Lleva su costo (ingredientes, merma,
+// mano de obra y gasto fijo) pero no precio ni empaque: eso vive en el producto. El rendimiento
+// siempre es en piezas y los nombres pueden repetirse (se distinguen por etiqueta).
+model CostRecipe {
+  id           String              @id @default(cuid())
+  userId       String
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  tagId        String?
+  tag          CostTag?            @relation(fields: [tagId], references: [id], onDelete: SetNull)
+  yieldPieces  Int?
+  laborHours   Decimal?            @db.Decimal(8, 2)
+  ovenHours    Decimal?            @db.Decimal(8, 2)
+  includeLabor Boolean             @default(true)
+  includeFixed Boolean             @default(true)
+  includeWaste Boolean             @default(true)
+  wastePct     Decimal?            @db.Decimal(5, 2)
+  archivedAt   DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  lines        CostRecipeLine[]
+  inProducts   CostProductRecipe[]
+
+  @@index([userId, archivedAt])
+  @@index([tagId])
+}
+
+// Un renglón de la receta: un ingrediente o una premezcla (uno de los dos), con su cantidad.
+model CostRecipeLine {
+  id           String          @id @default(cuid())
+  recipeId     String
+  recipe       CostRecipe      @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  position     Int
+  ingredientId String?
+  ingredient   CostIngredient? @relation(fields: [ingredientId], references: [id])
+  premixId     String?
+  premix       CostPremix?     @relation(fields: [premixId], references: [id])
+  quantity     Decimal         @db.Decimal(14, 3)
+  unit         CostUnit
+
+  @@index([recipeId])
+  @@index([ingredientId])
+  @@index([premixId])
+}
+
+// Dónde va el empaque de un producto: la pieza entera o cada rebanada.
+enum CostPackagingScope {
+  WHOLE
+  SLICE
+}
+
+// Producto: lo que se vende. Junta una o varias recetas más el empaque del entero y es donde viven
+// el precio y el semáforo. Opcionalmente también se vende por rebanadas (costo del entero ÷ N, más
+// el empaque de cada rebanada). Costos y márgenes se calculan al vuelo (lib/cost-product.ts).
+model CostProduct {
+  id             String                 @id @default(cuid())
+  userId         String
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  price          Decimal?               @db.Decimal(12, 2)
+  sellsSlices    Boolean                @default(false)
+  slicesPerPiece Int?
+  slicePrice     Decimal?               @db.Decimal(12, 2)
+  // Suma el impuesto de Ajustes al precio sugerido.
+  withTax        Boolean                @default(false)
+  archivedAt     DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  recipes        CostProductRecipe[]
+  packaging      CostProductPackaging[]
+  inProductions  CostProductionItem[]
+  inQuotes       CostQuote[]
+
+  @@index([userId, archivedAt])
+}
+
+// Una receta del producto y cuántas de sus piezas salieron para vender (por defecto, lo que rinde).
+model CostProductRecipe {
+  id         String      @id @default(cuid())
+  productId  String
+  product    CostProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  position   Int
+  recipeId   String
+  recipe     CostRecipe  @relation(fields: [recipeId], references: [id])
+  piecesSold Int
+
+  @@index([productId])
+  @@index([recipeId])
+}
+
+model CostProductPackaging {
+  id           String             @id @default(cuid())
+  productId    String
+  product      CostProduct        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  scope        CostPackagingScope
+  position     Int
+  ingredientId String
+  ingredient   CostIngredient     @relation(fields: [ingredientId], references: [id])
+  quantity     Decimal            @db.Decimal(14, 3)
+  unit         CostUnit
+
+  @@index([productId])
+  @@index([ingredientId])
+}
+
+// Producción: lo que ya se sabe que se va a hornear (productos y cuántos). De ahí salen su lista de
+// compra y su utilidad esperada; todo se recalcula con los costos del momento. Se guarda 30 días
+// desde el último guardado y después se limpia.
+model CostProduction {
+  id        String               @id @default(cuid())
+  userId    String
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  expiresAt DateTime
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  items     CostProductionItem[]
+  list      CostList?
+
+  @@index([userId, expiresAt])
+}
+
+model CostProductionItem {
+  id           String         @id @default(cuid())
+  productionId String
+  production   CostProduction @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  position     Int
+  productId    String
+  product      CostProduct    @relation(fields: [productId], references: [id])
+  quantity     Int
+
+  @@index([productionId])
+  @@index([productId])
+}
+
+// Lista de compra: una por producción, más una "directa" por alumna (sin producción) para lo que
+// se agrega a mano. Lo que hay que comprar se calcula de la producción; aquí solo se guarda lo
+// que la alumna decide: el orden, el lugar de hoy, "Ya lo tengo", lo comprado y lo agregado a mano.
+model CostList {
+  id           String          @id @default(cuid())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productionId String?         @unique
+  production   CostProduction? @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime        @default(now())
+  entries      CostListEntry[]
+
+  @@index([userId])
+}
+
+model CostListEntry {
+  id           String         @id @default(cuid())
+  listId       String
+  list         CostList       @relation(fields: [listId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   CostIngredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  position     Int
+  // Lugar de compra de hoy: sin valor es el del ingrediente; "none" es "Sin lugar asignado".
+  placeKey     String?
+  haveIt       Boolean        @default(false)
+  bought       Boolean        @default(false)
+  // Paquetes completos agregados a mano.
+  manualPacks  Int            @default(0)
+
+  @@unique([listId, ingredientId])
+}
+
+// Una compra registrada: lo que se pagó en una tienda un día. Al guardarla, el precio de cada
+// ingrediente se actualiza al que se pagó y se conserva el anterior para ver cuánto cambió.
+model CostPurchase {
+  id        String             @id @default(cuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  placeId   String?
+  place     CostPlace?         @relation(fields: [placeId], references: [id], onDelete: SetNull)
+  date      DateTime           @db.Date
+  createdAt DateTime           @default(now())
+  items     CostPurchaseItem[]
+
+  @@index([userId, date])
+}
+
+model CostPurchaseItem {
+  id            String         @id @default(cuid())
+  purchaseId    String
+  purchase      CostPurchase   @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  ingredientId  String
+  ingredient    CostIngredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  // Lo que costaba antes de esta compra y lo que se pagó (por el paquete que vende la tienda).
+  previousPrice Decimal        @db.Decimal(12, 2)
+  price         Decimal        @db.Decimal(12, 2)
+  // Lo que pesó el paquete completo (solo en lo que se compra por pieza), opcional.
+  packGrams     Decimal?       @db.Decimal(14, 3)
+
+  @@index([purchaseId])
+  @@index([ingredientId])
+}
+
+// Cotizador: un pedido a partir de un producto. Solo guarda lo que se capturó (producto, cantidad,
+// horas extra y extras); el mínimo a cobrar se recalcula con los costos de hoy y el producto no se toca.
+model CostQuote {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId     String
+  product       CostProduct      @relation(fields: [productId], references: [id])
+  quantity      Int
+  // Horas extra de decorado y para conseguir los insumos extra.
+  decorHours    Decimal          @default(0) @db.Decimal(7, 2)
+  sourcingHours Decimal          @default(0) @db.Decimal(7, 2)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  extras        CostQuoteExtra[]
+
+  @@index([userId, updatedAt])
+  @@index([productId])
+}
+
+model CostQuoteExtra {
+  id       String    @id @default(cuid())
+  quoteId  String
+  quote    CostQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  position Int
+  name     String
+  cost     Decimal   @db.Decimal(12, 2)
+
+  @@index([quoteId])
 }

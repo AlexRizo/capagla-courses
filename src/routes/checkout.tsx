@@ -30,11 +30,14 @@ export const Route = createFileRoute('/checkout')({
     desde: z.literal('mis-cursos').optional().catch(undefined),
     // Renovación del acceso a ese curso (desde Mis cursos).
     renovar: z.string().optional().catch(undefined),
+    // Herramienta de costos sola, a precio normal (desde Mis cursos).
+    producto: z.string().optional().catch(undefined),
   }),
   loaderDeps: ({ search }) => ({
     promo: search.promo,
     prueba: search.prueba,
     renovar: search.renovar,
+    producto: search.producto,
   }),
   loader: ({ deps }) => getCheckoutData({ data: deps }),
   component: Checkout,
@@ -319,7 +322,7 @@ function CheckoutForm({
 }) {
   const { course, bonuses, tool, special, until, account, renewal } =
     Route.useLoaderData()
-  const { promo, prueba, desde, renovar } = Route.useSearch()
+  const { promo, prueba, desde, renovar, producto } = Route.useSearch()
   const days = `${course.accessDays} días${renewal ? ' más' : ''}`
   const navigate = useNavigate()
   const stripe = useStripe()
@@ -405,6 +408,7 @@ function CheckoutForm({
       promo,
       prueba,
       renovar,
+      producto,
     ])
     if (attempt.current?.key === key) return attempt.current
     const result = await startCheckout({
@@ -416,6 +420,7 @@ function CheckoutForm({
         promo,
         prueba,
         renovar,
+        producto,
         replaces: attempt.current?.orderId,
       },
     })

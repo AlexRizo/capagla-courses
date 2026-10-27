@@ -6,7 +6,7 @@ import { auth } from '#/lib/auth'
 import { withLinkPurpose } from '#/lib/mailer'
 import { trackPurchase } from '#/lib/purchase-tracking'
 import type { TrackingContext } from '#/lib/track-core'
-import { resolveOffer, resolveRenewal } from '#/lib/offers'
+import { resolveOffer, resolveRenewal, resolveStandalone } from '#/lib/offers'
 import { TIME_ZONE } from '#/lib/promotions'
 import { getStripe } from '#/lib/stripe'
 
@@ -37,6 +37,8 @@ export async function createOrder(input: {
   withTool: boolean
   promo?: string
   prueba?: string
+  // Herramienta sola a precio normal (desde Mis cursos); la promoción sigue vendiéndola como casilla.
+  product?: string
   renew?: string
   // Atribución de la visita y si aceptó las cookies de medición (ver lib/attribution.ts).
   attribution?: Attribution | null
@@ -48,7 +50,14 @@ export async function createOrder(input: {
     ? await resolveRenewal(input.renew, input.email)
     : null
   if (input.renew && !renewal) throw new Error('No se puede renovar.')
-  const offer = renewal ?? (await resolveOffer(input.promo, true, input.prueba))
+  const standalone = input.product
+    ? await resolveStandalone(input.product)
+    : null
+  if (input.product && !standalone) throw new Error('No está a la venta.')
+  const offer =
+    renewal ??
+    standalone ??
+    (await resolveOffer(input.promo, true, input.prueba))
   if (!offer.main.published) throw new Error('El curso no está a la venta.')
   // Una renovación sí puede pagarse con el acceso vigente (en sus últimos 30 días).
   if (!renewal && (await hasActiveAccess(input.email, offer.main.productId))) {

@@ -18,6 +18,7 @@ import {
   AssistantRefusal,
   anthropicTextModel,
 } from '#/lib/assistant-model'
+import { OFF_TOPIC_MARK } from '#/lib/assistant-scope'
 import { resetDb, seedCatalog } from '#/test/db'
 
 // El asistente de IA contra un servidor falso que imita la API de Anthropic: aquí se comprueba
@@ -153,6 +154,45 @@ describe('anthropicTextModel', () => {
     await expect(model()(prompt)).rejects.toThrow(/cyber/)
   })
 
+  it('informa los tokens que gastó, también si el modelo se niega o no devuelve texto', async () => {
+    const used: { input: number; output: number }[] = []
+    const onUsage = (u: { input: number; output: number }) => used.push(u)
+    reply = {
+      status: 200,
+      body: message([text('Hola.')], 'end_turn', {
+        usage: { input_tokens: 4600, output_tokens: 270 },
+      }),
+    }
+    await model()({ ...prompt, onUsage })
+    expect(used).toEqual([{ input: 4600, output: 270 }])
+
+    reply = {
+      status: 200,
+      body: message([], 'refusal', {
+        stop_details: { type: 'refusal', category: 'cyber', explanation: null },
+        usage: { input_tokens: 4500, output_tokens: 7 },
+      }),
+    }
+    await expect(model()({ ...prompt, onUsage })).rejects.toBeInstanceOf(
+      AssistantRefusal,
+    )
+    expect(used.at(-1)).toEqual({ input: 4500, output: 7 })
+
+    reply = {
+      status: 200,
+      body: message([], 'end_turn', {
+        usage: { input_tokens: 4400, output_tokens: 3 },
+      }),
+    }
+    await expect(model()({ ...prompt, onUsage })).rejects.toThrow()
+    expect(used.at(-1)).toEqual({ input: 4400, output: 3 })
+    expect(used).toHaveLength(3)
+  })
+
+  it('sin onUsage funciona igual', async () => {
+    expect(await model()(prompt)).toBe('Respuesta de prueba.')
+  })
+
   it('un error de la API falla y el registro no lleva la pregunta ni la lección', async () => {
     reply = {
       status: 401,
@@ -239,7 +279,10 @@ describe('el asistente con la transcripción de la lección', () => {
       '¿Cuánto tiempo se hornea?',
       model(),
     )
-    expect(answer).toBe('Se hornea cuarenta minutos (minuto 4:35).')
+    expect(answer).toEqual({
+      offTopic: false,
+      text: 'Se hornea cuarenta minutos (minuto 4:35).',
+    })
 
     const { system, messages } = requests[0].body
     const user = messages[0].content as string
@@ -317,8 +360,33 @@ describe('el asistente con la transcripción de la lección', () => {
       '¿Cuánto tiempo se hornea?',
       model(),
     )
-    expect(answer).toContain('Preguntarle a la chef')
-    expect(answer).not.toContain('aaaa')
+    expect(answer.offTopic).toBe(false)
+    const shown = answer.offTopic ? '' : answer.text
+    expect(shown).toContain('Preguntarle a la chef')
+    expect(shown).not.toContain('aaaa')
+  })
+
+  it('el alcance va en las instrucciones: repostería, lección y negocio, y la marca para lo ajeno', async () => {
+    await answerQuestion(lessonId, '¿Cuánto se hornea?', model())
+    const system = requests[0].body.system as string
+    expect(system).toContain('del negocio de repostería (costos, precios')
+    expect(system).toContain('programación')
+    expect(system).toContain(`contesta únicamente ${OFF_TOPIC_MARK}`)
+    // Lo ajeno no manda a la chef; lo de repostería que la lección no cubre, sí.
+    expect(system).toContain('NO ofrezcas mandarla a la chef')
+    expect(system).toContain('Ante la duda, no la trates como ajena')
+    expect(system).toContain('pero la lección no la contesta')
+  })
+
+  it('si el modelo marca la pregunta como ajena, no se publica nada de lo que escribió', async () => {
+    reply = {
+      status: 200,
+      body: message([
+        text(`${OFF_TOPIC_MARK} Eso no es mi área, pero mándasela a la chef.`),
+      ]),
+    }
+    const answer = await answerQuestion(lessonId, 'Escribe un script', model())
+    expect(answer).toEqual({ offTopic: true })
   })
 
   it('el borrador para la chef también recibe la transcripción', async () => {

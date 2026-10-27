@@ -107,6 +107,22 @@ export async function resolveRenewal(
   }
 }
 
+// Compra de la herramienta sola, a precio normal (desde Mis cursos, sin promoción de por medio).
+// Solo vende productos de tipo herramienta: los cursos se venden por su página o su promoción.
+// null si no existe, no es una herramienta o no está publicada.
+export async function resolveStandalone(slug: string): Promise<Offer | null> {
+  const product = await prisma.product.findUnique({ where: { slug } })
+  if (!product || product.kind !== 'TOOL' || product.status !== 'PUBLISHED') {
+    return null
+  }
+  return {
+    promotion: null,
+    applied: false,
+    main: asProduct(product, product.priceMxn),
+    extras: [],
+  }
+}
+
 // Sin promoción (enlace simple) se vende el curso al precio normal. Con promoción: el curso
 // principal de la promoción, y sus adicionales con precio especial si está vigente.
 // `forPayment` extiende el fin 1 hora (quien ya tenía el carrito abierto); para mostrar no.

@@ -22,9 +22,15 @@ export function Tracking({
     return onConsentChange(() => initTracking(config))
   }, [config])
 
-  // Una vista por página (navegar dentro del sitio no recarga). Ni el panel ni la API cuentan.
+  // Una vista por página (navegar dentro del sitio no recarga). Ni el panel, ni la herramienta ni la API cuentan.
   useEffect(() => {
-    if (pathname.startsWith('/admin') || pathname.startsWith('/api')) return
+    if (
+      pathname.startsWith('/admin') ||
+      pathname.startsWith('/herramienta') ||
+      pathname.startsWith('/lista-de-tienda') ||
+      pathname.startsWith('/api')
+    )
+      return
     track('PageView')
   }, [href, pathname])
 

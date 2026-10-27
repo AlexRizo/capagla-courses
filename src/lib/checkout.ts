@@ -20,7 +20,12 @@ import {
 import { readSession } from '#/lib/auth'
 import { CONSENT_COOKIE, parseConsent } from '#/lib/consent'
 import { courseContents } from '#/lib/course-pages'
-import { canRenew, resolveOffer, resolveRenewal } from '#/lib/offers'
+import {
+  canRenew,
+  resolveOffer,
+  resolveRenewal,
+  resolveStandalone,
+} from '#/lib/offers'
 import { clientIp } from '#/lib/track-core'
 import type { TrackingContext } from '#/lib/track-core'
 import { recordPromotionEvent } from '#/lib/promo-stats'
@@ -47,6 +52,7 @@ export const getCheckoutData = createServerFn()
       promo: z.string().optional(),
       prueba: z.string().optional(),
       renovar: z.string().optional(),
+      producto: z.string().optional(),
     }),
   )
   .handler(async ({ data }) => {
@@ -60,7 +66,13 @@ export const getCheckoutData = createServerFn()
       if (!renewal) throw redirect({ to: '/mis-cursos' })
       offer = renewal
     } else {
-      offer = await resolveOffer(data.promo, true, data.prueba)
+      // `?producto=` vende la herramienta sola a precio normal; sin él, la oferta de siempre
+      // (el curso, o la promoción con la herramienta como casilla).
+      const standalone = data.producto
+        ? await resolveStandalone(data.producto)
+        : null
+      if (data.producto && !standalone) throw notFound()
+      offer = standalone ?? (await resolveOffer(data.promo, true, data.prueba))
       // Con el acceso vigente no hay nada que comprar (el pago se rechazaría): en sus últimos
       // 30 días va a la renovación; antes, de vuelta a Mis cursos. Vencido sí puede comprar.
       const enrollment = session
@@ -158,11 +170,12 @@ export const startCheckout = createServerFn({ method: 'POST' })
       promo: z.string().optional(),
       prueba: z.string().optional(),
       renovar: z.string().optional(),
+      producto: z.string().optional(),
       replaces: z.string().optional(),
     }),
   )
   .handler(async ({ data }) => {
-    const { replaces, email, name, renovar, ...rest } = data
+    const { replaces, email, name, renovar, producto, ...rest } = data
     const session = await readSession(getRequestHeaders())
     if (renovar && !session) throw new Error('Entra para renovar tu acceso.')
     // Con sesión, el nombre del navegador solo cuenta si la cuenta aún no tiene uno real.
@@ -192,6 +205,7 @@ export const startCheckout = createServerFn({ method: 'POST' })
       ...rest,
       ...buyer,
       renew: renovar,
+      product: producto,
       attribution,
       marketingConsent: consent === null ? null : consent === 'accepted',
       trackingContext,

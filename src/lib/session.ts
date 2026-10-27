@@ -139,6 +139,37 @@ export const getMyCourses = createServerFn().handler(async () => {
     }
   })
 
+  // La herramienta de costos: una administradora siempre; una alumna con la herramienta vigente.
+  // Sin acceso se ofrece comprarla (precio normal) o, si la tuvo y venció o le falta poco,
+  // renovarla; sin la herramienta a la venta no se muestra nada.
+  const toolEnrollment = enrollments.find((e) => e.product.kind === 'TOOL')
+  const toolProduct =
+    toolEnrollment?.product ??
+    (await prisma.product.findFirst({
+      where: { kind: 'TOOL', status: 'PUBLISHED' },
+      orderBy: { position: 'asc' },
+    }))
+  const toolActive =
+    isAdmin || (!!toolEnrollment && toolEnrollment.expiresAt > new Date())
+  const tool =
+    toolProduct && (toolActive || toolProduct.status === 'PUBLISHED')
+      ? {
+          slug: toolProduct.slug,
+          active: toolActive,
+          priceMxn: toolProduct.priceMxn,
+          // Vencida o en sus últimos 30 días: se ofrece renovar a este precio (no a la admin).
+          renewalMxn:
+            !isAdmin && toolEnrollment && canRenew(toolEnrollment.expiresAt)
+              ? renewalPrice(toolProduct.priceMxn)
+              : null,
+          accessDays: toolProduct.accessDays,
+          expiresAt:
+            !isAdmin && toolEnrollment
+              ? toolEnrollment.expiresAt.toISOString()
+              : null,
+        }
+      : null
+
   return {
     user: {
       name: session.user.name,
@@ -146,6 +177,7 @@ export const getMyCourses = createServerFn().handler(async () => {
       isAdmin,
     },
     hasPassword: credential !== null,
+    tool,
     freeCourses,
     courses: courses.map(({ product, expiresAt }) => ({
       slug: product.slug,

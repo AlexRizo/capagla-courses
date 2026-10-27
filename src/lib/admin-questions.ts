@@ -11,6 +11,8 @@ import {
   draftAnswer,
   getMaxChars,
 } from '#/lib/assistant'
+import { MAX_GLOBAL_LIMIT, MIN_GLOBAL_LIMIT } from '#/lib/assistant-limits'
+import { loadAssistantLimits, usageSummary } from '#/lib/assistant-usage'
 import { answerMail } from '#/lib/emails'
 import { requireAdmin } from '#/lib/guards'
 import { sendMail } from '#/lib/mailer'
@@ -125,10 +127,43 @@ export const hideQuestion = createServerFn({ method: 'POST' })
 // ¿Hay asistente de IA? Cambia el texto de la pantalla y muestra el borrador y "Regenerar con IA".
 export const getAssistantInfo = createServerFn()
   .middleware([requireAdmin])
-  .handler(async () => ({
-    enabled: assistantEnabled(),
-    maxChars: await getMaxChars(),
-  }))
+  .handler(async () => {
+    const limits = await loadAssistantLimits()
+    return {
+      enabled: assistantEnabled(),
+      maxChars: await getMaxChars(),
+      // Interruptor y tope global de las alumnas, y lo que se gastó en las últimas 24 horas.
+      studentsEnabled: limits.enabled,
+      dailyLimit: limits.dailyLimit,
+      usage: await usageSummary(),
+    }
+  })
+
+// Interruptor del asistente para las alumnas y su tope global de preguntas en 24 horas. Apagado o
+// en el tope, "Preguntar" va directo a la chef. El borrador para la chef no depende de esto.
+export const saveAssistantLimits = createServerFn({ method: 'POST' })
+  .middleware([requireAdmin])
+  .validator(z.object({ enabled: z.boolean(), dailyLimit: z.number().int() }))
+  .handler(async ({ data }) => {
+    if (
+      data.dailyLimit < MIN_GLOBAL_LIMIT ||
+      data.dailyLimit > MAX_GLOBAL_LIMIT
+    ) {
+      return {
+        error: `Escribe un número entre ${MIN_GLOBAL_LIMIT} y ${MAX_GLOBAL_LIMIT}.`,
+      }
+    }
+    await prisma.assistantSettings.upsert({
+      where: { id: 'main' },
+      create: {
+        id: 'main',
+        enabled: data.enabled,
+        dailyLimit: data.dailyLimit,
+      },
+      update: { enabled: data.enabled, dailyLimit: data.dailyLimit },
+    })
+    return {}
+  })
 
 export const saveAssistantMaxChars = createServerFn({ method: 'POST' })
   .middleware([requireAdmin])

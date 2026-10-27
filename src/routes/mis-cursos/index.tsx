@@ -346,27 +346,7 @@ function MisCursos() {
             <FreeCourseCard key={course.slug} course={course} />
           ))}
 
-          <div className="flex items-center gap-3 overflow-hidden rounded-2xl border border-landing-line bg-white p-3 md:flex-wrap md:items-stretch md:gap-0 md:rounded-20 md:p-0">
-            <div className="flex size-21 shrink-0 items-center justify-center rounded-12 bg-landing-ink p-1.5 text-center text-13 font-black text-landing-neon md:size-auto md:min-h-35 md:grow md:basis-70 md:rounded-none md:p-5 md:text-2xl">
-              Herramienta de costos
-            </div>
-            <div className="flex flex-1 flex-col gap-2 md:grow-2 md:basis-100 md:justify-center md:gap-3 md:px-8 md:py-6">
-              <div className="text-13 leading-snug text-landing-muted md:text-15 md:leading-normal">
-                <span className="md:hidden">
-                  Costo por porción y precio sugerido de cada receta.
-                </span>
-                <span className="hidden md:inline">
-                  Calcula el costo por porción y el precio sugerido de cada
-                  receta, con las recetas del curso ya cargadas.
-                </span>
-              </div>
-              <div>
-                <span className="inline-flex items-center justify-center self-start rounded-lg bg-landing-soft px-3.5 py-2 text-sm font-black text-landing-muted md:min-h-11.5 md:rounded-12 md:px-6 md:py-0 md:text-base">
-                  Próximamente
-                </span>
-              </div>
-            </div>
-          </div>
+          {data.tool && <ToolCard tool={data.tool} />}
         </div>
       </div>
 
@@ -422,6 +402,10 @@ type MyCourse = NonNullable<
 type FreeCourse = NonNullable<
   Awaited<ReturnType<typeof getMyCourses>>
 >['freeCourses'][number]
+
+type MyTool = NonNullable<
+  NonNullable<Awaited<ReturnType<typeof getMyCourses>>>['tool']
+>
 
 // Curso que la cuenta aún no tiene: la misma tarjeta, con su clase gratis y la compra
 // ("Quiero el curso" va al checkout y, al pagar, vuelve aquí).
@@ -481,6 +465,86 @@ function FreeCourseCard({ course }: { course: FreeCourse }) {
 }
 
 // Tarjeta de un curso comprado: avance, vencimiento, "Continuar progreso" y recetario.
+// Herramienta de costos. Con acceso la abre; sin él ofrece comprarla a precio normal; vencida o
+// por vencer, renovarla con descuento (misma regla que los cursos). Ninguno de los tres botones
+// ni los avisos están en la maqueta (decisión del cliente, 2026-10-26).
+function ToolCard({ tool }: { tool: MyTool }) {
+  const { active, renewalMxn, priceMxn, accessDays } = tool
+  const daysLeft = tool.expiresAt
+    ? Math.ceil(
+        (new Date(tool.expiresAt).getTime() - Date.now()) /
+          (24 * 60 * 60 * 1000),
+      )
+    : 0
+  const buttonClass =
+    'inline-flex items-center justify-center self-start rounded-lg bg-landing-primary px-3.5 py-2 text-sm font-black text-white no-underline md:min-h-11.5 md:rounded-12 md:px-6 md:py-0 md:text-base'
+  const renewLink = {
+    to: '/checkout',
+    search: { renovar: tool.slug, desde: 'mis-cursos' },
+  } as const
+
+  return (
+    <div className="flex items-center gap-3 overflow-hidden rounded-2xl border border-landing-line bg-white p-3 md:flex-wrap md:items-stretch md:gap-0 md:rounded-20 md:p-0">
+      <div className="flex size-21 shrink-0 items-center justify-center rounded-12 bg-landing-ink p-1.5 text-center text-13 font-black text-landing-neon md:size-auto md:min-h-35 md:grow md:basis-70 md:rounded-none md:p-5 md:text-2xl">
+        Herramienta de costos
+      </div>
+      <div className="flex flex-1 flex-col gap-2 md:grow-2 md:basis-100 md:justify-center md:gap-3 md:px-8 md:py-6">
+        <div className="text-13 leading-snug text-landing-muted md:text-15 md:leading-normal">
+          <span className="md:hidden">
+            Costo por porción y precio sugerido de cada receta.
+          </span>
+          <span className="hidden md:inline">
+            Calcula el costo por porción y el precio sugerido de cada receta,
+            con las recetas del curso ya cargadas.
+          </span>
+        </div>
+        {renewalMxn !== null && (
+          <div className="rounded-xl border-1.5 border-landing-warn-line bg-landing-warn p-3 text-13 leading-normal md:text-15">
+            {active ? (
+              <>
+                <strong>
+                  Tu acceso vence en {daysLeft}{' '}
+                  {daysLeft === 1 ? 'día' : 'días'}.
+                </strong>{' '}
+                Renuévalo con {RENEWAL_DISCOUNT_PCT}% de descuento por{' '}
+                {mxn(renewalMxn)} y suma {accessDays} días a los que te quedan.{' '}
+                <Link {...renewLink} className="font-bold text-landing-primary">
+                  Renovar
+                </Link>
+              </>
+            ) : (
+              <>
+                <strong>Tu acceso venció.</strong> Renuévalo con{' '}
+                {RENEWAL_DISCOUNT_PCT}% de descuento por {mxn(renewalMxn)} y
+                tienes {accessDays} días más. Tus datos se conservan.
+              </>
+            )}
+          </div>
+        )}
+        <div>
+          {active ? (
+            <Link to="/herramienta" className={buttonClass}>
+              Abrir herramienta
+            </Link>
+          ) : renewalMxn !== null ? (
+            <Link {...renewLink} className={buttonClass}>
+              Renovar por {mxn(renewalMxn)}
+            </Link>
+          ) : (
+            <Link
+              to="/checkout"
+              search={{ producto: tool.slug, desde: 'mis-cursos' }}
+              className={buttonClass}
+            >
+              Comprar por {mxn(priceMxn)}
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function CourseCard({ course }: { course: MyCourse }) {
   const expires =
     course.expiresAt &&

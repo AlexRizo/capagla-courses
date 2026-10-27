@@ -43,18 +43,23 @@ export function LessonTabs({
   notes,
   resources,
   questions,
+  history,
   assistant,
 }: {
   lessonId: string
   notes: string | null
   resources: PlayerResource[]
   questions: Awaited<ReturnType<typeof getPlayer>>['lesson']['questions']
+  history: Awaited<ReturnType<typeof getPlayer>>['lesson']['assistantQuestions']
   assistant: boolean
 }) {
   const tabs = [
     ...(notes ? [{ id: 'notas', label: 'Notas' }] : []),
     ...(resources.length ? [{ id: 'recursos', label: 'Recursos' }] : []),
-    { id: 'preguntas', label: `Preguntas · ${questions.length}` },
+    {
+      id: 'preguntas',
+      label: `Preguntas · ${questions.length + history.length}`,
+    },
   ]
   const [selected, setSelected] = useState(tabs[0].id)
   const tab = tabs.some((t) => t.id === selected) ? selected : tabs[0].id
@@ -103,6 +108,7 @@ export function LessonTabs({
           <Questions
             lessonId={lessonId}
             questions={questions}
+            history={history}
             assistant={assistant}
           />
         )}

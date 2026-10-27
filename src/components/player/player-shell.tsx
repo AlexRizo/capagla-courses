@@ -774,6 +774,7 @@ function PlayerLayout({ data }: { data: Data }) {
                   notes={lesson.notes}
                   resources={resources}
                   questions={lesson.questions}
+                  history={lesson.assistantQuestions}
                   assistant={data.assistant}
                 />
               </div>
@@ -939,6 +940,7 @@ function PlayerLayout({ data }: { data: Data }) {
             <Questions
               lessonId={lesson.id}
               questions={lesson.questions}
+              history={lesson.assistantQuestions}
               assistant={data.assistant}
               page
             />
@@ -966,7 +968,7 @@ function PlayerLayout({ data }: { data: Data }) {
                 <Icon className="size-5.5" />
                 {id === 'preg' && (
                   <span className="absolute -top-1.25 -right-2.75 flex h-4.25 min-w-4.25 items-center justify-center rounded-full bg-player-accent text-11 font-black text-player-on-accent">
-                    {lesson.questions.length}
+                    {lesson.questions.length + lesson.assistantQuestions.length}
                   </span>
                 )}
               </span>

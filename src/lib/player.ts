@@ -146,7 +146,8 @@ export const getPlayer = createServerFn()
             select: { id: true, itemId: true, seconds: true, name: true },
           }),
         )
-    // Las respondidas las ven todas; las que espera la chef, solo quien las hizo.
+    // Las respondidas las ven todas; las que espera la chef y las que solo contestó el asistente
+    // (su historial con la IA), solo quien las hizo.
     const questions = await prisma.lessonQuestion.findMany({
       where: {
         itemId: data.lessonId,
@@ -154,7 +155,10 @@ export const getPlayer = createServerFn()
           { status: 'ANSWERED' },
           ...(preview
             ? []
-            : [{ status: 'PENDING' as const, userId: session.user.id }]),
+            : [
+                { status: 'PENDING' as const, userId: session.user.id },
+                { status: 'ASSISTANT' as const, userId: session.user.id },
+              ]),
         ],
       },
       include: { user: { select: { name: true } } },
@@ -217,17 +221,32 @@ export const getPlayer = createServerFn()
           seconds: m.seconds,
           name: m.name,
         })),
-        questions: questions.map((q) => ({
-          id: q.id,
-          // De las demás alumnas solo se ve el primer nombre.
-          who:
-            q.userId === session.user.id
-              ? 'Tú'
-              : (q.user.name.trim().split(/\s+/)[0] ?? 'Alumna'),
-          ago: ago(q.createdAt, now),
-          text: q.text,
-          answer: q.status === 'ANSWERED' ? q.answer : null,
-        })),
+        questions: questions
+          .filter((q) => q.status !== 'ASSISTANT')
+          .map((q) => ({
+            id: q.id,
+            // De las demás alumnas solo se ve el primer nombre.
+            who:
+              q.userId === session.user.id
+                ? 'Tú'
+                : (q.user.name.trim().split(/\s+/)[0] ?? 'Alumna'),
+            ago: ago(q.createdAt, now),
+            text: q.text,
+            answer: q.status === 'ANSWERED' ? q.answer : null,
+            // Lo que le contestó el asistente: solo la dueña de la pregunta lo ve.
+            assistantAnswer:
+              q.userId === session.user.id ? q.assistantAnswer : null,
+          })),
+        // Sus preguntas que solo contestó el asistente (aún no las manda a la chef).
+        assistantQuestions: questions
+          .filter((q) => q.status === 'ASSISTANT')
+          .map((q) => ({
+            id: q.id,
+            ago: ago(q.createdAt, now),
+            text: q.text,
+            answer: q.assistantAnswer,
+            vote: q.vote,
+          })),
         body: (item?.body ?? null) as JSONContent | null,
         seen: current.lesson.seen,
         blockTitle: block?.title ?? '',

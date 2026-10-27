@@ -8,6 +8,7 @@ import type { getPlayer } from '#/lib/player'
 import { minutes } from '#/lib/player-tree'
 import { cn } from '#/lib/utils'
 
+import { AllMoments, BookmarkIcon, momentsCount } from './all-moments'
 import { CoursePanel, SearchIcon } from './course-panel'
 import {
   ChapterMaterial,
@@ -372,19 +373,6 @@ function PrevNext({
   )
 }
 
-function BookmarkIcon({ className }: { className: string }) {
-  return (
-    <svg
-      viewBox="0 0 18 18"
-      className={cn('fill-none stroke-current', className)}
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M5 2.5h8v13l-4-3-4 3z" />
-    </svg>
-  )
-}
-
 function DocIcon({ className }: { className: string }) {
   return (
     <svg
@@ -553,11 +541,17 @@ function MobileMaterial({ data, material }: { data: Data; material: boolean }) {
   )
 }
 
-export function PlayerShell({ data }: { data: Data }) {
-  // Cada lección empieza con su video en 0.
+export function PlayerShell({
+  data,
+  startAt,
+}: {
+  data: Data
+  startAt?: number
+}) {
+  // Cada lección empieza con su video en 0 (o en el segundo que pidió "Mis momentos").
   return (
     <PreviewContext.Provider value={data.preview}>
-      <VideoProvider key={data.lesson.id}>
+      <VideoProvider key={data.lesson.id} startAt={startAt}>
         <PlayerLayout data={data} />
       </VideoProvider>
     </PreviewContext.Provider>
@@ -575,6 +569,8 @@ function PlayerLayout({ data }: { data: Data }) {
   const [mobileTab, setMobileTab] = useState<'les' | 'mat' | 'preg'>('les')
   const [searchFromRail, setSearchFromRail] = useState(false)
   const [drawer, setDrawer] = useState(false)
+  // "Mis momentos" del curso: panel a la derecha en escritorio, ventana completa en móvil.
+  const [momentsOpen, setMomentsOpen] = useState(false)
 
   useEffect(() => {
     try {
@@ -618,8 +614,25 @@ function PlayerLayout({ data }: { data: Data }) {
     setSearchFromRail(search)
     if (left && !search) return setLeft(false)
     setLeft(true)
-    if (!wide) setRight(false)
+    if (!wide) {
+      setRight(false)
+      setMomentsOpen(false)
+    }
   }
+  const openMoments = () => {
+    setMomentsOpen(true)
+    if (!wide) setLeft(false)
+  }
+  const momentsTotal = momentsCount(data.courseMoments)
+  const allMoments = (mobile: boolean) => (
+    <AllMoments
+      slug={course.slug}
+      groups={data.courseMoments}
+      currentLessonId={lesson.id}
+      onPick={() => mobile && setMomentsOpen(false)}
+      mobile={mobile}
+    />
+  )
   const toggleRight = () => {
     if (right) return setRight(false)
     setRight(true)
@@ -684,6 +697,9 @@ function PlayerLayout({ data }: { data: Data }) {
               currentChapterId={lesson.chapterId}
               onClose={() => toggleLeft()}
               startSearching={searchFromRail}
+              momentsTotal={momentsTotal}
+              momentsOpen={momentsOpen}
+              onOpenMoments={openMoments}
             />
           </aside>
         ) : (
@@ -703,6 +719,21 @@ function PlayerLayout({ data }: { data: Data }) {
               className="flex size-9 cursor-pointer items-center justify-center rounded-10 border-0 bg-transparent"
             >
               <SearchIcon />
+            </button>
+            <button
+              type="button"
+              onClick={openMoments}
+              aria-label="Mis momentos"
+              title="Mis momentos"
+              className={cn(
+                'relative flex size-9 cursor-pointer items-center justify-center rounded-10 border-0',
+                momentsOpen ? 'bg-player-open' : 'bg-transparent',
+              )}
+            >
+              <BookmarkIcon className="size-4.5 stroke-[1.6] text-player-text" />
+              <span className="absolute -top-1 -right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-player-accent text-11 font-black text-player-on-accent">
+                {momentsTotal}
+              </span>
             </button>
             <div className="w-9 border-t border-player-border" />
             <div className="flex flex-col items-center gap-0.5 text-11 font-black text-player-accent">
@@ -747,7 +778,26 @@ function PlayerLayout({ data }: { data: Data }) {
               </div>
             </main>
 
-            {hasRight &&
+            {momentsOpen ? (
+              <aside className="flex w-85 flex-none flex-col gap-4 overflow-y-auto border-l border-player-border bg-player-side px-4 pt-4.5 pb-6">
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setMomentsOpen(false)}
+                    aria-label="Cerrar Mis momentos"
+                    className={iconButton}
+                  >
+                    <Chevron />
+                  </button>
+                  <div className="flex-1 text-15 font-black">Mis momentos</div>
+                  <span className="text-13 font-bold text-player-muted">
+                    {momentsTotal}
+                  </span>
+                </div>
+                {allMoments(false)}
+              </aside>
+            ) : (
+              hasRight &&
               (right ? (
                 <aside className="flex w-85 flex-none flex-col gap-4 overflow-y-auto border-l border-player-border bg-player-side px-4 pt-4.5 pb-6">
                   <div className="flex items-center gap-2.5">
@@ -808,7 +858,8 @@ function PlayerLayout({ data }: { data: Data }) {
                     </button>
                   )}
                 </aside>
-              ))}
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -923,6 +974,28 @@ function PlayerLayout({ data }: { data: Data }) {
           ))}
         </div>
 
+        {momentsOpen && (
+          <div className="fixed inset-0 z-40 flex flex-col bg-player-side">
+            <div className="box-border flex h-15 flex-none items-center gap-2.5 border-b border-player-border px-4">
+              <div className="flex-1 text-base font-black">Mis momentos</div>
+              <span className="text-13 font-bold text-player-muted">
+                {momentsTotal}
+              </span>
+              <button
+                type="button"
+                onClick={() => setMomentsOpen(false)}
+                aria-label="Cerrar Mis momentos"
+                className="size-10 flex-none cursor-pointer rounded-10 border border-player-border bg-player-surface p-0 text-base text-player-text"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 pt-4 pb-8">
+              {allMoments(true)}
+            </div>
+          </div>
+        )}
+
         {drawer && (
           <>
             <div
@@ -939,6 +1012,12 @@ function PlayerLayout({ data }: { data: Data }) {
                 onClose={() => setDrawer(false)}
                 onNavigate={() => setDrawer(false)}
                 mobile
+                momentsTotal={momentsTotal}
+                momentsOpen={momentsOpen}
+                onOpenMoments={() => {
+                  setDrawer(false)
+                  setMomentsOpen(true)
+                }}
               />
             </div>
           </>

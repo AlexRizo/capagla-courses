@@ -146,3 +146,53 @@ export function lessonPosition(
     nextId: order[index + 1]?.lesson.id ?? null,
   }
 }
+
+export type CourseMoment = { id: string; seconds: number; name: string }
+
+// Los momentos de una alumna en todo el curso, por bloque (módulo) y lección, en el orden del
+// curso y por minuto. Solo cuentan las lecciones que están en `order` (las que ella puede ver).
+export type MomentGroup = {
+  blockId: string
+  blockTitle: string
+  lessons: {
+    lessonId: string
+    title: string
+    chapterTitle: string | null
+    moments: CourseMoment[]
+  }[]
+}
+
+export function groupMoments(
+  tree: BlockNode[],
+  order: { lesson: LessonNode; blockId: string; chapterId: string | null }[],
+  moments: (CourseMoment & { itemId: string })[],
+) {
+  const chapterTitle = (id: string | null) =>
+    id
+      ? tree
+          .flatMap((b) => b.children)
+          .find((c) => c.type === 'chapter' && c.id === id)?.title
+      : undefined
+
+  const groups: MomentGroup[] = []
+  for (const { lesson, blockId, chapterId } of order) {
+    const mine = moments
+      .filter((m) => m.itemId === lesson.id)
+      .sort((a, b) => a.seconds - b.seconds)
+      .map(({ id, seconds, name }) => ({ id, seconds, name }))
+    if (mine.length === 0) continue
+    let group = groups.find((g) => g.blockId === blockId)
+    if (!group) {
+      const title = tree.find((b) => b.id === blockId)?.title ?? ''
+      group = { blockId, blockTitle: title, lessons: [] }
+      groups.push(group)
+    }
+    group.lessons.push({
+      lessonId: lesson.id,
+      title: lesson.title,
+      chapterTitle: chapterTitle(chapterId) ?? null,
+      moments: mine,
+    })
+  }
+  return groups
+}

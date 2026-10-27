@@ -29,11 +29,19 @@ type VideoState = {
   setDuration: (d: number) => void
   videoRef: React.RefObject<HTMLVideoElement | null>
   seek: (seconds: number) => void
+  // Segundo en el que abre el video de esta lección (`?t=`); 0 si no se pidió.
+  startAt: number
 }
 
 const VideoContext = createContext<VideoState | null>(null)
 
-export function VideoProvider({ children }: { children: React.ReactNode }) {
+export function VideoProvider({
+  children,
+  startAt = 0,
+}: {
+  children: React.ReactNode
+  startAt?: number
+}) {
   const [time, setTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -46,8 +54,8 @@ export function VideoProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ time, setTime, duration, setDuration, videoRef, seek }),
-    [time, duration, seek],
+    () => ({ time, setTime, duration, setDuration, videoRef, seek, startAt }),
+    [time, duration, seek, startAt],
   )
   return <VideoContext.Provider value={value}>{children}</VideoContext.Provider>
 }
@@ -98,7 +106,8 @@ export function VideoPlayer({
   // Móvil: sin velocidad ni "Parte actual:".
   compact?: boolean
 }) {
-  const { time, setTime, duration, setDuration, videoRef, seek } = useVideo()
+  const { time, setTime, duration, setDuration, videoRef, seek, startAt } =
+    useVideo()
   const box = useRef<HTMLDivElement>(null)
   const bar = useRef<HTMLDivElement>(null)
   const [playing, setPlaying] = useState(false)
@@ -183,6 +192,19 @@ export function VideoPlayer({
       { once: true },
     )
   }, [src, videoRef])
+
+  // Abrir en el segundo que pidió "Mis momentos" (`?t=`), en cuanto el video sabe su duración.
+  useEffect(() => {
+    const video = videoRef.current
+    if (!startAt || !video) return
+    const go = () => {
+      video.currentTime = startAt
+      setTime(startAt)
+    }
+    if (video.readyState >= 1) go()
+    else video.addEventListener('loadedmetadata', go, { once: true })
+    return () => video.removeEventListener('loadedmetadata', go)
+  }, [startAt, videoRef, setTime])
 
   // Renovar la firma antes de que venza: se vuelven a pedir los datos de la lección (con su
   // control de acceso) y llega una firma nueva. Se revisa cada minuto y al volver a la pestaña,

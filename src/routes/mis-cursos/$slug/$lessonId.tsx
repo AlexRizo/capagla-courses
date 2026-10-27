@@ -6,10 +6,11 @@ import { getPlayer } from '#/lib/player'
 
 // Reproductor de una lección. El acceso (sesión, inscripción y vencimiento) lo valida el servidor.
 // `?vista=alumna` es "Ver como alumna" del panel (solo admins; ver `getPlayer`); se conserva al
-// pasar de una lección a otra.
+// pasar de una lección a otra. `?t=` es el segundo en el que abre el video (lo usa "Mis momentos").
 export const Route = createFileRoute('/mis-cursos/$slug/$lessonId')({
   validateSearch: z.object({
     vista: z.enum(['alumna']).optional().catch(undefined),
+    t: z.coerce.number().int().min(0).max(86_400).optional().catch(undefined),
   }),
   search: { middlewares: [retainSearchParams(['vista'])] },
   loaderDeps: ({ search }) => ({ preview: search.vista === 'alumna' }),
@@ -25,5 +26,6 @@ export const Route = createFileRoute('/mis-cursos/$slug/$lessonId')({
 })
 
 function Reproductor() {
-  return <PlayerShell data={Route.useLoaderData()} />
+  const { t } = Route.useSearch()
+  return <PlayerShell data={Route.useLoaderData()} startAt={t} />
 }

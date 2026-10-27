@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import type { BlockNode, ChapterNode, LessonNode } from '#/lib/player-tree'
 import { cn } from '#/lib/utils'
 
+import { BookmarkIcon } from './all-moments'
+
 type Props = {
   slug: string
   tree: BlockNode[]
@@ -17,6 +19,11 @@ type Props = {
   startSearching?: boolean
   // Cajón de móvil: filas y botones más altos, para el dedo.
   mobile?: boolean
+  // "Mis momentos" del curso, por encima del primer bloque: cuántos hay, si su panel está abierto
+  // y cómo abrirlo.
+  momentsTotal: number
+  momentsOpen: boolean
+  onOpenMoments: () => void
 }
 
 const iconButton =
@@ -121,6 +128,9 @@ export function CoursePanel({
   onNavigate,
   startSearching = false,
   mobile,
+  momentsTotal,
+  momentsOpen,
+  onOpenMoments,
 }: Props) {
   const [open, setOpen] = useState<Record<string, boolean>>(
     currentChapterId ? { [currentChapterId]: true } : {},
@@ -217,6 +227,31 @@ export function CoursePanel({
             ✕
           </button>
         </div>
+      )}
+
+      {!query && (
+        <button
+          type="button"
+          onClick={onOpenMoments}
+          className={cn(
+            'mt-4 flex w-full cursor-pointer items-center gap-2.5 rounded-10 border-0 px-3 text-left font-sans text-player-text',
+            mobile ? 'min-h-12' : 'min-h-11.5',
+            momentsOpen ? 'bg-player-open' : 'bg-transparent',
+          )}
+        >
+          <BookmarkIcon className="size-4.5 flex-none stroke-[1.6] text-player-accent" />
+          <span
+            className={cn(
+              'flex-1 text-15 leading-135',
+              momentsOpen ? 'font-black' : 'font-bold',
+            )}
+          >
+            Mis momentos
+          </span>
+          <span className="text-13 font-bold text-player-muted">
+            {momentsTotal}
+          </span>
+        </button>
       )}
 
       {blocks.map(({ block, children }) => (

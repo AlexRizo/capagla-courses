@@ -22,6 +22,7 @@ import { RECIPE_BOOK_URL_PREFIX } from '#/lib/recipe-books'
 import type { TranscriptLine } from '#/lib/transcript'
 import {
   buildPlayerTree,
+  groupMoments,
   lessonPosition,
   onlyFreeItems,
   resumeLessonId,
@@ -133,6 +134,18 @@ export const getPlayer = createServerFn()
           where: { userId: session.user.id, itemId: data.lessonId },
           orderBy: { seconds: 'asc' },
         })
+    // Todos sus momentos del curso (acceso "Mis momentos" del menú): por usuario y lección, solo
+    // de las lecciones que puede ver.
+    const courseMoments = preview
+      ? []
+      : groupMoments(
+          tree,
+          order,
+          await prisma.lessonMoment.findMany({
+            where: { userId: session.user.id, item: { productId: course.id } },
+            select: { id: true, itemId: true, seconds: true, name: true },
+          }),
+        )
     // Las respondidas las ven todas; las que espera la chef, solo quien las hizo.
     const questions = await prisma.lessonQuestion.findMany({
       where: {
@@ -185,6 +198,7 @@ export const getPlayer = createServerFn()
         pct: total ? Math.round((seenCount / total) * 100) : 0,
       },
       tree,
+      courseMoments,
       lesson: {
         id: data.lessonId,
         title: item?.title ?? '',

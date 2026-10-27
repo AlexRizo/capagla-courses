@@ -90,9 +90,9 @@ Decisiones ya tomadas (repaso con el usuario): se lanza **sin clase gratis**; la
 - [x] (el usuario confirmó el 2026-10-27 que ya están en Railway) Variables: `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET` (nuevo), `NODE_ENV=production`, 4 `BUNNY_*` de Stream y 4 `BUNNY_STORAGE_*`, `ANTHROPIC_API_KEY`, `STRIPE_PUBLISH_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (del endpoint de producción), `BREVO_API_KEY`, `MAIL_FROM_EMAIL=noreply@capagla.com`, `MAIL_FROM_NAME=Capagla`, `SUPPORT_EMAIL=soporte@capagla.com`. `PORT` lo pone Railway; `POSTGRES_*` no hacen falta.
 - [ ] Construcción: `pnpm prisma generate && pnpm build`. Antes de cada despliegue: `pnpm prisma migrate deploy`. Arranque: `node .output/server/index.mjs`.
 - [ ] Sembrar una vez desde esta máquina contra la base de Railway: `ADMIN_EMAIL=… ADMIN_PASSWORD=… pnpm prisma db seed` (12+ caracteres; el seed deja curso, videos, transcripciones, textos de lecciones y promociones; **no hace falta `db:import-bunny`**).
-- [ ] **Brevo: desactivar la restricción de IPs autorizadas** (Seguridad → IPs autorizadas), si no, no sale ningún correo.
-- [ ] **Stripe:** crear el endpoint `https://<dominio>/api/stripe/webhook` con `payment_intent.succeeded`, `payment_intent.payment_failed` y `charge.refunded`.
-- [ ] **Bunny Stream:** agregar el dominio real (con `capagla.com`; sin puerto) en Security → dominios permitidos de la biblioteca.
+- [x] (confirmado por el usuario, 2026-10-27) **Brevo: desactivar la restricción de IPs autorizadas** (Seguridad → IPs autorizadas), si no, no sale ningún correo.
+- [x] (confirmado por el usuario, 2026-10-27; creado y configurado en producción) **Stripe:** crear el endpoint `https://<dominio>/api/stripe/webhook` con `payment_intent.succeeded`, `payment_intent.payment_failed` y `charge.refunded`.
+- [x] (confirmado por el usuario, 2026-10-27) **Bunny Stream:** agregar el dominio real (con `capagla.com`; sin puerto) en Security → dominios permitidos de la biblioteca.
 
 **Verificar en el primer despliegue:** (1) entrar al panel con la admin sembrada; (2) una compra de prueba y que llegue el correo y la sesión; (3) que el aviso de Better Auth "Rate limiting could not determine a client IP" no aparezca en los registros (si aparece, fijar `advanced.ipAddress.ipAddressHeaders` en `lib/auth.ts`); (4) que `/api/recetarios/postres-navidad` (PDF) se lea desde `assets/recetarios/`; (5) con las cookies puestas, que cargue la Home y `/navidad`; (6) subir una portada desde el panel (Bunny Storage).
 

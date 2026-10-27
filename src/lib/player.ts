@@ -209,6 +209,8 @@ export const getPlayer = createServerFn()
         videoUrl:
           (item?.bunnyVideoId && signedPlaybackUrl(item.bunnyVideoId)) ||
           (/^https?:\/\//.test(item?.videoUrl ?? '') ? item?.videoUrl : null),
+        // Portada propia que se ve antes de reproducir; sin ella, el primer fotograma.
+        posterUrl: item?.posterUrl ?? null,
         parts: parseParts(item?.videoParts ?? null),
         moments: moments.map((m) => ({
           id: m.id,

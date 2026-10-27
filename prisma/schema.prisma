@@ -249,6 +249,9 @@ model CourseItem {
   notes        String?
   // Una parte por línea: "2:10 Derretir el chocolate".
   videoParts   String?
+  // Portada que se ve antes de reproducir el video (imagen subida desde el panel). Sin ella, el
+  // navegador muestra el primer fotograma.
+  posterUrl    String?
   resources    Resource[]
   progress     LessonProgress[]
   moments      LessonMoment[]

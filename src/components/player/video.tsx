@@ -93,12 +93,15 @@ const HIDE_CONTROLS_MS = 3000
 
 export function VideoPlayer({
   src,
+  poster,
   durationSec,
   parts,
   moments,
   compact = false,
 }: {
   src: string
+  // Portada que se ve antes de reproducir; sin ella, el primer fotograma.
+  poster: string | null
   // Duración que escribió la chef; vale mientras el archivo no informe la suya.
   durationSec: number | null
   parts: VideoPart[]
@@ -473,6 +476,7 @@ export function VideoPlayer({
     >
       <video
         ref={videoRef}
+        poster={poster ?? undefined}
         preload="metadata"
         playsInline
         onClick={() => {

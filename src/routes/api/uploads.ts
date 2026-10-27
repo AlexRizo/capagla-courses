@@ -16,6 +16,8 @@ const json = (body: unknown, status = 200) => Response.json(body, { status })
 
 // Subida de archivos del panel (solo admin). Un envío = una acción:
 //  - target "cover": `id` es el slug del curso; reemplaza su portada.
+//  - target "poster": `id` es una lección de video; reemplaza la portada que se ve antes de
+//    reproducir el video.
 //  - target "resource": `id` es un capítulo o lección; agrega un recurso.
 // Van a Bunny Storage; sin él, a disco local solo en desarrollo (ver `lib/uploads.ts`).
 export const Route = createFileRoute('/api/uploads')({
@@ -60,6 +62,22 @@ export const Route = createFileRoute('/api/uploads')({
               data: { coverUrl: saved.url },
             })
             await removeUpload(course.coverUrl)
+            return json({ url: saved.url })
+          }
+
+          if (target === 'poster') {
+            const lesson = await prisma.courseItem.findUnique({
+              where: { id },
+            })
+            if (lesson?.kind !== 'LESSON' || lesson.lessonType !== 'VIDEO') {
+              return json({ error: 'No existe.' }, 404)
+            }
+            const saved = await storeUpload(file, 'image')
+            await prisma.courseItem.update({
+              where: { id: lesson.id },
+              data: { posterUrl: saved.url },
+            })
+            await removeUpload(lesson.posterUrl)
             return json({ url: saved.url })
           }
 

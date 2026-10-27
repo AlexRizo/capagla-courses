@@ -11,7 +11,7 @@ import {
 import { BunnyVideoField } from '#/components/admin/bunny-video-field'
 import { RichTextEditor } from '#/components/admin/rich-text-editor'
 import { ResourceFiles, UploadBox } from '#/components/admin/upload-field'
-import { updateLesson } from '#/lib/admin-courses'
+import { removeLessonPoster, updateLesson } from '#/lib/admin-courses'
 import { cn } from '#/lib/utils'
 
 type Lesson = {
@@ -23,6 +23,7 @@ type Lesson = {
   body: JSONContent | null
   notes: string | null
   videoParts: string | null
+  posterUrl: string | null
   resources: { id: string; name: string }[]
 }
 
@@ -131,7 +132,43 @@ export function LessonSettings({
       </div>
 
       {type === 'VIDEO' ? (
-        <BunnyVideoField value={videoId} onChange={setVideoId} />
+        <>
+          <BunnyVideoField value={videoId} onChange={setVideoId} />
+          <div className={field}>
+            <span className={label}>Portada del video</span>
+            {lesson.posterUrl && (
+              <div className="flex items-center justify-between gap-3">
+                <img
+                  src={lesson.posterUrl}
+                  alt=""
+                  className="aspect-video h-20 rounded-md border border-border object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await removeLessonPoster({ data: { id: lesson.id } })
+                    await router.invalidate()
+                  }}
+                  className="cursor-pointer border-none bg-transparent p-0 text-13 text-muted-foreground underline"
+                >
+                  Quitar
+                </button>
+              </div>
+            )}
+            <UploadBox
+              target="poster"
+              id={lesson.id}
+              accept=".jpg,.jpeg,.png,.webp"
+            >
+              Arrastra una imagen o haz clic para subirla
+            </UploadBox>
+            <span className="text-xs text-muted-foreground">
+              Es lo que se ve antes de reproducir el video. Usa una imagen
+              horizontal 16:9 (por ejemplo 1280 × 720). Sin portada se ve el
+              primer fotograma del video.
+            </span>
+          </div>
+        </>
       ) : (
         <div className={field}>
           <span className={label}>Texto de la lección</span>

@@ -75,6 +75,7 @@ function flatten(items: ItemWithResources[]) {
     body: JSONContent | null
     notes: string | null
     videoParts: string | null
+    posterUrl: string | null
     resources: { id: string; name: string }[]
     type: string
     meta: string
@@ -126,6 +127,7 @@ function flatten(items: ItemWithResources[]) {
         body: i.kind === 'LESSON' ? (i.body as JSONContent | null) : null,
         notes: i.notes,
         videoParts: i.videoParts,
+        posterUrl: i.posterUrl,
         resources: i.resources.map((r) => ({ id: r.id, name: r.name })),
         type,
         meta,
@@ -229,6 +231,22 @@ export const removeCourseCover = createServerFn({ method: 'POST' })
       data: { coverUrl: null },
     })
     await removeUpload(course.coverUrl)
+  })
+
+// Quita la portada propia de una lección (vuelve a verse el primer fotograma) y borra su archivo.
+export const removeLessonPoster = createServerFn({ method: 'POST' })
+  .middleware([requireAdmin])
+  .validator(z.object({ id: z.string() }))
+  .handler(async ({ data }) => {
+    const lesson = await prisma.courseItem.findUnique({
+      where: { id: data.id },
+    })
+    if (lesson?.kind !== 'LESSON') throw notFound()
+    await prisma.courseItem.update({
+      where: { id: lesson.id },
+      data: { posterUrl: null },
+    })
+    await removeUpload(lesson.posterUrl)
   })
 
 // Quita un recurso de un capítulo o lección y borra su archivo.
@@ -414,8 +432,15 @@ export const deleteCourseItem = createServerFn({ method: 'POST' })
       where: { itemId: { in: ids } },
       select: { url: true },
     })
+    const posters = await prisma.courseItem.findMany({
+      where: { id: { in: ids }, posterUrl: { not: null } },
+      select: { posterUrl: true },
+    })
     await prisma.courseItem.delete({ where: { id: data.id } })
-    await Promise.all(files.map((f) => removeUpload(f.url)))
+    await Promise.all([
+      ...files.map((f) => removeUpload(f.url)),
+      ...posters.map((p) => removeUpload(p.posterUrl)),
+    ])
   })
 
 // "+ Crear curso": curso vacío en borrador, con precio 0 y 365 días de acceso, que se

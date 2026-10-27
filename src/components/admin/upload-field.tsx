@@ -5,7 +5,8 @@ import { removeResource } from '#/lib/admin-courses'
 import { cn } from '#/lib/utils'
 
 // Recuadro punteado de la maqueta: se arrastran archivos o se hace clic para elegirlos.
-// Cada archivo se sube a `/api/uploads` (portada o recurso) y luego se recargan los datos.
+// Cada archivo se sube a `/api/uploads` (portada del curso, portada de un video o recurso) y
+// luego se recargan los datos.
 export function UploadBox({
   target,
   id,
@@ -13,7 +14,7 @@ export function UploadBox({
   multiple,
   children,
 }: {
-  target: 'cover' | 'resource'
+  target: 'cover' | 'poster' | 'resource'
   id: string
   accept: string
   multiple?: boolean

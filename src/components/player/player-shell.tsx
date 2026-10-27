@@ -279,6 +279,7 @@ function LessonContent({
     return (
       <VideoPlayer
         src={lesson.videoUrl}
+        poster={lesson.posterUrl}
         durationSec={lesson.durationSec}
         parts={lesson.parts}
         moments={lesson.moments}

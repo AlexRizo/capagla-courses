@@ -6,6 +6,8 @@ import { clock, partAt } from '#/lib/duration'
 import type { VideoPart } from '#/lib/duration'
 import { cn } from '#/lib/utils'
 
+import { BookmarkIcon } from './all-moments'
+
 import { useVideo } from './video'
 import { usePreview } from './preview'
 
@@ -144,23 +146,22 @@ export function VideoSide({
       )}
 
       <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between">
-          <div className={label}>MIS MOMENTOS</div>
-          <button
-            type="button"
-            onClick={mark}
-            disabled={!canMark || saving}
-            className="cursor-pointer border-0 bg-transparent px-1.5 py-px font-sans text-13 font-black text-player-accent disabled:opacity-50"
-          >
-            + Guardar momento {clock(time)}
-          </button>
-        </div>
+        <div className={label}>MIS MOMENTOS</div>
         <div className="px-0.5 pb-1 text-13 leading-normal text-player-muted">
           Guarda un minuto exacto del video para volver a él cuando quieras.
-          Toca «+ Guardar momento» cuando llegues a la parte que te interesa: se
+          Toca «Guardar momento» cuando llegues a la parte que te interesa: se
           guarda con el nombre del tema y puedes cambiarlo. Después, toca el
           minuto para regresar ahí.
         </div>
+        <button
+          type="button"
+          onClick={mark}
+          disabled={!canMark || saving}
+          className="mt-1 inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2.5 rounded-full border-0 bg-player-btn px-5 font-sans text-15 font-black text-player-btn-text disabled:cursor-default disabled:opacity-50"
+        >
+          <BookmarkIcon className="size-4.5 stroke-[1.8]" />
+          Guardar momento {clock(time)}
+        </button>
         {error && <div className="text-13 text-landing-warn-line">{error}</div>}
         {moments.map((m) => (
           <MomentRow key={`${m.id}-${m.name}`} moment={m} />

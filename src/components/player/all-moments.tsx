@@ -75,7 +75,7 @@ export function AllMoments({
     <div className="px-1 text-13 leading-normal text-player-muted">
       Aquí están todos los minutos que guardaste en el curso, ordenados por
       módulo y lección. Toca uno para abrir el video justo en ese minuto. Para
-      guardar uno nuevo, toca «+ Guardar momento» mientras ves un video.
+      guardar uno nuevo, toca «Guardar momento» mientras ves un video.
     </div>
   )
 

@@ -155,14 +155,19 @@ export function VideoSide({
             + Marcar {clock(time)}
           </button>
         </div>
+        <div className="px-0.5 pb-1 text-13 leading-normal text-player-muted">
+          Guarda un minuto del video para volver a él cuando quieras. Toca «+
+          Marcar» en el momento que te interesa: se guarda con el nombre del
+          tema y puedes cambiarlo. Después, toca el minuto para regresar ahí.
+        </div>
         {error && <div className="text-13 text-landing-warn-line">{error}</div>}
         {moments.map((m) => (
           <MomentRow key={`${m.id}-${m.name}`} moment={m} />
         ))}
         {moments.length === 0 && (
-          <div className="px-0.5 py-1 text-13 leading-normal text-player-muted">
-            Aún no marcas nada. Pulsa el icono de marcador junto al video; el
-            momento toma el nombre de la parte en la que vas y puedes cambiarlo.
+          <div className="px-0.5 py-1 text-13 leading-normal font-bold text-player-text">
+            Aún no has marcado nada en este video. Tus momentos de todo el curso
+            los encuentras en «Mis momentos», en el menú del curso.
           </div>
         )}
       </div>

@@ -233,6 +233,7 @@ export function CoursePanel({
         <button
           type="button"
           onClick={onOpenMoments}
+          title="Los minutos que guardaste de los videos"
           className={cn(
             'mt-4 flex w-full cursor-pointer items-center gap-2.5 rounded-10 border-0 px-3 text-left font-sans text-player-text',
             mobile ? 'min-h-12' : 'min-h-11.5',

@@ -47,17 +47,28 @@ export function AllMoments({
     mobile ? 'min-h-12' : 'min-h-10.5',
   )
 
+  const intro = (
+    <div className="px-1 text-13 leading-normal text-player-muted">
+      Aquí están todos los minutos que guardaste en el curso, ordenados por
+      módulo y lección. Toca uno para abrir el video justo en ese minuto. Para
+      guardar uno nuevo, toca «+ Marcar» mientras ves un video.
+    </div>
+  )
+
   if (groups.length === 0) {
     return (
-      <div className="px-1 text-sm leading-normal text-player-muted">
-        Todavía no has guardado momentos. Mientras ves un video, toca «Marcar» y
-        aparecerá aquí, con el nombre del tema en ese minuto.
+      <div className="flex flex-col gap-3">
+        {intro}
+        <div className="px-1 text-sm leading-normal font-bold">
+          Todavía no has guardado momentos.
+        </div>
       </div>
     )
   }
 
   return (
     <div className="flex flex-col gap-4.5">
+      {intro}
       {groups.map((g) => (
         <div key={g.blockId} className="flex flex-col gap-2">
           <div className="px-1 text-11 font-black tracking-player-caps-lg text-player-accent uppercase">

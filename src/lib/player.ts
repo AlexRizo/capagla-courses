@@ -22,6 +22,7 @@ import { RECIPE_BOOK_URL_PREFIX } from '#/lib/recipe-books'
 import type { TranscriptLine } from '#/lib/transcript'
 import {
   buildPlayerTree,
+  groupFavorites,
   groupMoments,
   lessonPosition,
   onlyFreeItems,
@@ -146,6 +147,16 @@ export const getPlayer = createServerFn()
             select: { id: true, itemId: true, seconds: true, name: true },
           }),
         )
+    // Sus lecciones guardadas ("Guardar lección"): para el aviso del botón y la sección "Lecciones
+    // guardadas" del menú.
+    const favoriteIds = preview
+      ? []
+      : (
+          await prisma.lessonFavorite.findMany({
+            where: { userId: session.user.id, item: { productId: course.id } },
+            select: { itemId: true },
+          })
+        ).map((f) => f.itemId)
     // Las respondidas las ven todas; las que espera la chef y las que solo contestó el asistente
     // (su historial con la IA), solo quien las hizo.
     const questions = await prisma.lessonQuestion.findMany({
@@ -203,8 +214,10 @@ export const getPlayer = createServerFn()
       },
       tree,
       courseMoments,
+      courseFavorites: groupFavorites(tree, order, favoriteIds),
       lesson: {
         id: data.lessonId,
+        favorite: favoriteIds.includes(data.lessonId),
         title: item?.title ?? '',
         type: item?.lessonType ?? 'VIDEO',
         durationSec: item?.durationSec ?? null,
@@ -312,7 +325,7 @@ export const setLessonSeen = createServerFn({ method: 'POST' })
 
 const MAX_MOMENTS = 50
 
-// "Marcar este momento": el nombre lo pone el servidor (la parte del video en la que va o, sin
+// "Guardar momento": el nombre lo pone el servidor (la parte del video en la que va o, sin
 // partes, lo que se dice en ese segundo; `lib/moment-name.ts`) y la alumna lo puede cambiar.
 export const addMoment = createServerFn({ method: 'POST' })
   .validator(
@@ -338,6 +351,25 @@ export const addMoment = createServerFn({ method: 'POST' })
     await prisma.lessonMoment.create({
       data: { ...mine, seconds: data.seconds, name },
     })
+    return {}
+  })
+
+// "Guardar lección" / quitarla de las guardadas. Idempotente: pedir lo que ya está así no cambia
+// nada. Solo lecciones del curso a las que tiene acceso.
+export const setLessonFavorite = createServerFn({ method: 'POST' })
+  .validator(z.object({ lessonId: z.string(), favorite: z.boolean() }))
+  .handler(async ({ data }) => {
+    const { session, lesson } = await requireLessonAccess(data.lessonId)
+    const key = { userId: session.user.id, itemId: lesson.id }
+    if (data.favorite) {
+      await prisma.lessonFavorite.upsert({
+        where: { userId_itemId: key },
+        create: key,
+        update: {},
+      })
+    } else {
+      await prisma.lessonFavorite.deleteMany({ where: key })
+    }
     return {}
   })
 

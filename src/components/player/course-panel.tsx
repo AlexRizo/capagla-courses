@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import type { BlockNode, ChapterNode, LessonNode } from '#/lib/player-tree'
 import { cn } from '#/lib/utils'
 
-import { BookmarkIcon } from './all-moments'
+import { BookmarkIcon, StarIcon } from './all-moments'
 
 type Props = {
   slug: string
@@ -24,6 +24,10 @@ type Props = {
   momentsTotal: number
   momentsOpen: boolean
   onOpenMoments: () => void
+  // "Lecciones guardadas", debajo de "Mis momentos": igual.
+  favoritesTotal: number
+  favoritesOpen: boolean
+  onOpenFavorites: () => void
 }
 
 const iconButton =
@@ -131,6 +135,9 @@ export function CoursePanel({
   momentsTotal,
   momentsOpen,
   onOpenMoments,
+  favoritesTotal,
+  favoritesOpen,
+  onOpenFavorites,
 }: Props) {
   const [open, setOpen] = useState<Record<string, boolean>>(
     currentChapterId ? { [currentChapterId]: true } : {},
@@ -251,6 +258,32 @@ export function CoursePanel({
           </span>
           <span className="text-13 font-bold text-player-muted">
             {momentsTotal}
+          </span>
+        </button>
+      )}
+
+      {!query && (
+        <button
+          type="button"
+          onClick={onOpenFavorites}
+          title="Las lecciones que guardaste para encontrarlas rápido"
+          className={cn(
+            'mt-0.5 flex w-full cursor-pointer items-center gap-2.5 rounded-10 border-0 px-3 text-left font-sans text-player-text',
+            mobile ? 'min-h-12' : 'min-h-11.5',
+            favoritesOpen ? 'bg-player-open' : 'bg-transparent',
+          )}
+        >
+          <StarIcon className="size-4.5 flex-none stroke-[1.6] text-player-accent" />
+          <span
+            className={cn(
+              'flex-1 text-15 leading-135',
+              favoritesOpen ? 'font-black' : 'font-bold',
+            )}
+          >
+            Lecciones guardadas
+          </span>
+          <span className="text-13 font-bold text-player-muted">
+            {favoritesTotal}
           </span>
         </button>
       )}

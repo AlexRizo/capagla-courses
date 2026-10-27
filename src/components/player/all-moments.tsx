@@ -19,6 +19,30 @@ export function BookmarkIcon({ className }: { className: string }) {
   )
 }
 
+// Estrella: "Guardar lección" (la lección completa). El marcador de arriba es de los momentos.
+export function StarIcon({
+  className,
+  filled,
+}: {
+  className: string
+  filled?: boolean
+}) {
+  return (
+    <svg
+      viewBox="0 0 18 18"
+      className={cn(
+        'stroke-current',
+        filled ? 'fill-current' : 'fill-none',
+        className,
+      )}
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 2l2.1 4.5 4.9.6-3.6 3.4.9 4.9L9 13l-4.3 2.4.9-4.9L2 7.1l4.9-.6z" />
+    </svg>
+  )
+}
+
 export const momentsCount = (groups: MomentGroup[]) =>
   groups.reduce(
     (total, g) => total + g.lessons.reduce((n, l) => n + l.moments.length, 0),
@@ -51,7 +75,7 @@ export function AllMoments({
     <div className="px-1 text-13 leading-normal text-player-muted">
       Aquí están todos los minutos que guardaste en el curso, ordenados por
       módulo y lección. Toca uno para abrir el video justo en ese minuto. Para
-      guardar uno nuevo, toca «+ Marcar» mientras ves un video.
+      guardar uno nuevo, toca «+ Guardar momento» mientras ves un video.
     </div>
   )
 

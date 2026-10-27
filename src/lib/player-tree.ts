@@ -196,3 +196,40 @@ export function groupMoments(
   }
   return groups
 }
+
+// Las lecciones que una alumna guardó ("Guardar lección"), por bloque (módulo), en el orden del
+// curso. Solo cuentan las lecciones que están en `order` (las que ella puede ver).
+export type FavoriteGroup = {
+  blockId: string
+  blockTitle: string
+  lessons: { lessonId: string; title: string; chapterTitle: string | null }[]
+}
+
+export function groupFavorites(
+  tree: BlockNode[],
+  order: { lesson: LessonNode; blockId: string; chapterId: string | null }[],
+  favoriteIds: string[],
+) {
+  const saved = new Set(favoriteIds)
+  const groups: FavoriteGroup[] = []
+  for (const { lesson, blockId, chapterId } of order) {
+    if (!saved.has(lesson.id)) continue
+    let group = groups.find((g) => g.blockId === blockId)
+    if (!group) {
+      const title = tree.find((b) => b.id === blockId)?.title ?? ''
+      group = { blockId, blockTitle: title, lessons: [] }
+      groups.push(group)
+    }
+    const chapter = chapterId
+      ? tree
+          .flatMap((b) => b.children)
+          .find((c) => c.type === 'chapter' && c.id === chapterId)
+      : undefined
+    group.lessons.push({
+      lessonId: lesson.id,
+      title: lesson.title,
+      chapterTitle: chapter?.title ?? null,
+    })
+  }
+  return groups
+}

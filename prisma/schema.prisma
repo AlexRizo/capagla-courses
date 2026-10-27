@@ -34,6 +34,7 @@ model User {
   enrollments     Enrollment[]
   lessonProgress  LessonProgress[]
   lessonMoments   LessonMoment[]
+  lessonFavorites LessonFavorite[]
   questions       LessonQuestion[]
   lead            Lead?
   costPlaces      CostPlace[]
@@ -255,6 +256,7 @@ model CourseItem {
   resources    Resource[]
   progress     LessonProgress[]
   moments      LessonMoment[]
+  favorites    LessonFavorite[]
   questions    LessonQuestion[]
   transcript   LessonTranscript?
 
@@ -274,6 +276,20 @@ model LessonProgress {
 }
 
 // "Mis momentos": marcadores que una alumna pone en el video de una lección (minuto y nombre).
+// Lecciones que una alumna guardó como favoritas ("Guardar lección"): para encontrarlas rápido en
+// "Lecciones guardadas". Si existe la fila, está guardada.
+model LessonFavorite {
+  id        String     @id @default(cuid())
+  createdAt DateTime   @default(now())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId    String
+  item      CourseItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemId])
+  @@index([itemId])
+}
+
 model LessonMoment {
   id        String     @id @default(cuid())
   createdAt DateTime   @default(now())

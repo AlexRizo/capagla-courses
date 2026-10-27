@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildPlayerTree, groupMoments, onlyFreeItems } from '#/lib/player-tree'
+import {
+  buildPlayerTree,
+  groupFavorites,
+  groupMoments,
+  onlyFreeItems,
+} from '#/lib/player-tree'
 
 const item = (
   id: string,
@@ -143,5 +148,89 @@ describe('groupMoments', () => {
     ])
     expect(groups).toHaveLength(1)
     expect(groups[0].lessons.map((l) => l.lessonId)).toEqual(['l3'])
+  })
+})
+
+describe('groupFavorites', () => {
+  const items: Parameters<typeof buildPlayerTree>[0] = [
+    {
+      id: 'b1',
+      parentId: null,
+      kind: 'BLOCK',
+      isFree: false,
+      position: 0,
+      title: 'Introducción',
+      lessonType: null,
+      durationSec: null,
+    },
+    {
+      id: 'l1',
+      parentId: 'b1',
+      kind: 'LESSON',
+      isFree: false,
+      position: 1,
+      title: 'Bienvenida',
+      lessonType: 'VIDEO',
+      durationSec: 60,
+    },
+    {
+      id: 'b2',
+      parentId: null,
+      kind: 'BLOCK',
+      isFree: false,
+      position: 2,
+      title: 'Postres',
+      lessonType: null,
+      durationSec: null,
+    },
+    {
+      id: 'c1',
+      parentId: 'b2',
+      kind: 'CHAPTER',
+      isFree: false,
+      position: 3,
+      title: 'Cupcake',
+      lessonType: null,
+      durationSec: null,
+    },
+    {
+      id: 'l2',
+      parentId: 'c1',
+      kind: 'LESSON',
+      isFree: false,
+      position: 4,
+      title: 'Receta',
+      lessonType: 'TEXT',
+      durationSec: null,
+    },
+    {
+      id: 'l3',
+      parentId: 'c1',
+      kind: 'LESSON',
+      isFree: false,
+      position: 5,
+      title: 'Decorado',
+      lessonType: 'VIDEO',
+      durationSec: 600,
+    },
+  ]
+  const { tree, order } = buildPlayerTree(items, new Set())
+
+  it('agrupa por bloque en el orden del curso (no en el orden en que se guardaron)', () => {
+    const groups = groupFavorites(tree, order, ['l3', 'l1', 'l2'])
+    expect(groups.map((g) => g.blockTitle)).toEqual(['Introducción', 'Postres'])
+    expect(groups[1].lessons.map((l) => l.title)).toEqual([
+      'Receta',
+      'Decorado',
+    ])
+    expect(groups[1].lessons[0].chapterTitle).toBe('Cupcake')
+    expect(groups[0].lessons[0].chapterTitle).toBeNull()
+  })
+
+  it('omite lo que no está en el curso visible y devuelve vacío sin favoritas', () => {
+    expect(groupFavorites(tree, order, [])).toEqual([])
+    const groups = groupFavorites(tree, order, ['l1', 'otra'])
+    expect(groups).toHaveLength(1)
+    expect(groups[0].lessons.map((l) => l.lessonId)).toEqual(['l1'])
   })
 })

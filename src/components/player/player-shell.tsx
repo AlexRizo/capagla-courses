@@ -3,12 +3,13 @@ import { useEffect, useState } from 'react'
 
 import { RichTextView } from '#/components/rich-text-view'
 import { authClient } from '#/lib/auth-client'
-import { setLessonSeen } from '#/lib/player'
+import { setLessonFavorite, setLessonSeen } from '#/lib/player'
 import type { getPlayer } from '#/lib/player'
 import { minutes } from '#/lib/player-tree'
 import { cn } from '#/lib/utils'
 
-import { AllMoments, BookmarkIcon, momentsCount } from './all-moments'
+import { AllFavorites, favoritesCount } from './all-favorites'
+import { AllMoments, BookmarkIcon, StarIcon, momentsCount } from './all-moments'
 import { CoursePanel, SearchIcon } from './course-panel'
 import {
   ChapterMaterial,
@@ -21,7 +22,7 @@ import type { PlayerResource } from './lesson-extras'
 import { Questions } from './questions'
 import { VideoPlayer, VideoProvider } from './video'
 import { PreviewBanner, PreviewContext, usePreview } from './preview'
-import { VideoSide, useMarkMoment } from './video-side'
+import { VideoSide } from './video-side'
 
 type Data = Awaited<ReturnType<typeof getPlayer>>
 
@@ -310,19 +311,34 @@ function LessonContent({
 function PrevNext({
   slug,
   lesson,
-  onMark,
   compact,
 }: {
   slug: string
   lesson: Data['lesson']
   compact?: boolean
-  // Solo en lecciones de video: marcar el minuto en el que va.
-  onMark?: () => void
 }) {
-  const prev = cn(pill, compact && 'gap-1.5 px-3.5')
+  const router = useRouter()
+  const preview = usePreview()
+  const [saving, setSaving] = useState(false)
+  // Móvil: Anterior y Siguiente en una fila y "Guardar lección" a todo el ancho debajo.
+  const prev = cn(pill, compact && 'order-1 gap-1.5 px-3.5')
+
+  // "Guardar lección": la lección completa va a "Lecciones guardadas" (no es un momento del video).
+  async function toggleFavorite() {
+    if (saving || preview) return
+    setSaving(true)
+    try {
+      await setLessonFavorite({
+        data: { lessonId: lesson.id, favorite: !lesson.favorite },
+      })
+      await router.invalidate()
+    } finally {
+      setSaving(false)
+    }
+  }
   const next = cn(
     'inline-flex min-h-10 items-center rounded-full bg-player-btn text-sm font-black text-player-btn-text no-underline',
-    compact ? 'gap-1.5 px-4.5' : 'gap-2 px-5',
+    compact ? 'order-3 gap-1.5 px-4.5' : 'gap-2 px-5',
   )
   return (
     <div
@@ -344,19 +360,30 @@ function PrevNext({
           <span aria-hidden="true">←</span>Anterior
         </span>
       )}
-      {onMark && (
-        <button
-          type="button"
-          onClick={onMark}
-          disabled={!lesson.videoUrl}
-          aria-label="Marcar este momento"
-          title="Marcar este momento"
-          className="inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-player-border bg-player-surface p-0 text-player-accent disabled:cursor-default disabled:opacity-50"
-        >
-          <BookmarkIcon className="size-4 stroke-[1.8]" />
-        </button>
-      )}
-      <div className="flex-1" />
+      <button
+        type="button"
+        onClick={toggleFavorite}
+        disabled={saving || preview}
+        aria-pressed={lesson.favorite}
+        title={
+          lesson.favorite
+            ? 'Quitar de lecciones guardadas'
+            : 'Guardar esta lección para encontrarla rápido'
+        }
+        className={cn(
+          pill,
+          'cursor-pointer disabled:cursor-default disabled:opacity-50',
+          compact && 'order-4 w-full justify-center gap-1.5 px-3.5',
+          lesson.favorite && 'border-player-accent text-player-accent',
+        )}
+      >
+        <StarIcon
+          filled={lesson.favorite}
+          className="size-4 stroke-[1.8] text-player-accent"
+        />
+        {lesson.favorite ? 'Lección guardada' : 'Guardar lección'}
+      </button>
+      <div className={cn('flex-1', compact && 'order-2')} />
       {lesson.nextId ? (
         <Link
           to="/mis-cursos/$slug/$lessonId"
@@ -570,8 +597,11 @@ function PlayerLayout({ data }: { data: Data }) {
   const [mobileTab, setMobileTab] = useState<'les' | 'mat' | 'preg'>('les')
   const [searchFromRail, setSearchFromRail] = useState(false)
   const [drawer, setDrawer] = useState(false)
-  // "Mis momentos" del curso: panel a la derecha en escritorio, ventana completa en móvil.
-  const [momentsOpen, setMomentsOpen] = useState(false)
+  // "Mis momentos" y "Lecciones guardadas" del curso: panel a la derecha en escritorio, ventana
+  // completa en móvil.
+  const [saved, setSaved] = useState<'moments' | 'favorites' | null>(null)
+  const momentsOpen = saved === 'moments'
+  const favoritesOpen = saved === 'favorites'
 
   useEffect(() => {
     try {
@@ -609,7 +639,6 @@ function PlayerLayout({ data }: { data: Data }) {
   const resources: PlayerResource[] = isDownloadLesson(lesson)
     ? []
     : lesson.resources
-  const marker = useMarkMoment(lesson.id, !!lesson.videoUrl)
 
   const toggleLeft = (search = false) => {
     setSearchFromRail(search)
@@ -617,23 +646,36 @@ function PlayerLayout({ data }: { data: Data }) {
     setLeft(true)
     if (!wide) {
       setRight(false)
-      setMomentsOpen(false)
+      setSaved(null)
     }
   }
-  const openMoments = () => {
-    setMomentsOpen(true)
+  const openSaved = (which: 'moments' | 'favorites') => {
+    setSaved(which)
     if (!wide) setLeft(false)
   }
   const momentsTotal = momentsCount(data.courseMoments)
-  const allMoments = (mobile: boolean) => (
-    <AllMoments
-      slug={course.slug}
-      groups={data.courseMoments}
-      currentLessonId={lesson.id}
-      onPick={() => mobile && setMomentsOpen(false)}
-      mobile={mobile}
-    />
-  )
+  const favoritesTotal = favoritesCount(data.courseFavorites)
+  const savedTitle =
+    saved === 'favorites' ? 'Lecciones guardadas' : 'Mis momentos'
+  const savedTotal = saved === 'favorites' ? favoritesTotal : momentsTotal
+  const savedBody = (mobile: boolean) =>
+    saved === 'favorites' ? (
+      <AllFavorites
+        slug={course.slug}
+        groups={data.courseFavorites}
+        currentLessonId={lesson.id}
+        onPick={() => mobile && setSaved(null)}
+        mobile={mobile}
+      />
+    ) : (
+      <AllMoments
+        slug={course.slug}
+        groups={data.courseMoments}
+        currentLessonId={lesson.id}
+        onPick={() => mobile && setSaved(null)}
+        mobile={mobile}
+      />
+    )
   const toggleRight = () => {
     if (right) return setRight(false)
     setRight(true)
@@ -643,11 +685,6 @@ function PlayerLayout({ data }: { data: Data }) {
     setRightTab(next)
     setRight(true)
     if (!wide) setLeft(false)
-  }
-  async function markMoment() {
-    await marker.mark()
-    if (isDesktop) openRightTab('vid')
-    else setMobileTab('les')
   }
 
   const rightPanel = (
@@ -700,7 +737,10 @@ function PlayerLayout({ data }: { data: Data }) {
               startSearching={searchFromRail}
               momentsTotal={momentsTotal}
               momentsOpen={momentsOpen}
-              onOpenMoments={openMoments}
+              onOpenMoments={() => openSaved('moments')}
+              favoritesTotal={favoritesTotal}
+              favoritesOpen={favoritesOpen}
+              onOpenFavorites={() => openSaved('favorites')}
             />
           </aside>
         ) : (
@@ -723,7 +763,7 @@ function PlayerLayout({ data }: { data: Data }) {
             </button>
             <button
               type="button"
-              onClick={openMoments}
+              onClick={() => openSaved('moments')}
               aria-label="Mis momentos"
               title="Mis momentos"
               className={cn(
@@ -734,6 +774,21 @@ function PlayerLayout({ data }: { data: Data }) {
               <BookmarkIcon className="size-4.5 stroke-[1.6] text-player-text" />
               <span className="absolute -top-1 -right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-player-accent text-11 font-black text-player-on-accent">
                 {momentsTotal}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => openSaved('favorites')}
+              aria-label="Lecciones guardadas"
+              title="Lecciones guardadas"
+              className={cn(
+                'relative flex size-9 cursor-pointer items-center justify-center rounded-10 border-0',
+                favoritesOpen ? 'bg-player-open' : 'bg-transparent',
+              )}
+            >
+              <StarIcon className="size-4.5 stroke-[1.6] text-player-text" />
+              <span className="absolute -top-1 -right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-player-accent text-11 font-black text-player-on-accent">
+                {favoritesTotal}
               </span>
             </button>
             <div className="w-9 border-t border-player-border" />
@@ -763,11 +818,7 @@ function PlayerLayout({ data }: { data: Data }) {
               >
                 <LessonHeader data={data} />
                 <LessonContent data={data} showVideo={isDesktop === true} />
-                <PrevNext
-                  slug={course.slug}
-                  lesson={lesson}
-                  onMark={isVideo ? markMoment : undefined}
-                />
+                <PrevNext slug={course.slug} lesson={lesson} />
                 <LessonTabs
                   key={lesson.id}
                   lessonId={lesson.id}
@@ -780,23 +831,23 @@ function PlayerLayout({ data }: { data: Data }) {
               </div>
             </main>
 
-            {momentsOpen ? (
+            {saved ? (
               <aside className="flex w-85 flex-none flex-col gap-4 overflow-y-auto border-l border-player-border bg-player-side px-4 pt-4.5 pb-6">
                 <div className="flex items-center gap-2.5">
                   <button
                     type="button"
-                    onClick={() => setMomentsOpen(false)}
-                    aria-label="Cerrar Mis momentos"
+                    onClick={() => setSaved(null)}
+                    aria-label={`Cerrar ${savedTitle}`}
                     className={iconButton}
                   >
                     <Chevron />
                   </button>
-                  <div className="flex-1 text-15 font-black">Mis momentos</div>
+                  <div className="flex-1 text-15 font-black">{savedTitle}</div>
                   <span className="text-13 font-bold text-player-muted">
-                    {momentsTotal}
+                    {savedTotal}
                   </span>
                 </div>
-                {allMoments(false)}
+                {savedBody(false)}
               </aside>
             ) : (
               hasRight &&
@@ -918,12 +969,7 @@ function PlayerLayout({ data }: { data: Data }) {
           </div>
         )}
         <div className="border-b border-player-border px-4 py-2.5">
-          <PrevNext
-            slug={course.slug}
-            lesson={lesson}
-            onMark={isVideo ? markMoment : undefined}
-            compact
-          />
+          <PrevNext slug={course.slug} lesson={lesson} compact />
         </div>
 
         <div className="flex flex-1 flex-col gap-4 px-4 pt-4 pb-6">
@@ -977,24 +1023,24 @@ function PlayerLayout({ data }: { data: Data }) {
           ))}
         </div>
 
-        {momentsOpen && (
+        {saved && (
           <div className="fixed inset-0 z-40 flex flex-col bg-player-side">
             <div className="box-border flex h-15 flex-none items-center gap-2.5 border-b border-player-border px-4">
-              <div className="flex-1 text-base font-black">Mis momentos</div>
+              <div className="flex-1 text-base font-black">{savedTitle}</div>
               <span className="text-13 font-bold text-player-muted">
-                {momentsTotal}
+                {savedTotal}
               </span>
               <button
                 type="button"
-                onClick={() => setMomentsOpen(false)}
-                aria-label="Cerrar Mis momentos"
+                onClick={() => setSaved(null)}
+                aria-label={`Cerrar ${savedTitle}`}
                 className="size-10 flex-none cursor-pointer rounded-10 border border-player-border bg-player-surface p-0 text-base text-player-text"
               >
                 ✕
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-4 pt-4 pb-8">
-              {allMoments(true)}
+              {savedBody(true)}
             </div>
           </div>
         )}
@@ -1019,7 +1065,13 @@ function PlayerLayout({ data }: { data: Data }) {
                 momentsOpen={momentsOpen}
                 onOpenMoments={() => {
                   setDrawer(false)
-                  setMomentsOpen(true)
+                  setSaved('moments')
+                }}
+                favoritesTotal={favoritesTotal}
+                favoritesOpen={favoritesOpen}
+                onOpenFavorites={() => {
+                  setDrawer(false)
+                  setSaved('favorites')
                 }}
               />
             </div>

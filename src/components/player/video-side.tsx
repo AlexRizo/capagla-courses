@@ -152,13 +152,14 @@ export function VideoSide({
             disabled={!canMark || saving}
             className="cursor-pointer border-0 bg-transparent px-1.5 py-px font-sans text-13 font-black text-player-accent disabled:opacity-50"
           >
-            + Marcar {clock(time)}
+            + Guardar momento {clock(time)}
           </button>
         </div>
         <div className="px-0.5 pb-1 text-13 leading-normal text-player-muted">
-          Guarda un minuto del video para volver a él cuando quieras. Toca «+
-          Marcar» en el momento que te interesa: se guarda con el nombre del
-          tema y puedes cambiarlo. Después, toca el minuto para regresar ahí.
+          Guarda un minuto exacto del video para volver a él cuando quieras.
+          Toca «+ Guardar momento» cuando llegues a la parte que te interesa: se
+          guarda con el nombre del tema y puedes cambiarlo. Después, toca el
+          minuto para regresar ahí.
         </div>
         {error && <div className="text-13 text-landing-warn-line">{error}</div>}
         {moments.map((m) => (

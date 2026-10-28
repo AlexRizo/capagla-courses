@@ -1,7 +1,5 @@
 import { z } from 'zod'
 
-import type { PriceBase } from '#/lib/cost-settings'
-
 // Productos de la herramienta de costos: lo que se guarda y las cuentas de precio, ganancia y
 // semáforo. Solo reglas (sin base de datos): el formulario y el servidor usan lo mismo.
 
@@ -24,8 +22,9 @@ export const productSchema = z
       .max(1000)
       .nullable(),
     slicePrice: money.nullable(),
-    withTax: z.boolean(),
-    // El múltiplo de Ajustes, editable también desde aquí (se guarda en Ajustes).
+    // El impuesto de Ajustes que lleva su precio (ya incluido); sin valor, ninguno.
+    taxTypeId: z.string().min(1).nullable(),
+    // Su múltiplo mínimo; vacío usa el general de Ajustes.
     multiplier: z
       .number()
       .min(1, 'El múltiplo es de 1 en adelante: 1 es vender al costo.')
@@ -76,10 +75,10 @@ export const productSchema = z
 
 export type ProductInput = z.input<typeof productSchema>
 
-// Semáforo del precio: rojo si no cubre el costo, amarillo si lo cubre pero no llega al múltiplo,
-// verde si lo alcanza. `COVERED` es cuando cubre el costo y aún no hay múltiplo en Ajustes con qué
-// compararlo; `NONE`, cuando falta el precio o el costo.
-export type Verdict = 'NONE' | 'LOSS' | 'LOW' | 'GOOD' | 'COVERED'
+// Semáforo del precio, sobre el costo total: rojo si no cubre el costo (menos de ×1), amarillo si
+// lo cubre pero no llega al múltiplo mínimo, verde entre el mínimo y la meta, y verde brillante
+// ("Excelente") por encima de la meta. `NONE`, cuando falta el precio o el costo.
+export type Verdict = 'NONE' | 'LOSS' | 'LOW' | 'GOOD' | 'GREAT'
 
 export type Margin = {
   gain: number
@@ -98,14 +97,14 @@ export function margin(price: number, cost: number): Margin | null {
 export function verdictOf(
   price: number | null,
   cost: number,
-  // Costo sobre el que se aplica el múltiplo (el total o solo ingredientes y empaque).
-  base: number,
-  multiplier: number | null,
+  // Mínimo del producto y meta general; si el mínimo pasa la meta, manda el mínimo.
+  multiplier: number,
+  target: number,
 ): Verdict {
   if (price === null || !cost) return 'NONE'
   if (price < cost) return 'LOSS'
-  if (!multiplier) return 'COVERED'
-  return price < multiplier * base ? 'LOW' : 'GOOD'
+  if (price < multiplier * cost) return 'LOW'
+  return price > Math.max(target, multiplier) * cost ? 'GREAT' : 'GOOD'
 }
 
 export const VERDICT_LABEL: Record<Verdict, string> = {
@@ -113,7 +112,7 @@ export const VERDICT_LABEL: Record<Verdict, string> = {
   LOSS: 'Vendes a pérdida',
   LOW: 'Te queda poco',
   GOOD: 'Buen margen',
-  COVERED: 'Cubre tu costo',
+  GREAT: 'Excelente',
 }
 
 const EXPENSES =
@@ -122,17 +121,18 @@ const EXPENSES =
 // Texto del aviso del semáforo, con la razón.
 export function verdictText(
   verdict: Verdict,
-  ctx: { multiplier: number | null; ratio: number | null },
+  ctx: { multiplier: number; target: number; ratio: number | null },
 ) {
+  const ratio = ctx.ratio?.toFixed(2)
   switch (verdict) {
     case 'LOSS':
       return `Lo vendes por debajo de lo que te cuesta producirlo. ${EXPENSES}`
     case 'LOW':
-      return `Quizás lo estés vendiendo muy barato. ${EXPENSES}`
+      return `Quizás lo estés vendiendo muy barato: no llegas a tu mínimo de ${ctx.multiplier}×. ${EXPENSES}`
     case 'GOOD':
-      return `Cubre tus costos y pasa de tu ${ctx.multiplier}× (aquí vendes a ${ctx.ratio?.toFixed(2)}× tu costo).`
-    case 'COVERED':
-      return 'Cubre tu costo. Escribe tu múltiplo en Ajustes de costos para saber si es buen margen.'
+      return `Cubre tus costos y pasa de tu mínimo de ${ctx.multiplier}× (aquí vendes a ${ratio}× tu costo).`
+    case 'GREAT':
+      return `Excelente: vendes a ${ratio}× tu costo, por encima de tu meta de ${ctx.target}×.`
     default:
       return 'Agrega las recetas y el precio para ver cuánto ganas.'
   }
@@ -153,11 +153,11 @@ export type ProductSummaryInput = {
   slicesPerPiece: number | null
   price: number | null
   slicePrice: number | null
-  multiplier: number | null
-  priceBase: PriceBase
-  // Impuesto de Ajustes, solo si el producto lo suma.
+  // Mínimo del producto (o el general) y meta general.
+  multiplier: number
+  target: number
+  // Tasa del impuesto que lleva el precio (ya incluido); sin valor, ninguno.
   taxPct: number | null
-  withTax: boolean
 }
 
 // Lo que cuesta, a cuánto se vende y cuánto se gana: el entero y, si aplica, cada rebanada.
@@ -165,25 +165,25 @@ export function productSummary(i: ProductSummaryInput) {
   const incomplete =
     i.recipes.length === 0 || i.recipes.some((r) => r.empty || r.total === null)
   const recipesCost = i.recipes.reduce((s, r) => s + (r.total ?? 0), 0)
-  const recipesIngredients = i.recipes.reduce((s, r) => s + r.ingredients, 0)
   const wholeCost = recipesCost + i.packagingWhole
-  // Sobre qué se aplica el múltiplo: todo el costo, o solo lo que se compra.
-  const wholeBase =
-    i.priceBase === 'INGREDIENTS'
-      ? recipesIngredients + i.packagingWhole
-      : wholeCost
-  const taxFactor = i.withTax && i.taxPct ? 1 + i.taxPct / 100 : 1
-  const suggested =
-    i.multiplier && !incomplete ? wholeBase * i.multiplier * taxFactor : null
+  // El precio ya incluye el impuesto: el margen y el semáforo salen del neto, precio ÷ (1 + tasa).
+  const taxFactor = 1 + (i.taxPct ?? 0) / 100
+  const net = (price: number | null) =>
+    price === null ? null : price / taxFactor
+  const netPrice = net(i.price)
+  const netSlicePrice = net(i.slicePrice)
+  const suggested = !incomplete ? wholeCost * i.multiplier * taxFactor : null
 
   const whole = {
     recipes: recipesCost,
     packaging: i.packagingWhole,
     cost: wholeCost,
-    margin: incomplete ? null : margin(i.price ?? 0, wholeCost),
+    // Lo que cobra sin el impuesto.
+    netPrice,
+    margin: incomplete ? null : margin(netPrice ?? 0, wholeCost),
     verdict: incomplete
       ? ('NONE' as Verdict)
-      : verdictOf(i.price, wholeCost, wholeBase, i.multiplier),
+      : verdictOf(netPrice, wholeCost, i.multiplier, i.target),
     suggested,
   }
 
@@ -192,21 +192,18 @@ export function productSummary(i: ProductSummaryInput) {
     const n = i.slicesPerPiece
     const portion = wholeCost / n
     const cost = portion + i.packagingSlice
-    const base =
-      i.priceBase === 'INGREDIENTS'
-        ? (recipesIngredients + i.packagingWhole) / n + i.packagingSlice
-        : cost
     slices = {
       count: n,
       portion,
       packaging: i.packagingSlice,
       cost,
-      margin: incomplete ? null : margin(i.slicePrice ?? 0, cost),
+      netPrice: netSlicePrice,
+      margin: incomplete ? null : margin(netSlicePrice ?? 0, cost),
       verdict: incomplete
         ? ('NONE' as Verdict)
-        : verdictOf(i.slicePrice, cost, base, i.multiplier),
-      // Si vende todas las rebanadas, esto le deja la pieza.
-      allSold: i.slicePrice === null ? null : i.slicePrice * n,
+        : verdictOf(netSlicePrice, cost, i.multiplier, i.target),
+      // Si vende todas las rebanadas, esto le deja la pieza (sin el impuesto).
+      allSold: netSlicePrice === null ? null : netSlicePrice * n,
     }
   }
   return { incomplete, whole, slices }

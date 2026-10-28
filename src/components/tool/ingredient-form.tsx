@@ -172,7 +172,9 @@ export function IngredientForm({
         if (ingredient) {
           await updateIngredient({ data: { id: ingredient.id, values: input } })
         } else {
-          await createIngredient({ data: input })
+          const created = await createIngredient({ data: input })
+          if (!created.id)
+            return setError(created.error ?? 'No se pudo guardar.')
         }
         await router.invalidate()
         await navigate({ to: '/herramienta/ingredientes' })
@@ -453,7 +455,9 @@ export function IngredientForm({
                       <span className="text-sm text-muted-foreground">
                         Útil para huevo, limón o cualquier cosa que compras por
                         pieza y en la receta conviene pesar. Si no lo activas,
-                        solo se usa en la unidad con la que lo compras.
+                        solo se usa en la unidad con la que lo compras. El peso
+                        de cada pieza es el del huevo sin cascarón: rómpelos y
+                        pésalos en tara.
                       </span>
                     </label>
                   </div>

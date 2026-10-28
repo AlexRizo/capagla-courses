@@ -39,6 +39,8 @@ import {
   SidebarTrigger,
 } from '#/components/ui/sidebar'
 import { TooltipProvider } from '#/components/ui/tooltip'
+import { hasModule } from '#/lib/tool-tiers'
+import type { ToolModuleKey, ToolTierInfo } from '#/lib/tool-tiers'
 import type { FileRouteTypes } from '#/routeTree.gen'
 
 type Item = {
@@ -46,6 +48,8 @@ type Item = {
   icon: typeof Package
   // Sin `to`, la sección aún no está construida: se ve en el menú pero no abre nada.
   to?: FileRouteTypes['to']
+  // Módulo que abre el nivel Completo: sin él se ve apagado.
+  module?: ToolModuleKey
 }
 
 // Menú de la maqueta, en su orden. Se activa sección por sección conforme se construye.
@@ -67,11 +71,17 @@ const groups: { label: string; items: Item[] }[] = [
   {
     label: 'Compras',
     items: [
-      { label: 'Lista de compra', icon: ListChecks, to: '/herramienta/lista' },
+      {
+        label: 'Lista de compra',
+        icon: ListChecks,
+        to: '/herramienta/lista',
+        module: 'SHOPPING_LIST',
+      },
       {
         label: 'Registro de compras',
         icon: Receipt,
         to: '/herramienta/compras',
+        module: 'PURCHASES',
       },
       { label: 'Lugares de compra', icon: Store, to: '/herramienta/lugares' },
     ],
@@ -83,11 +93,13 @@ const groups: { label: string; items: Item[] }[] = [
         label: 'Producción',
         icon: CalendarDays,
         to: '/herramienta/producciones',
+        module: 'PRODUCTION',
       },
       {
         label: 'Cotizador',
         icon: Calculator,
         to: '/herramienta/cotizador',
+        module: 'QUOTES',
       },
     ],
   },
@@ -101,9 +113,18 @@ const settings: Item = {
 const active =
   'data-[active=true]:bg-sidebar-active data-[active=true]:text-sidebar-accent-foreground'
 
-function NavItem({ item, pathname }: { item: Item; pathname: string }) {
+function NavItem({
+  item,
+  pathname,
+  locked = false,
+}: {
+  item: Item
+  pathname: string
+  // Su nivel no abre este módulo: se ve apagado y avisa en qué nivel está.
+  locked?: boolean
+}) {
   const Icon = item.icon
-  if (!item.to) {
+  if (!item.to || locked) {
     return (
       <SidebarMenuItem>
         <SidebarMenuButton
@@ -113,6 +134,7 @@ function NavItem({ item, pathname }: { item: Item; pathname: string }) {
         >
           <Icon />
           <span>{item.label}</span>
+          {locked && <span className="ml-auto text-xs">Completo</span>}
         </SidebarMenuButton>
       </SidebarMenuItem>
     )
@@ -136,7 +158,15 @@ function NavItem({ item, pathname }: { item: Item; pathname: string }) {
 // Marco de la herramienta de costos: barra lateral morada oscura y contenido gris claro, con el
 // tema `.tool` (tokens de su maqueta). Los diálogos y menús de shadcn se dibujan fuera de este
 // marco, así que la clase también se pone en <html> mientras la herramienta está abierta.
-export function ToolLayout({ children }: { children: React.ReactNode }) {
+export function ToolLayout({
+  children,
+  tier,
+  used,
+}: {
+  children: React.ReactNode
+  tier: ToolTierInfo
+  used: number
+}) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
 
   useEffect(() => {
@@ -184,6 +214,9 @@ export function ToolLayout({ children }: { children: React.ReactNode }) {
                             key={item.label}
                             item={item}
                             pathname={pathname}
+                            locked={
+                              !!item.module && !hasModule(tier, item.module)
+                            }
                           />
                         ))}
                       </SidebarMenu>
@@ -201,6 +234,9 @@ export function ToolLayout({ children }: { children: React.ReactNode }) {
               </SidebarGroup>
             </SidebarContent>
             <SidebarFooter>
+              <div className="px-2 text-xs text-sidebar-muted">
+                {tier.name}: {used} de {tier.itemLimit} elementos
+              </div>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton

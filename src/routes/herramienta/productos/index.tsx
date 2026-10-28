@@ -38,7 +38,7 @@ const PILL: Record<Verdict, { style: string; icon: typeof CircleCheck }> = {
   LOSS: { style: 'bg-danger-soft text-danger', icon: CircleX },
   LOW: { style: 'bg-warning-soft text-warning', icon: CircleAlert },
   GOOD: { style: 'bg-success-soft text-success', icon: CircleCheck },
-  COVERED: { style: 'bg-muted text-muted-foreground', icon: CircleMinus },
+  GREAT: { style: 'bg-success text-white', icon: CircleCheck },
   NONE: { style: 'bg-muted text-muted-foreground', icon: CircleMinus },
 }
 
@@ -125,7 +125,7 @@ function Productos() {
                   ? 'text-danger'
                   : p.verdict === 'LOW'
                     ? 'text-warning'
-                    : p.verdict === 'GOOD'
+                    : p.verdict === 'GOOD' || p.verdict === 'GREAT'
                       ? 'text-success'
                       : 'text-muted-foreground'
               return (
@@ -208,7 +208,7 @@ function Productos() {
 
       <p className="m-0 text-sm text-muted-foreground">
         El costo incluye ingredientes, empaque y lo que cada receta tenga
-        activado: merma, gasto fijo y mano de obra.
+        activado: merma, gastos fijos y tu tiempo (mano de obra).
       </p>
     </>
   )

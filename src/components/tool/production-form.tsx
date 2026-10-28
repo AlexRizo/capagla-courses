@@ -237,9 +237,9 @@ export function ProductionForm({ data }: { data: Loaded }) {
                 note="Ingredientes y empaque"
               />
               <Tile
-                label="Costo total de producir"
+                label="Costo de producción"
                 value={formatPrice(summary.cost)}
-                note={`Incluye tu trabajo ${formatPrice(summary.labor)} y gasto fijo ${formatPrice(summary.fixed)}`}
+                note={`Incluye tu tiempo ${formatPrice(summary.labor)} y gastos fijos ${formatPrice(summary.fixed)}`}
               />
               <Tile label="Ventas" value={formatPrice(summary.sales)} />
               <Tile label="Ganancia" value={formatPrice(summary.profit)} />
@@ -248,6 +248,14 @@ export function ProductionForm({ data }: { data: Loaded }) {
               “Dinero para comprar” es lo que cuestan los ingredientes y el
               empaque. En la tienda gastarás un poco más porque compras paquetes
               completos; ese total sale en la lista de compra.
+            </p>
+            <p className="m-0 text-sm text-muted-foreground">
+              Si no te rindió lo esperado, revisa tu proceso para evitar
+              pérdidas.
+            </p>
+            <p className="m-0 text-sm text-muted-foreground">
+              Hasta aquí es lo que te cuesta producir. Si entregas, suma
+              gasolina, tu tiempo de traslado y comisiones.
             </p>
           </CardContent>
         </Card>
@@ -280,7 +288,9 @@ export function ProductionForm({ data }: { data: Loaded }) {
                   <TableHead className="w-44">Cantidad</TableHead>
                   <TableHead className="text-right">Costo c/u</TableHead>
                   <TableHead className="text-right">Venta c/u</TableHead>
-                  <TableHead className="text-right">Costo total</TableHead>
+                  <TableHead className="text-right">
+                    Costo de producción
+                  </TableHead>
                   <TableHead className="text-right">Venta total</TableHead>
                   <TableHead className="w-12" />
                 </TableRow>

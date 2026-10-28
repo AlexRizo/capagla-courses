@@ -47,6 +47,13 @@ import {
   InputGroupInput,
   InputGroupText,
 } from '#/components/ui/input-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '#/components/ui/select'
 import { Switch } from '#/components/ui/switch'
 import {
   VERDICT_LABEL,
@@ -54,6 +61,7 @@ import {
   productSummary,
   verdictText,
 } from '#/lib/cost-product'
+import { ACCOUNTING_NOTE } from '#/lib/cost-settings'
 import type { Margin, Verdict } from '#/lib/cost-product'
 import { formatAmount, formatPrice, parseDecimal } from '#/lib/costs'
 import { saveProduct, setProductArchived } from '#/lib/tool-products'
@@ -67,6 +75,8 @@ const optionalNumber = (t: string) =>
 const text = (n: number | null | undefined) =>
   n === null || n === undefined ? '' : String(n)
 
+const NO_TAX = 'none'
+
 type RecipeRow = { key: string; recipeId: string; piecesSold: string }
 
 const TONE: Record<Verdict, { box: string; icon: typeof CircleCheck }> = {
@@ -79,7 +89,10 @@ const TONE: Record<Verdict, { box: string; icon: typeof CircleCheck }> = {
     box: 'border-success/30 bg-success-soft text-success',
     icon: CircleCheck,
   },
-  COVERED: { box: 'bg-muted text-foreground', icon: CircleMinus },
+  GREAT: {
+    box: 'border-success bg-success text-white',
+    icon: CircleCheck,
+  },
   NONE: { box: 'bg-muted text-muted-foreground', icon: CircleMinus },
 }
 
@@ -93,10 +106,12 @@ export function marginText(m: Margin) {
 function VerdictBox({
   verdict,
   multiplier,
+  target,
   ratio,
 }: {
   verdict: Verdict
-  multiplier: number | null
+  multiplier: number
+  target: number
   ratio: number | null
 }) {
   const tone = TONE[verdict]
@@ -110,7 +125,7 @@ function VerdictBox({
       <div className="flex flex-col gap-0.5">
         <div className="font-medium">{VERDICT_LABEL[verdict]}</div>
         <div className="text-sm opacity-90">
-          {verdictText(verdict, { multiplier, ratio })}
+          {verdictText(verdict, { multiplier, target, ratio })}
         </div>
       </div>
     </div>
@@ -125,7 +140,7 @@ const row = (label: string, value: string, strong = false) => (
 )
 
 export function ProductForm({ data }: { data: Loaded }) {
-  const { product, recipes, packaging, settings } = data
+  const { product, recipes, packaging, settings, taxTypes } = data
   const navigate = useNavigate()
   const router = useRouter()
 
@@ -173,7 +188,7 @@ export function ProductForm({ data }: { data: Loaded }) {
     sellsSlices: boolean
     slicesPerPiece: string
     slicePrice: string
-    withTax: boolean
+    taxTypeId: string
     multiplier: string
   }) {
     const pack = (lines: Line[], scope: 'WHOLE' | 'SLICE') =>
@@ -189,7 +204,7 @@ export function ProductForm({ data }: { data: Loaded }) {
       sellsSlices: v.sellsSlices,
       slicesPerPiece: optionalNumber(v.slicesPerPiece),
       slicePrice: optionalNumber(v.slicePrice),
-      withTax: v.withTax,
+      taxTypeId: v.taxTypeId || null,
       multiplier: optionalNumber(v.multiplier),
       recipes: recipeRows.map((r) => ({
         recipeId: r.recipeId,
@@ -222,8 +237,9 @@ export function ProductForm({ data }: { data: Loaded }) {
       sellsSlices: product?.sellsSlices ?? false,
       slicesPerPiece: text(product?.slicesPerPiece),
       slicePrice: text(product?.slicePrice),
-      withTax: product?.withTax ?? settings.sellsAsBusiness,
-      multiplier: text(settings.multiplier),
+      taxTypeId: product?.taxTypeId ?? '',
+      // Su mínimo; sin uno propio, el general es el punto de partida.
+      multiplier: text(product?.multiplier ?? settings.multiplier),
     },
     validators: {
       onSubmit: ({ value }) => {
@@ -621,8 +637,9 @@ export function ProductForm({ data }: { data: Loaded }) {
             {(values) => {
               const multiplier = (() => {
                 const m = parseDecimal(values.multiplier)
-                return m && m >= 1 ? m : null
+                return m && m >= 1 ? m : settings.multiplier
               })()
+              const target = settings.target
               const summary = productSummary({
                 recipes: recipeRows.map((r) => {
                   const c = recipeById.get(r.recipeId)
@@ -642,9 +659,10 @@ export function ProductForm({ data }: { data: Loaded }) {
                 price: parseDecimal(values.price),
                 slicePrice: parseDecimal(values.slicePrice),
                 multiplier,
-                priceBase: settings.priceBase,
-                taxPct: settings.taxPct,
-                withTax: values.withTax,
+                target,
+                taxPct:
+                  taxTypes.find((t) => t.id === values.taxTypeId)?.ratePct ??
+                  null,
               })
               const w = summary.whole
               const sl = summary.slices
@@ -666,12 +684,19 @@ export function ProductForm({ data }: { data: Loaded }) {
                       ) : (
                         <div className="flex flex-col gap-2">
                           {row(
-                            'Receta (ya incluye ingredientes, merma, gasto fijo y mano de obra)',
+                            'Receta (ya incluye ingredientes, merma, gastos fijos y tu tiempo)',
                             formatPrice(w.recipes),
                           )}
                           {row('Empaque del entero', formatPrice(w.packaging))}
                           <div className="border-t" />
-                          {row('Te cuesta', formatPrice(w.cost), true)}
+                          {row(
+                            'Costo de producción',
+                            formatPrice(w.cost),
+                            true,
+                          )}
+                          <p className="m-0 text-sm text-muted-foreground">
+                            {ACCOUNTING_NOTE}
+                          </p>
                         </div>
                       )}
 
@@ -709,9 +734,17 @@ export function ProductForm({ data }: { data: Loaded }) {
                           {marginText(w.margin)}
                         </div>
                       )}
+                      {w.netPrice !== null &&
+                        values.taxTypeId &&
+                        parseDecimal(values.price) && (
+                          <div className="text-sm text-muted-foreground">
+                            Sin impuesto cobras {formatPrice(w.netPrice)}.
+                          </div>
+                        )}
                       <VerdictBox
                         verdict={w.verdict}
                         multiplier={multiplier}
+                        target={target}
                         ratio={w.margin?.ratio ?? null}
                       />
 
@@ -730,7 +763,7 @@ export function ProductForm({ data }: { data: Loaded }) {
                                   id="multiplo"
                                   inputMode="decimal"
                                   value={f.state.value}
-                                  placeholder="1.43"
+                                  placeholder={String(settings.multiplier)}
                                   onChange={(e) =>
                                     f.handleChange(e.target.value)
                                   }
@@ -771,37 +804,41 @@ export function ProductForm({ data }: { data: Loaded }) {
                           Usar este precio
                         </Button>
                       </div>
-                      <form.Field name="withTax">
+                      <form.Field name="taxTypeId">
                         {(f) => (
-                          <div className="flex items-start gap-3">
-                            <Switch
-                              id="impuestos"
-                              checked={f.state.value}
-                              onCheckedChange={f.handleChange}
-                              className="mt-0.5"
-                            />
-                            <label
-                              htmlFor="impuestos"
-                              className="flex cursor-pointer flex-col gap-0.5"
+                          <Field className="w-72 max-w-full">
+                            <FieldLabel htmlFor="impuesto">Impuesto</FieldLabel>
+                            <Select
+                              value={f.state.value || NO_TAX}
+                              onValueChange={(v) =>
+                                f.handleChange(v === NO_TAX ? '' : v)
+                              }
                             >
-                              <span className="font-medium">
-                                Vendo como negocio (con impuestos)
-                              </span>
-                              <span className="text-sm text-muted-foreground">
-                                Si lo activas, escribes tu % de impuesto en{' '}
-                                <Link
-                                  to="/herramienta/ajustes"
-                                  className="text-primary underline underline-offset-3"
-                                >
-                                  Ajustes de costos
-                                </Link>{' '}
-                                y se suma al precio.
-                                {f.state.value && !settings.taxPct && (
-                                  <> Aún no escribes tu %.</>
-                                )}
-                              </span>
-                            </label>
-                          </div>
+                              <SelectTrigger id="impuesto">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={NO_TAX}>Ninguno</SelectItem>
+                                {taxTypes.map((t) => (
+                                  <SelectItem key={t.id} value={t.id}>
+                                    {t.name} · {t.ratePct}%
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="m-0 text-sm text-muted-foreground">
+                              Tu precio ya incluye el impuesto: el margen y el
+                              semáforo se calculan sin él. Da de alta tus
+                              impuestos en{' '}
+                              <Link
+                                to="/herramienta/ajustes"
+                                className="text-primary underline underline-offset-3"
+                              >
+                                Ajustes de costos
+                              </Link>
+                              .
+                            </p>
+                          </Field>
                         )}
                       </form.Field>
                     </CardContent>
@@ -866,6 +903,7 @@ export function ProductForm({ data }: { data: Loaded }) {
                         <VerdictBox
                           verdict={sl.verdict}
                           multiplier={multiplier}
+                          target={target}
                           ratio={sl.margin?.ratio ?? null}
                         />
                         {sl.allSold !== null && (

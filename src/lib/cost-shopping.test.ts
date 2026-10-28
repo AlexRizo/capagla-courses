@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buyLabel,
   listRow,
+  manualBase,
   moveRow,
   neededBase,
   needLabel,
@@ -74,11 +75,21 @@ describe('paquetes completos', () => {
     expect(packsFor(harina, 0)).toBe(0)
   })
 
-  it('lo agregado a mano suma paquetes completos', () => {
-    const r = listRow(harina, 0, 2)
-    expect(r.packs).toBe(2)
-    expect(r.needLabel).toBe('2,000 g')
-    expect(listRow(harina, 2350, 1).packs).toBe(4)
+  it('lo agregado a mano es la cantidad exacta, sin redondear a paquetes', () => {
+    const solo = listRow(harina, 0, 200)
+    expect(solo.packs).toBe(0)
+    expect(solo.needLabel).toBe('200 g')
+    expect(solo.buyLabel).toBe('200 g')
+    expect(solo.cost).toBeCloseTo(2.6)
+    const junto = listRow(harina, 2350, 200)
+    expect(junto.needLabel).toBe('2,550 g')
+    expect(junto.buyLabel).toBe('3 × 1,000 g + 200 g')
+    expect(junto.cost).toBeCloseTo(41.6)
+  })
+
+  it('empaque de uno en uno: lo de producción y lo manual se juntan en piezas', () => {
+    expect(listRow(domo, 5, 3).buyLabel).toBe('8 pza')
+    expect(listRow(domo, 0, 2).buyLabel).toBe('2 pza')
   })
 
   it('las piezas se redondean hacia arriba y los gramos al entero', () => {
@@ -88,6 +99,27 @@ describe('paquetes completos', () => {
 
   it('se compra por kilo: etiqueta con su unidad', () => {
     expect(buyLabel(ing(40, 1, 'KG'), 2)).toBe('2 × 1 kg')
+  })
+})
+
+describe('lo agregado a mano', () => {
+  it('kg y l se pasan a la unidad base', () => {
+    expect(manualBase(harina, 1.5, 'KG')).toBeCloseTo(1500)
+  })
+
+  it('sin desperdicio: se compra la cantidad que se escribe', () => {
+    const ocupada = { ...harina, wasteEnabled: true, yieldPct: 50 }
+    expect(manualBase(ocupada, 200, 'G')).toBeCloseTo(200)
+    expect(neededBase(ocupada, 200, 'G')).toBeCloseTo(400)
+  })
+
+  it('el huevo en gramos se pasa a piezas: 342 g = 6 piezas', () => {
+    expect(manualBase(huevo, 342, 'G')).toBeCloseTo(6)
+    expect(manualBase(huevo, 6, 'PZA')).toBe(6)
+  })
+
+  it('sin equivalencia no hay cantidad', () => {
+    expect(manualBase(harina, 2, 'PZA')).toBeNull()
   })
 })
 

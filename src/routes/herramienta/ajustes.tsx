@@ -1,6 +1,6 @@
 import { useForm } from '@tanstack/react-form'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { Info } from 'lucide-react'
+import { Info, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 import { Alert, AlertDescription, AlertTitle } from '#/components/ui/alert'
@@ -13,6 +13,8 @@ import {
   CardTitle,
 } from '#/components/ui/card'
 import { Field, FieldError, FieldLabel } from '#/components/ui/field'
+import { Input } from '#/components/ui/input'
+import { Label } from '#/components/ui/label'
 import {
   InputGroup,
   InputGroupAddon,
@@ -21,21 +23,20 @@ import {
 } from '#/components/ui/input-group'
 import { RadioGroup, RadioGroupItem } from '#/components/ui/radio-group'
 import { Switch } from '#/components/ui/switch'
-import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import {
+  ACCOUNTING_NOTE,
+  DEFAULT_MACHINERY_YEARS,
+  DEFAULT_MOLDS_YEARS,
   fixedCostPerHour,
   fullHour,
   laborPerHour,
   monthlyHours,
   multiplierExample,
   settingsSchema,
+  taxTypesSchema,
   WEEKS_PER_MONTH,
 } from '#/lib/cost-settings'
-import type {
-  CostSettingsValues,
-  LaborMode,
-  PriceBase,
-} from '#/lib/cost-settings'
+import type { CostSettingsValues, LaborMode } from '#/lib/cost-settings'
 import { formatAmount, formatPrice, parseDecimal } from '#/lib/costs'
 import { getCostSettings, saveCostSettings } from '#/lib/tool-settings'
 import { cn } from '#/lib/utils'
@@ -51,26 +52,29 @@ export const Route = createFileRoute('/herramienta/ajustes')({
 // Los números se escriben como texto y se convierten al guardar.
 const NUMBERS = [
   'hoursPerWeek',
-  'ovenKw',
-  'kwhPrice',
-  'gasKgPerHour',
-  'gasPricePerKg',
+  'electricityMonthly',
+  'gasMonthly',
   'rentMonthly',
   'rentSharePct',
-  'equipCost',
-  'equipLifeHours',
+  'machineryCost',
+  'machineryYears',
+  'moldsCost',
+  'moldsYears',
   'wantedMonthly',
   'dailyMinWage',
   'multiplier',
+  'targetMultiplier',
   'defaultWastePct',
-  'taxPct',
 ] as const
 type NumberKey = (typeof NUMBERS)[number]
 type Values = Record<NumberKey, string> & {
   laborMode: LaborMode
-  priceBase: PriceBase
-  sellsAsBusiness: boolean
+  // Modo pro: la alumna cambia los años de vida del equipo (solo en pantalla).
+  proYears: boolean
 }
+
+// Un impuesto en pantalla: los que ya existen llevan su `id`.
+type TaxRow = { key: string; id: string | null; name: string; ratePct: string }
 
 const text = (n: number | null) => (n === null ? '' : String(n))
 
@@ -81,8 +85,7 @@ function initialValues(s: CostSettingsValues): Values {
   return {
     ...numbers,
     laborMode: s.laborMode,
-    priceBase: s.priceBase,
-    sellsAsBusiness: s.sellsAsBusiness,
+    proYears: s.machineryYears !== null || s.moldsYears !== null,
   }
 }
 
@@ -91,14 +94,15 @@ const parse = (t: string) =>
   t.trim() === '' ? null : (parseDecimal(t) ?? Number.NaN)
 
 function toSettings(v: Values): CostSettingsValues {
+  const numbers = Object.fromEntries(
+    NUMBERS.map((k) => [k, parse(v[k])]),
+  ) as Record<NumberKey, number | null>
   return {
-    ...(Object.fromEntries(NUMBERS.map((k) => [k, parse(v[k])])) as Record<
-      NumberKey,
-      number | null
-    >),
+    ...numbers,
+    // Sin modo pro los años son los de por defecto.
+    machineryYears: v.proYears ? numbers.machineryYears : null,
+    moldsYears: v.proYears ? numbers.moldsYears : null,
     laborMode: v.laborMode,
-    priceBase: v.priceBase,
-    sellsAsBusiness: v.sellsAsBusiness,
   }
 }
 
@@ -111,13 +115,6 @@ function forDisplay(v: Values): CostSettingsValues {
 
 const perHour = (value: number | null) =>
   value === null ? '—' : `${formatPrice(value)} / h`
-
-const BASE_NOTE: Record<PriceBase, string> = {
-  TOTAL:
-    'Tu costo total: ingredientes, empaque, tu trabajo, el gas y la luz. Es lo más honesto, y por eso el múltiplo es chico.',
-  INGREDIENTS:
-    'Solo lo que compras. Es la regla de las redes de “multiplica por 3 tus ingredientes”: de ahí tienen que salir tu trabajo, tus gastos y tu ganancia.',
-}
 
 const LABOR_NOTE: Record<LaborMode, (full: number | null) => string> = {
   WANTED: () =>
@@ -132,9 +129,10 @@ const LEGEND = [
   ['bg-danger-soft text-danger', 'Rojo: vendes por debajo de tu costo'],
   [
     'bg-warning-soft text-warning',
-    'Amarillo: cubres tu costo, pero no llegas a tu múltiplo',
+    'Amarillo: cubres tu costo, pero no llegas a tu mínimo',
   ],
-  ['bg-success-soft text-success', 'Verde: alcanzas tu múltiplo'],
+  ['bg-success-soft text-success', 'Verde: entre tu mínimo y tu meta'],
+  ['bg-success text-white', 'Verde brillante, «Excelente»: pasas de tu meta'],
 ] as const
 
 function Ajustes() {
@@ -144,6 +142,16 @@ function Ajustes() {
     text: string
     error: boolean
   } | null>(null)
+
+  const [taxRows, setTaxRows] = useState<TaxRow[]>(() =>
+    settings.taxTypes.map((t) => ({
+      key: t.id,
+      id: t.id,
+      name: t.name,
+      ratePct: String(t.ratePct),
+    })),
+  )
+  const [taxError, setTaxError] = useState<string | null>(null)
 
   const form = useForm({
     defaultValues: initialValues(settings),
@@ -161,8 +169,26 @@ function Ajustes() {
     },
     onSubmit: async ({ value }) => {
       setMessage(null)
+      const taxes = taxTypesSchema.safeParse(
+        taxRows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          ratePct: parse(r.ratePct) ?? Number.NaN,
+        })),
+      )
+      if (!taxes.success) {
+        setTaxError(
+          taxes.error.issues[0].code === 'invalid_type'
+            ? 'Escribe la tasa de cada impuesto.'
+            : taxes.error.issues[0].message,
+        )
+        return
+      }
+      setTaxError(null)
       try {
-        await saveCostSettings({ data: toSettings(value) })
+        await saveCostSettings({
+          data: { settings: toSettings(value), taxTypes: taxes.data },
+        })
         await router.invalidate()
         setMessage({ text: 'Guardado', error: false })
       } catch {
@@ -240,6 +266,13 @@ function Ajustes() {
           </h1>
           <p className="mt-1 max-w-2xl text-muted-foreground">
             Datos que se escriben una sola vez y se usan en todas tus recetas.
+            Tres nombres que verás en toda la herramienta:{' '}
+            <strong className="font-semibold">costo de producción</strong> es lo
+            que te cuesta hacer tu postre (el total),{' '}
+            <strong className="font-semibold">tu tiempo</strong> es tu trabajo,
+            o el de quien te ayuda, y{' '}
+            <strong className="font-semibold">gastos fijos</strong> es lo que
+            pagas cada mes para poder hacer postres.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -303,13 +336,15 @@ function Ajustes() {
               const d = forDisplay(values)
               const fixed = fixedCostPerHour(d)
               const hours = monthlyHours(d)
+              const pro = values.proYears
               return (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Gasto fijo por hora</CardTitle>
+                    <CardTitle>Gastos fijos por hora</CardTitle>
                     <CardDescription>
-                      Lo que cuesta tener la cocina encendida una hora, sin
-                      contar tu sueldo.
+                      Lo que pagas cada mes para poder hacer postres (renta,
+                      gas, luz y el desgaste de tu equipo), repartido entre tus
+                      horas de producción. Escribe lo que pagas al mes.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-4">
@@ -318,10 +353,8 @@ function Ajustes() {
                         title: 'Luz',
                         value: fixed.electricity,
                         fields: [
-                          num('ovenKw', 'Consumo del horno', { suffix: 'kW' }),
-                          num('kwhPrice', 'Precio', {
+                          num('electricityMonthly', 'Lo que pagas al mes', {
                             prefix: '$',
-                            suffix: '/ kWh',
                           }),
                         ],
                       },
@@ -329,10 +362,8 @@ function Ajustes() {
                         title: 'Gas',
                         value: fixed.gas,
                         fields: [
-                          num('gasKgPerHour', 'Consumo', { suffix: 'kg / h' }),
-                          num('gasPricePerKg', 'Precio', {
+                          num('gasMonthly', 'Lo que pagas al mes', {
                             prefix: '$',
-                            suffix: '/ kg',
                           }),
                         ],
                       },
@@ -341,17 +372,42 @@ function Ajustes() {
                         value: fixed.rent,
                         fields: [
                           num('rentMonthly', 'Renta al mes', { prefix: '$' }),
-                          num('rentSharePct', 'Parte que usas', {
+                          num('rentSharePct', 'Parte que ocupas', {
                             suffix: '%',
                           }),
                         ],
                       },
                       {
-                        title: 'Depreciación del horno',
+                        title: 'Desgaste del equipo',
                         value: fixed.depreciation,
                         fields: [
-                          num('equipCost', 'Costo del equipo', { prefix: '$' }),
-                          num('equipLifeHours', 'Dura', { suffix: 'horas' }),
+                          num(
+                            'machineryCost',
+                            'Maquinaria (horno, batidora…)',
+                            { prefix: '$', className: 'w-60' },
+                          ),
+                          ...(pro
+                            ? [
+                                num('machineryYears', 'Años de vida', {
+                                  suffix: 'años',
+                                  placeholder: String(DEFAULT_MACHINERY_YEARS),
+                                  className: 'w-40',
+                                }),
+                              ]
+                            : []),
+                          num('moldsCost', 'Moldes y charolas', {
+                            prefix: '$',
+                            className: 'w-60',
+                          }),
+                          ...(pro
+                            ? [
+                                num('moldsYears', 'Años de vida', {
+                                  suffix: 'años',
+                                  placeholder: String(DEFAULT_MOLDS_YEARS),
+                                  className: 'w-40',
+                                }),
+                              ]
+                            : []),
                         ],
                       },
                     ].map((row) => (
@@ -368,18 +424,57 @@ function Ajustes() {
                         </div>
                       </div>
                     ))}
+                    <div className="flex items-start gap-3">
+                      <Switch
+                        id="anios"
+                        checked={pro}
+                        onCheckedChange={(v) =>
+                          form.setFieldValue('proYears', v)
+                        }
+                        className="mt-0.5"
+                      />
+                      <label
+                        htmlFor="anios"
+                        className="flex cursor-pointer flex-col gap-0.5"
+                      >
+                        <span className="font-medium">
+                          Cambiar los años de vida del equipo
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          Si no lo activas, usamos {DEFAULT_MACHINERY_YEARS}{' '}
+                          años para la maquinaria y {DEFAULT_MOLDS_YEARS} para
+                          moldes y charolas.
+                        </span>
+                      </label>
+                    </div>
                     <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-3 font-semibold tabular-nums">
-                      <span>Gasto fijo por hora</span>
+                      <span>Gastos fijos por hora</span>
                       <span>{formatPrice(fixed.total)}</span>
                     </div>
-                    {fixed.rent !== null && hours && (
+                    {hours && (
                       <p className="m-0 text-sm text-muted-foreground">
-                        La renta se reparte entre tus horas al mes:{' '}
-                        {formatAmount(d.rentMonthly ?? 0)} ×{' '}
-                        {d.rentSharePct ?? 0}% ÷ {hours} h ={' '}
-                        {formatPrice(fixed.rent)}.
+                        Todo se reparte entre tus horas al mes ({hours} h).
+                        {fixed.rent !== null && (
+                          <>
+                            {' '}
+                            La renta: {formatAmount(d.rentMonthly ?? 0)} ×{' '}
+                            {d.rentSharePct ?? 0}% ÷ {hours} h ={' '}
+                            {formatPrice(fixed.rent)}.
+                          </>
+                        )}
+                        {fixed.depreciationMonthly !== null && (
+                          <>
+                            {' '}
+                            El equipo se desgasta{' '}
+                            {formatPrice(fixed.depreciationMonthly)} al mes
+                            (precio ÷ años × 12).
+                          </>
+                        )}
                       </p>
                     )}
+                    <p className="m-0 text-sm text-muted-foreground">
+                      {ACCOUNTING_NOTE}
+                    </p>
                   </CardContent>
                 </Card>
               )
@@ -388,10 +483,10 @@ function Ajustes() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Mano de obra por hora</CardTitle>
+              <CardTitle>Tu tiempo (mano de obra) por hora</CardTitle>
               <CardDescription>
-                Lo que vale tu trabajo. Es distinto al gasto fijo: aquí va lo
-                que tú quieres ganar.
+                Tu trabajo, o el de quien te ayuda. Es distinto a los gastos
+                fijos: aquí va lo que tú quieres ganar.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -437,7 +532,7 @@ function Ajustes() {
                       onValueChange={(v) =>
                         form.setFieldValue('laborMode', v as LaborMode)
                       }
-                      aria-label="Cómo calcular tu mano de obra"
+                      aria-label="Cómo calcular tu tiempo"
                       className="gap-3"
                     >
                       {option(
@@ -503,15 +598,21 @@ function Ajustes() {
             <CardHeader>
               <CardTitle>Cómo fijas tu precio</CardTitle>
               <CardDescription>
-                Con cuántas veces tu costo vendes. Es un múltiplo, no un
-                porcentaje.
+                Con cuántas veces tu costo total (ingredientes, empaque, tu
+                tiempo y gastos fijos) vendes. Es un múltiplo, no un porcentaje.
+                El ×2.5 es el mínimo que recomienda la chef por su experiencia,
+                y el ×3.5 es la meta.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="flex flex-wrap items-start gap-4">
-                {num('multiplier', 'Quiero vender a', {
+                {num('multiplier', 'Múltiplo mínimo', {
                   suffix: '× mi costo',
-                  placeholder: '1.43',
+                  placeholder: '2.5',
+                })}
+                {num('targetMultiplier', 'Meta', {
+                  suffix: '× mi costo',
+                  placeholder: '3.5',
                 })}
                 {num('defaultWastePct', 'Merma por defecto en recetas nuevas', {
                   suffix: '%',
@@ -557,35 +658,6 @@ function Ajustes() {
                   $100 es $300.
                 </AlertDescription>
               </Alert>
-              <div className="flex flex-col gap-2">
-                <div className="text-sm font-medium">Aplicar sobre</div>
-                <form.Field name="priceBase">
-                  {(f) => (
-                    <>
-                      <ToggleGroup
-                        type="single"
-                        variant="outline"
-                        value={f.state.value}
-                        onValueChange={(v) =>
-                          v && f.handleChange(v as PriceBase)
-                        }
-                        aria-label="Base del múltiplo"
-                        className="self-start"
-                      >
-                        <ToggleGroupItem value="TOTAL">
-                          Costo total
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="INGREDIENTS">
-                          Solo ingredientes y empaque
-                        </ToggleGroupItem>
-                      </ToggleGroup>
-                      <p className="m-0 text-sm text-muted-foreground">
-                        {BASE_NOTE[f.state.value]}
-                      </p>
-                    </>
-                  )}
-                </form.Field>
-              </div>
               <div className="flex flex-wrap gap-2">
                 {LEGEND.map(([style, label]) => (
                   <span
@@ -605,41 +677,96 @@ function Ajustes() {
           <Card>
             <CardHeader>
               <CardTitle>Impuestos</CardTitle>
-              <CardDescription>Solo si vendes como negocio.</CardDescription>
+              <CardDescription>
+                Da de alta tus tipos de impuesto (nombre y tasa) y en cada
+                producto eliges cuál aplica, o ninguno. Tu precio ya incluye el
+                impuesto: el margen y el semáforo se calculan sobre el precio ÷
+                (1 + tasa).
+              </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <form.Subscribe selector={(s) => s.values.sellsAsBusiness}>
-                {(business) => (
-                  <>
-                    <div className="flex items-start gap-3">
-                      <Switch
-                        id="negocio"
-                        checked={business}
-                        onCheckedChange={(v) =>
-                          form.setFieldValue('sellsAsBusiness', v)
+              {taxRows.map((row) => (
+                <div key={row.key} className="flex flex-wrap items-end gap-3">
+                  <div className="flex w-60 max-w-full flex-col gap-1.5">
+                    <Label htmlFor={`imp-${row.key}`}>Nombre</Label>
+                    <Input
+                      id={`imp-${row.key}`}
+                      value={row.name}
+                      placeholder="IVA"
+                      onChange={(e) =>
+                        setTaxRows((rs) =>
+                          rs.map((r) =>
+                            r.key === row.key
+                              ? { ...r, name: e.target.value }
+                              : r,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="flex w-36 flex-col gap-1.5">
+                    <Label htmlFor={`tasa-${row.key}`}>Tasa</Label>
+                    <InputGroup>
+                      <InputGroupInput
+                        id={`tasa-${row.key}`}
+                        inputMode="decimal"
+                        value={row.ratePct}
+                        placeholder="16"
+                        onChange={(e) =>
+                          setTaxRows((rs) =>
+                            rs.map((r) =>
+                              r.key === row.key
+                                ? { ...r, ratePct: e.target.value }
+                                : r,
+                            ),
+                          )
                         }
-                        className="mt-0.5"
                       />
-                      <label
-                        htmlFor="negocio"
-                        className="flex cursor-pointer flex-col gap-0.5"
-                      >
-                        <span className="font-medium">Vendo como negocio</span>
-                        <span className="text-sm text-muted-foreground">
-                          Si lo activas, sumamos tu porcentaje al precio
-                          sugerido.
-                        </span>
-                      </label>
-                    </div>
-                    {num('taxPct', 'Porcentaje de impuesto', {
-                      suffix: '%',
-                      placeholder: 'Tu %',
-                      className: 'w-45',
-                      disabled: !business,
-                    })}
-                  </>
-                )}
-              </form.Subscribe>
+                      <InputGroupAddon align="inline-end">
+                        <InputGroupText>%</InputGroupText>
+                      </InputGroupAddon>
+                    </InputGroup>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Quitar ${row.name || 'impuesto'}`}
+                    onClick={() =>
+                      setTaxRows((rs) => rs.filter((r) => r.key !== row.key))
+                    }
+                  >
+                    <Trash2 />
+                  </Button>
+                </div>
+              ))}
+              {taxError && (
+                <p className="m-0 text-sm text-destructive">{taxError}</p>
+              )}
+              <div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    setTaxRows((rs) => [
+                      ...rs,
+                      {
+                        key: crypto.randomUUID(),
+                        id: null,
+                        name: '',
+                        ratePct: '',
+                      },
+                    ])
+                  }
+                >
+                  <Plus /> Agregar impuesto
+                </Button>
+              </div>
+              <p className="m-0 text-sm text-muted-foreground">
+                Las compras no manejan impuestos: el precio de cada ingrediente
+                es lo que pagaste. Te recomendamos confirmar las tasas con una
+                contadora.
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -659,12 +786,14 @@ function Ajustes() {
                   <CardContent className="flex flex-col gap-3 tabular-nums">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
-                        Mano de obra
+                        Tu tiempo (mano de obra)
                       </span>
                       <span>{labor === null ? '—' : formatPrice(labor)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Gasto fijo</span>
+                      <span className="text-muted-foreground">
+                        Gastos fijos
+                      </span>
                       <span>{formatPrice(fixed)}</span>
                     </div>
                     <div className="border-t" />

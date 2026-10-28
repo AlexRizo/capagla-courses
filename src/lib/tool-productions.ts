@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { prisma } from '#/db'
 import { productionSchema, productionSummary } from '#/lib/cost-shopping'
-import { requireTool } from '#/lib/tool-access'
+import { requireModule } from '#/lib/tool-access'
 import { loadProductMetrics } from '#/lib/tool-products'
 
 // Producciones de la herramienta de costos: lo que se va a hornear y cuántos. Todo se limita a
@@ -14,7 +14,7 @@ export const PRODUCTION_DAYS = 30
 const DAY_MS = 24 * 60 * 60 * 1000
 
 export const getProductions = createServerFn()
-  .middleware([requireTool])
+  .middleware([requireModule('PRODUCTION')])
   .handler(async ({ context }) => {
     // Las vencidas se limpian al abrir la lista (sin tarea programada).
     await prisma.costProduction.deleteMany({
@@ -56,7 +56,7 @@ export const getProductions = createServerFn()
 // Lo que necesita el formulario de una producción (nueva si `id` es null): los productos que se
 // pueden elegir, con lo que cuestan y valen, para mostrar el resumen mientras se arma.
 export const getProductionForm = createServerFn()
-  .middleware([requireTool])
+  .middleware([requireModule('PRODUCTION')])
   .validator(z.object({ id: z.string().nullable() }))
   .handler(async ({ data, context }) => {
     const row = data.id
@@ -82,7 +82,7 @@ export const getProductionForm = createServerFn()
   })
 
 export const saveProduction = createServerFn({ method: 'POST' })
-  .middleware([requireTool])
+  .middleware([requireModule('PRODUCTION')])
   .validator(z.object({ id: z.string().nullable(), values: productionSchema }))
   .handler(async ({ data, context }) => {
     const { values } = data
@@ -123,7 +123,7 @@ export const saveProduction = createServerFn({ method: 'POST' })
   })
 
 export const deleteProduction = createServerFn({ method: 'POST' })
-  .middleware([requireTool])
+  .middleware([requireModule('PRODUCTION')])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data, context }) => {
     const result = await prisma.costProduction.deleteMany({

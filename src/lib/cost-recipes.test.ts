@@ -13,26 +13,23 @@ import {
 const settings: CostSettingsValues = {
   ...EMPTY_SETTINGS,
   hoursPerWeek: 15,
-  ovenKw: 2,
-  kwhPrice: 2.8,
-  gasKgPerHour: 0.4,
-  gasPricePerKg: 22,
+  electricityMonthly: 364,
+  gasMonthly: 572,
   rentMonthly: 6000,
   rentSharePct: 15,
-  equipCost: 9000,
-  equipLifeHours: 5000,
+  machineryCost: 9000,
   wantedMonthly: 5200,
   defaultWastePct: 5,
 }
 
 describe('tarifas por hora de las recetas', () => {
-  it('van a centavos, como se ven en Ajustes: $80.00 y $30.05', () => {
+  it('van a centavos, como se ven en Ajustes: $80.00 y $30.55', () => {
     const r = hourlyRates(settings)
     expect(r.laborPerHour).toBe(80)
-    expect(r.fixedPerHour).toBe(30.05)
+    expect(r.fixedPerHour).toBe(30.55)
     expect(r.defaultWastePct).toBe(5)
     // 2 h × lo que dice la pantalla, sin diferencias de centavos
-    expect(2 * (r.fixedPerHour ?? 0)).toBeCloseTo(60.1, 5)
+    expect(2 * (r.fixedPerHour ?? 0)).toBeCloseTo(61.1, 5)
   })
 
   it('sin llenar Ajustes no se inventan tarifas', () => {

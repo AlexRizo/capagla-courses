@@ -4,8 +4,13 @@ import { createServerFn, createServerOnlyFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
 import { prisma } from '#/db'
+import { limitError } from '#/lib/tool-usage'
 import { ingredientLineCost, lineUnits } from '#/lib/cost-engine'
 import { productSchema, productSummary } from '#/lib/cost-product'
+import {
+  DEFAULT_MULTIPLIER,
+  DEFAULT_TARGET_MULTIPLIER,
+} from '#/lib/cost-settings'
 import type { ProductionMetrics } from '#/lib/cost-shopping'
 import { requireTool } from '#/lib/tool-access'
 import {
@@ -13,7 +18,7 @@ import {
   loadRecipeCosts,
   toEngine,
 } from '#/lib/tool-recipes'
-import { loadSettings } from '#/lib/tool-settings'
+import { loadSettings, loadTaxTypes } from '#/lib/tool-settings'
 
 // Productos de la herramienta de costos: lo que se vende (recetas + empaque + precio). Todo se
 // limita a la dueña (`context.userId`); los ids del formulario se comprueban contra lo suyo.
@@ -22,6 +27,7 @@ const n = (v: { toString: () => string } | null) =>
   v === null ? null : Number(v)
 
 const include = {
+  taxType: true,
   recipes: { orderBy: { position: 'asc' as const } },
   packaging: {
     orderBy: { position: 'asc' as const },
@@ -68,10 +74,9 @@ const summarize = createServerOnlyFn(
       slicesPerPiece: p.slicesPerPiece,
       price: n(p.price),
       slicePrice: n(p.slicePrice),
-      multiplier: settings.multiplier,
-      priceBase: settings.priceBase,
-      taxPct: settings.taxPct,
-      withTax: p.withTax,
+      multiplier: n(p.multiplier) ?? settings.multiplier ?? DEFAULT_MULTIPLIER,
+      target: settings.targetMultiplier ?? DEFAULT_TARGET_MULTIPLIER,
+      taxPct: p.taxType ? Number(p.taxType.ratePct) : null,
     })
   },
 )
@@ -123,10 +128,11 @@ export const getProductForm = createServerFn()
     if (data.id && !row) throw notFound()
     const keepRecipes = new Set(row?.recipes.map((r) => r.recipeId))
     const keepPackaging = row?.packaging.map((l) => l.ingredientId) ?? []
-    const [recipes, packaging, settings] = await Promise.all([
+    const [recipes, packaging, settings, taxTypes] = await Promise.all([
       loadRecipeCosts(context.userId),
       ingredientChoices(context.userId, keepPackaging),
       loadSettings(context.userId),
+      loadTaxTypes(context.userId),
     ])
     return {
       product: row && {
@@ -137,7 +143,8 @@ export const getProductForm = createServerFn()
         sellsSlices: row.sellsSlices,
         slicesPerPiece: row.slicesPerPiece,
         slicePrice: n(row.slicePrice),
-        withTax: row.withTax,
+        taxTypeId: row.taxTypeId,
+        multiplier: n(row.multiplier),
         recipes: row.recipes.map((r) => ({
           recipeId: r.recipeId,
           piecesSold: r.piecesSold,
@@ -153,11 +160,10 @@ export const getProductForm = createServerFn()
       recipes: recipes.filter((r) => !r.archived || keepRecipes.has(r.id)),
       packaging: packaging.filter((i) => i.kind === 'PACKAGING'),
       settings: {
-        multiplier: settings.multiplier,
-        priceBase: settings.priceBase,
-        taxPct: settings.taxPct,
-        sellsAsBusiness: settings.sellsAsBusiness,
+        multiplier: settings.multiplier ?? DEFAULT_MULTIPLIER,
+        target: settings.targetMultiplier ?? DEFAULT_TARGET_MULTIPLIER,
       },
+      taxTypes,
     }
   })
 
@@ -208,21 +214,25 @@ export const saveProduct = createServerFn({ method: 'POST' })
         }
       }
     }
-    // El múltiplo vive en Ajustes: si se cambió aquí, se guarda allá.
-    if (values.multiplier !== null) {
-      await prisma.costSettings.upsert({
-        where: { userId: context.userId },
-        create: { userId: context.userId, multiplier: values.multiplier },
-        update: { multiplier: values.multiplier },
+    if (values.taxTypeId) {
+      const tax = await prisma.costTaxType.count({
+        where: { id: values.taxTypeId, userId: context.userId },
       })
+      if (!tax) return { error: 'Ese impuesto no existe.' }
     }
+    // Su múltiplo es suyo; si queda igual al general, sigue al general (null).
+    const general = (await loadSettings(context.userId)).multiplier
     const fields = {
+      multiplier:
+        values.multiplier === null || values.multiplier === general
+          ? null
+          : values.multiplier,
       name: values.name,
       price: values.price,
       sellsSlices: values.sellsSlices,
       slicesPerPiece: values.slicesPerPiece,
       slicePrice: values.slicePrice,
-      withTax: values.withTax,
+      taxTypeId: values.taxTypeId,
     }
     const recipeRows = values.recipes.map((r, position) => ({ ...r, position }))
     const packagingRows = values.packaging.map((p, position) => ({
@@ -251,6 +261,8 @@ export const saveProduct = createServerFn({ method: 'POST' })
       ])
       return { id: data.id }
     }
+    const full = await limitError(context.userId, context.tier)
+    if (full) return { error: full }
     const created = await prisma.costProduct.create({
       data: {
         ...fields,
@@ -313,7 +325,8 @@ export const loadProductMetrics = createServerOnlyFn(
         ? null
         : {
             cost: s.whole.cost,
-            price: n(p.price),
+            // Lo que cobra sin el impuesto.
+            price: s.whole.netPrice,
             buy: sum((c) => c.ingredients) + s.whole.packaging,
             labor: sum((c) => c.labor),
             fixed: sum((c) => c.fixed),

@@ -2,10 +2,12 @@ import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 
 import { ShoppingList } from '#/components/tool/shopping-list'
+import { requireToolPage } from '#/lib/tool-access'
 import { getList } from '#/lib/tool-list'
 
 // Lista de compra: con `?produccion=` es la de esa producción; sin él, la lista directa.
 export const Route = createFileRoute('/herramienta/lista')({
+  beforeLoad: () => requireToolPage('SHOPPING_LIST'),
   validateSearch: z.object({ produccion: z.string().optional() }),
   loaderDeps: ({ search }) => ({ produccion: search.produccion }),
   gcTime: 0,
@@ -20,7 +22,7 @@ function Lista() {
   // Se vuelve a armar desde el servidor cuando cambian los renglones o lo agregado a mano; marcar
   // "Ya lo tengo" o mover renglones no recarga (se guarda aparte).
   const key = `${data.production?.id ?? 'directa'}:${data.rows
-    .map((r) => `${r.ingredientId}.${r.manualPacks}`)
+    .map((r) => `${r.ingredientId}.${r.manualAmount}`)
     .join(',')}`
   return <ShoppingList key={key} data={data} />
 }

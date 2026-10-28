@@ -42,6 +42,7 @@ import {
   InputGroupText,
 } from '#/components/ui/input-group'
 import { Switch } from '#/components/ui/switch'
+import { ACCOUNTING_NOTE } from '#/lib/cost-settings'
 import { recipeBreakdown } from '#/lib/cost-engine'
 import { recipeSchema } from '#/lib/cost-recipes'
 import { formatPrice, parseDecimal } from '#/lib/costs'
@@ -403,7 +404,7 @@ export function RecipeForm({ data }: { data: Loaded }) {
                             <strong className="font-semibold">
                               {formatPrice(labor * rates.laborPerHour)}
                             </strong>{' '}
-                            de mano de obra
+                            de tu tiempo
                           </span>
                         )}
                       </div>
@@ -441,7 +442,7 @@ export function RecipeForm({ data }: { data: Loaded }) {
                             <strong className="font-semibold">
                               {formatPrice(oven * rates.fixedPerHour)}
                             </strong>{' '}
-                            de gasto fijo
+                            de gastos fijos
                           </span>
                         )}
                       </div>
@@ -454,6 +455,9 @@ export function RecipeForm({ data }: { data: Loaded }) {
                           Ajustes de costos
                         </Link>
                         .
+                      </p>
+                      <p className="m-0 text-sm text-muted-foreground">
+                        {ACCOUNTING_NOTE}
                       </p>
                     </CardContent>
                   </Card>
@@ -472,11 +476,15 @@ export function RecipeForm({ data }: { data: Loaded }) {
               <CardContent className="flex flex-col gap-4">
                 {(
                   [
-                    ['includeLabor', 'Mano de obra', 'Tu trabajo, por hora.'],
+                    [
+                      'includeLabor',
+                      'Tu tiempo (mano de obra)',
+                      'Tu trabajo, o el de quien te ayuda, por hora.',
+                    ],
                     [
                       'includeFixed',
-                      'Gasto fijo',
-                      'Luz, gas, renta y desgaste del equipo, por hora.',
+                      'Gastos fijos',
+                      'Renta, gas, luz y desgaste del equipo, por hora.',
                     ],
                     [
                       'includeWaste',
@@ -582,12 +590,12 @@ export function RecipeForm({ data }: { data: Loaded }) {
                         values.includeWaste,
                       )}
                       {row(
-                        `Mano de obra · ${values.laborHours || 0} h`,
+                        `Tu tiempo (mano de obra) · ${values.laborHours || 0} h`,
                         b.labor,
                         values.includeLabor,
                       )}
                       {row(
-                        `Gasto fijo · ${values.ovenHours || 0} h`,
+                        `Gastos fijos · ${values.ovenHours || 0} h`,
                         b.fixed,
                         values.includeFixed,
                       )}
@@ -622,7 +630,8 @@ export function RecipeForm({ data }: { data: Loaded }) {
                             >
                               Ajustes de costos
                             </Link>{' '}
-                            para sumar la mano de obra y el gasto fijo.
+                            para sumar tu tiempo (mano de obra) y los gastos
+                            fijos.
                           </AlertDescription>
                         </Alert>
                       )}

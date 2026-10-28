@@ -51,7 +51,7 @@ export async function createOrder(input: {
     : null
   if (input.renew && !renewal) throw new Error('No se puede renovar.')
   const standalone = input.product
-    ? await resolveStandalone(input.product)
+    ? await resolveStandalone(input.product, input.email)
     : null
   if (input.product && !standalone) throw new Error('No está a la venta.')
   const offer =
@@ -75,6 +75,7 @@ export async function createOrder(input: {
       amountMxn: items.reduce((sum, item) => sum + item.amountMxn, 0),
       promotionId: offer.promotion?.id,
       renewal: !!renewal,
+      upgradeFromProductId: offer.upgrade?.fromProductId,
       attribution: attributionJson(input.attribution ?? null),
       marketingConsent: input.marketingConsent ?? undefined,
       trackingContext: input.trackingContext ?? undefined,
@@ -131,9 +132,28 @@ async function completeOrderLocked(orderId: string) {
     },
   })
   const now = Date.now()
+  // Mejora de nivel: la inscripción nueva conserva el vencimiento del nivel que ya tenía (si aún
+  // está vigente; si venció mientras tanto, cuenta como una compra normal).
+  const kept = order.upgradeFromProductId
+    ? await prisma.enrollment.findFirst({
+        where: {
+          userId: user.id,
+          productId: order.upgradeFromProductId,
+          expiresAt: { gt: new Date(now) },
+        },
+      })
+    : null
   const newExpiry = new Map(
-    order.items.map((item) => {
+    order.items.map((item, i) => {
       const prev = current.find((e) => e.productId === item.productId)
+      if (kept && i === 0) {
+        return [
+          item.productId,
+          new Date(
+            Math.max(kept.expiresAt.getTime(), prev?.expiresAt.getTime() ?? 0),
+          ),
+        ]
+      }
       const from = Math.max(now, prev?.expiresAt.getTime() ?? 0)
       return [item.productId, new Date(from + item.product.accessDays * DAY_MS)]
     }),

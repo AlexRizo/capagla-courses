@@ -139,34 +139,75 @@ export const getMyCourses = createServerFn().handler(async () => {
     }
   })
 
-  // La herramienta de costos: una administradora siempre; una alumna con la herramienta vigente.
-  // Sin acceso se ofrece comprarla (precio normal) o, si la tuvo y venció o le falta poco,
-  // renovarla; sin la herramienta a la venta no se muestra nada.
-  const toolEnrollment = enrollments.find((e) => e.product.kind === 'TOOL')
-  const toolProduct =
-    toolEnrollment?.product ??
-    (await prisma.product.findFirst({
-      where: { kind: 'TOOL', status: 'PUBLISHED' },
-      orderBy: { position: 'asc' },
-    }))
-  const toolActive =
-    isAdmin || (!!toolEnrollment && toolEnrollment.expiresAt > new Date())
+  // La herramienta de costos, con sus niveles (cada uno es un producto): una administradora siempre
+  // tiene acceso; una alumna, con el nivel más alto que tenga vigente. Sin acceso se ofrece comprar
+  // (precio normal) o, si lo tuvo y venció o le falta poco, renovar (al mismo precio); con el básico
+  // se ofrece el completo. Sin la herramienta a la venta no se muestra nada.
+  const toolProducts = await prisma.product.findMany({
+    where: { kind: 'TOOL', status: 'PUBLISHED' },
+    include: { tier: true },
+    orderBy: { position: 'asc' },
+  })
+  const rankOf = (p: { tier: { rank: number } | null }) => p.tier?.rank ?? 2
+  const now = new Date()
+  // El nivel que tiene: el vigente más alto o, si no hay, el vencido más alto.
+  const toolOwned = enrollments
+    .filter((e) => e.product.kind === 'TOOL')
+    .sort(
+      (a, b) =>
+        Number(b.expiresAt > now) - Number(a.expiresAt > now) ||
+        (toolProducts.find((p) => p.id === b.productId)?.tier?.rank ?? 2) -
+          (toolProducts.find((p) => p.id === a.productId)?.tier?.rank ?? 2),
+    )[0] as (typeof enrollments)[number] | undefined
+  const ownedProduct =
+    toolOwned && toolProducts.find((p) => p.id === toolOwned.productId)
+  const toolActive = isAdmin || (!!toolOwned && toolOwned.expiresAt > now)
+  const sellable = (p: (typeof toolProducts)[number]) => ({
+    slug: p.slug,
+    name: p.name,
+    priceMxn: p.priceMxn,
+    compareAtMxn: p.compareAtMxn,
+  })
   const tool =
-    toolProduct && (toolActive || toolProduct.status === 'PUBLISHED')
+    toolProducts.length > 0
       ? {
-          slug: toolProduct.slug,
           active: toolActive,
-          priceMxn: toolProduct.priceMxn,
-          // Vencida o en sus últimos 30 días: se ofrece renovar a este precio (no a la admin).
+          // El nivel que tiene (o el primero a la venta si aún no tiene ninguno).
+          ...sellable(ownedProduct ?? toolProducts[0]),
+          // Vencida o en sus últimos 30 días: se ofrece renovar (no a la admin).
           renewalMxn:
-            !isAdmin && toolEnrollment && canRenew(toolEnrollment.expiresAt)
-              ? renewalPrice(toolProduct.priceMxn)
+            !isAdmin &&
+            toolOwned &&
+            ownedProduct &&
+            canRenew(toolOwned.expiresAt)
+              ? renewalPrice(ownedProduct.priceMxn, 'TOOL')
               : null,
-          accessDays: toolProduct.accessDays,
+          accessDays: (ownedProduct ?? toolProducts[0]).accessDays,
           expiresAt:
-            !isAdmin && toolEnrollment
-              ? toolEnrollment.expiresAt.toISOString()
-              : null,
+            !isAdmin && toolOwned ? toolOwned.expiresAt.toISOString() : null,
+          // Lo que puede comprar: todo si no tiene acceso; si lo tiene, solo los niveles más altos.
+          options: isAdmin
+            ? []
+            : toolProducts
+                .filter(
+                  (p) =>
+                    !ownedProduct ||
+                    !toolActive ||
+                    rankOf(p) > rankOf(ownedProduct),
+                )
+                .map((p) =>
+                  // Con un nivel vigente es una mejora: la diferencia, con el precio entero tachado.
+                  ownedProduct && toolActive
+                    ? {
+                        ...sellable(p),
+                        priceMxn: Math.max(
+                          0,
+                          p.priceMxn - ownedProduct.priceMxn,
+                        ),
+                        compareAtMxn: p.priceMxn,
+                      }
+                    : sellable(p),
+                ),
         }
       : null
 

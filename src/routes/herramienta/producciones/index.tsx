@@ -12,10 +12,12 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
+import { requireToolPage } from '#/lib/tool-access'
 import { formatAmount } from '#/lib/costs'
 import { getProductions } from '#/lib/tool-productions'
 
 export const Route = createFileRoute('/herramienta/producciones/')({
+  beforeLoad: () => requireToolPage('PRODUCTION'),
   gcTime: 0,
   staleTime: 0,
   loader: () => getProductions(),
@@ -79,7 +81,7 @@ function Producciones() {
             <TableRow>
               <TableHead className="pl-4">Producción</TableHead>
               <TableHead className="text-right">Dinero para comprar</TableHead>
-              <TableHead className="text-right">Costo total</TableHead>
+              <TableHead className="text-right">Costo de producción</TableHead>
               <TableHead className="text-right">Ventas</TableHead>
               <TableHead className="pr-4">Vence en</TableHead>
             </TableRow>

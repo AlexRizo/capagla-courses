@@ -69,7 +69,7 @@ export const getCheckoutData = createServerFn()
       // `?producto=` vende la herramienta sola a precio normal; sin él, la oferta de siempre
       // (el curso, o la promoción con la herramienta como casilla).
       const standalone = data.producto
-        ? await resolveStandalone(data.producto)
+        ? await resolveStandalone(data.producto, session?.user.email)
         : null
       if (data.producto && !standalone) throw notFound()
       offer = standalone ?? (await resolveOffer(data.promo, true, data.prueba))
@@ -133,6 +133,8 @@ export const getCheckoutData = createServerFn()
       stripeKey: env.STRIPE_PUBLISH_KEY ?? null,
       account,
       renewal: !!offer.renewal,
+      // Mejora de nivel: se paga la diferencia y se conserva el vencimiento.
+      upgradeUntil: offer.upgrade ? longDate(offer.upgrade.keepUntil) : null,
       special: offer.applied,
       until:
         offer.applied && offer.promotion?.endsAt

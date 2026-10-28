@@ -469,7 +469,7 @@ function FreeCourseCard({ course }: { course: FreeCourse }) {
 // por vencer, renovarla con descuento (misma regla que los cursos). Ninguno de los tres botones
 // ni los avisos están en la maqueta (decisión del cliente, 2026-10-26).
 function ToolCard({ tool }: { tool: MyTool }) {
-  const { active, renewalMxn, priceMxn, accessDays } = tool
+  const { active, renewalMxn, accessDays, options } = tool
   const daysLeft = tool.expiresAt
     ? Math.ceil(
         (new Date(tool.expiresAt).getTime() - Date.now()) /
@@ -487,6 +487,11 @@ function ToolCard({ tool }: { tool: MyTool }) {
     <div className="flex items-center gap-3 overflow-hidden rounded-2xl border border-landing-line bg-white p-3 md:flex-wrap md:items-stretch md:gap-0 md:rounded-20 md:p-0">
       <div className="flex size-21 shrink-0 items-center justify-center rounded-12 bg-landing-ink p-1.5 text-center text-13 font-black text-landing-neon md:size-auto md:min-h-35 md:grow md:basis-70 md:rounded-none md:p-5 md:text-2xl">
         Herramienta de costos
+        {active && (
+          <span className="mt-1 block text-xs font-bold md:text-sm">
+            {tool.name.replace('Herramienta de costos · ', '')}
+          </span>
+        )}
       </div>
       <div className="flex flex-1 flex-col gap-2 md:grow-2 md:basis-100 md:justify-center md:gap-3 md:px-8 md:py-6">
         <div className="text-13 leading-snug text-landing-muted md:text-15 md:leading-normal">
@@ -506,22 +511,22 @@ function ToolCard({ tool }: { tool: MyTool }) {
                   Tu acceso vence en {daysLeft}{' '}
                   {daysLeft === 1 ? 'día' : 'días'}.
                 </strong>{' '}
-                Renuévalo con {RENEWAL_DISCOUNT_PCT}% de descuento por{' '}
-                {mxn(renewalMxn)} y suma {accessDays} días a los que te quedan.{' '}
+                Renuévalo por {mxn(renewalMxn)} y suma {accessDays} días a los
+                que te quedan.{' '}
                 <Link {...renewLink} className="font-bold text-landing-primary">
                   Renovar
                 </Link>
               </>
             ) : (
               <>
-                <strong>Tu acceso venció.</strong> Renuévalo con{' '}
-                {RENEWAL_DISCOUNT_PCT}% de descuento por {mxn(renewalMxn)} y
-                tienes {accessDays} días más. Tus datos se conservan.
+                <strong>Tu acceso venció.</strong> Renuévalo por{' '}
+                {mxn(renewalMxn)} y tienes {accessDays} días más. Tus datos se
+                conservan.
               </>
             )}
           </div>
         )}
-        <div>
+        <div className="flex flex-wrap items-center gap-3">
           {active ? (
             <Link to="/herramienta" className={buttonClass}>
               Abrir herramienta
@@ -530,15 +535,26 @@ function ToolCard({ tool }: { tool: MyTool }) {
             <Link {...renewLink} className={buttonClass}>
               Renovar por {mxn(renewalMxn)}
             </Link>
-          ) : (
+          ) : null}
+          {options.map((o) => (
             <Link
+              key={o.slug}
               to="/checkout"
-              search={{ producto: tool.slug, desde: 'mis-cursos' }}
-              className={buttonClass}
+              search={{ producto: o.slug, desde: 'mis-cursos' }}
+              className={
+                active || renewalMxn !== null
+                  ? 'text-sm font-bold text-landing-primary'
+                  : buttonClass
+              }
             >
-              Comprar por {mxn(priceMxn)}
+              {active || renewalMxn !== null ? 'Pasar a' : 'Comprar'}{' '}
+              {o.name.replace('Herramienta de costos · ', '')} por{' '}
+              {o.compareAtMxn && (
+                <s className="font-normal opacity-70">{mxn(o.compareAtMxn)}</s>
+              )}{' '}
+              {mxn(o.priceMxn)}
             </Link>
-          )}
+          ))}
         </div>
       </div>
     </div>

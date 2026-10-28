@@ -180,8 +180,8 @@ function Recetas() {
         </AlertDescription>
       </Alert>
       <p className="m-0 text-sm text-muted-foreground">
-        El costo de receta ya incluye merma, gasto fijo y mano de obra si los
-        activaste en esa receta.
+        El costo de receta ya incluye merma, gastos fijos y tu tiempo (mano de
+        obra) si los activaste en esa receta.
       </p>
     </>
   )

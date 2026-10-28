@@ -208,6 +208,11 @@ describe('renovación', () => {
     expect(renewalPrice(897)).toBe(135)
   })
 
+  it('la herramienta se renueva al mismo precio del primer año, sin descuento', () => {
+    expect(renewalPrice(299, 'TOOL')).toBe(299)
+    expect(renewalPrice(399, 'TOOL')).toBe(399)
+  })
+
   it('se puede renovar con 30 días o menos, o vencido', () => {
     const now = new Date('2026-10-18T12:00:00Z')
     const inDays = (n: number) => new Date(now.getTime() + n * DAY)
@@ -415,5 +420,119 @@ describe('refundOrder', () => {
     })
     await refundOrder(order.id)
     expect(await prisma.lessonProgress.count()).toBe(1)
+  })
+})
+
+describe('mejora de nivel de la herramienta', () => {
+  // El Completo es el producto del catálogo ($200 en las pruebas); el Básico, uno más barato.
+  async function seedTiers() {
+    const basico = await prisma.product.create({
+      data: {
+        slug: 'herramienta-costos-basico',
+        name: 'Herramienta de costos · Básico',
+        kind: 'TOOL',
+        priceMxn: 100,
+        accessDays: 365,
+        status: 'PUBLISHED',
+        tier: { create: { rank: 1, itemLimit: 150, modules: [] } },
+      },
+    })
+    await prisma.toolTier.create({
+      data: {
+        productId: catalog.tool.id,
+        rank: 2,
+        itemLimit: 1000,
+        modules: ['PRODUCTION', 'SHOPPING_LIST', 'PURCHASES', 'QUOTES'],
+      },
+    })
+    return basico
+  }
+
+  // Compra el Básico y deja su vencimiento a `days` días.
+  async function withBasico(days: number) {
+    const basico = await seedTiers()
+    const order = await createOrder({
+      ...buyer,
+      withTool: false,
+      product: basico.slug,
+    })
+    await completeOrder(order.id)
+    const enrollment = await prisma.enrollment.findFirstOrThrow({
+      where: { productId: basico.id },
+    })
+    const expiresAt = new Date(Date.now() + days * DAY)
+    await prisma.enrollment.update({
+      where: { id: enrollment.id },
+      data: { expiresAt },
+    })
+    return { basico, expiresAt }
+  }
+
+  it('con el Básico vigente, el Completo cuesta la diferencia', async () => {
+    await withBasico(200)
+    const order = await createOrder({
+      ...buyer,
+      withTool: false,
+      product: 'herramienta-costos',
+    })
+    expect(order.amountMxn).toBe(100)
+    expect(order.upgradeFromProductId).not.toBeNull()
+  })
+
+  it('al pagar conserva el vencimiento del Básico, no suma 365 días', async () => {
+    const { expiresAt } = await withBasico(200)
+    const order = await createOrder({
+      ...buyer,
+      withTool: false,
+      product: 'herramienta-costos',
+    })
+    await completeOrder(order.id)
+    const completo = await prisma.enrollment.findFirstOrThrow({
+      where: { productId: catalog.tool.id },
+    })
+    expect(completo.expiresAt.getTime()).toBe(expiresAt.getTime())
+  })
+
+  it('sin un nivel más bajo vigente se paga el precio entero y corren 365 días', async () => {
+    await seedTiers()
+    const order = await createOrder({
+      ...buyer,
+      withTool: false,
+      product: 'herramienta-costos',
+    })
+    expect(order.amountMxn).toBe(catalog.tool.priceMxn)
+    expect(order.upgradeFromProductId).toBeNull()
+    await completeOrder(order.id)
+    const completo = await prisma.enrollment.findFirstOrThrow({
+      where: { productId: catalog.tool.id },
+    })
+    expect(completo.expiresAt.getTime()).toBeGreaterThan(Date.now() + 360 * DAY)
+  })
+
+  it('con el Básico vencido no es mejora: precio entero', async () => {
+    const { basico } = await withBasico(200)
+    await prisma.enrollment.updateMany({
+      where: { productId: basico.id },
+      data: { expiresAt: new Date(Date.now() - DAY) },
+    })
+    const order = await createOrder({
+      ...buyer,
+      withTool: false,
+      product: 'herramienta-costos',
+    })
+    expect(order.amountMxn).toBe(catalog.tool.priceMxn)
+  })
+
+  it('reembolsar la mejora quita el Completo y deja el Básico', async () => {
+    const { basico } = await withBasico(200)
+    const order = await createOrder({
+      ...buyer,
+      withTool: false,
+      product: 'herramienta-costos',
+    })
+    await completeOrder(order.id)
+    await refundOrder(order.id)
+    const left = await prisma.enrollment.findMany()
+    expect(left.map((e) => e.productId)).toEqual([basico.id])
   })
 })

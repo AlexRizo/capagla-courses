@@ -11,6 +11,7 @@ import {
   premixSummary,
   recipeBreakdown,
 } from '#/lib/cost-engine'
+import { limitError } from '#/lib/tool-usage'
 import type { EngineIngredient } from '#/lib/cost-engine'
 import {
   hourlyRates,
@@ -273,6 +274,8 @@ export const savePremix = createServerFn({ method: 'POST' })
       ])
       return { id: data.id }
     }
+    const full = await limitError(context.userId, context.tier)
+    if (full) return { error: full }
     const created = await prisma.costPremix.create({
       data: { ...fields, userId: context.userId, lines: { create: lines } },
     })
@@ -564,6 +567,8 @@ export const saveRecipe = createServerFn({ method: 'POST' })
       ])
       return { id: data.id }
     }
+    const full = await limitError(context.userId, context.tier)
+    if (full) return { error: full }
     const created = await prisma.costRecipe.create({
       data: { ...fields, userId: context.userId, lines: { create: lines } },
     })

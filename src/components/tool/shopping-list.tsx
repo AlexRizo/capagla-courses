@@ -37,7 +37,8 @@ import {
 } from '#/components/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { moveRow, shareText } from '#/lib/cost-shopping'
-import { formatPrice, parseDecimal } from '#/lib/costs'
+import { formatPrice, parseDecimal, UNITS } from '#/lib/costs'
+import type { CostUnit } from '#/lib/costs'
 import { addManualItem, removeManualItem, saveListState } from '#/lib/tool-list'
 import type { getList } from '#/lib/tool-list'
 import { cn } from '#/lib/utils'
@@ -229,7 +230,9 @@ export function ShoppingList({ data }: { data: Loaded }) {
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const [ingredientId, setIngredientId] = useState('')
-  const [packs, setPacks] = useState('1')
+  const [quantity, setQuantity] = useState('')
+  const [unit, setUnit] = useState<CostUnit | ''>('')
+  const units = data.choices.find((c) => c.id === ingredientId)?.units ?? []
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -270,21 +273,27 @@ export function ShoppingList({ data }: { data: Loaded }) {
     if (next !== rows) void persist(next)
   }
 
+  function pickIngredient(id: string) {
+    setIngredientId(id)
+    setUnit(data.choices.find((c) => c.id === id)?.units[0] ?? '')
+  }
+
   async function addManual(e: React.FormEvent) {
     e.preventDefault()
-    const n = parseDecimal(packs)
-    if (!ingredientId || !n || !Number.isInteger(n) || n < 1) {
-      setError('Elige un ingrediente y cuántos paquetes (un número entero).')
+    const n = parseDecimal(quantity)
+    if (!ingredientId || !unit || !n || n <= 0) {
+      setError('Elige un ingrediente y escribe cuánto necesitas.')
       return
     }
     setError(null)
     try {
       const result = await addManualItem({
-        data: { productionId, ingredientId, packs: n },
+        data: { productionId, ingredientId, quantity: n, unit },
       })
       if (!('ok' in result)) return setError(result.error)
       setIngredientId('')
-      setPacks('1')
+      setQuantity('')
+      setUnit('')
       await router.invalidate()
     } catch {
       setError('No se pudo agregar. Inténtalo de nuevo.')
@@ -381,7 +390,9 @@ export function ShoppingList({ data }: { data: Loaded }) {
         <CardHeader>
           <CardTitle>Agregar a la lista</CardTitle>
           <p className="m-0 text-sm text-muted-foreground">
-            Por si necesitas algo que no viene de tu producción.
+            Por si necesitas algo que no viene de tu producción. Escribe la
+            cantidad que necesitas, tal cual: la lista no la redondea a
+            paquetes.
           </p>
         </CardHeader>
         <CardContent>
@@ -396,19 +407,38 @@ export function ShoppingList({ data }: { data: Loaded }) {
                   hint: c.kind === 'PACKAGING' ? 'Empaque' : undefined,
                 }))}
                 value={ingredientId}
-                onChange={setIngredientId}
+                onChange={pickIngredient}
                 placeholder="Elige un ingrediente"
                 searchPlaceholder="Buscar ingrediente"
               />
             </div>
-            <div className="flex w-36 flex-col gap-1.5">
-              <Label htmlFor="paquetes">Paquetes</Label>
+            <div className="flex w-28 flex-col gap-1.5">
+              <Label htmlFor="cantidad">Cantidad</Label>
               <Input
-                id="paquetes"
-                inputMode="numeric"
-                value={packs}
-                onChange={(e) => setPacks(e.target.value)}
+                id="cantidad"
+                inputMode="decimal"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
               />
+            </div>
+            <div className="flex w-24 flex-col gap-1.5">
+              <Label>Unidad</Label>
+              <Select
+                value={unit}
+                onValueChange={(u) => setUnit(u as CostUnit)}
+                disabled={units.length === 0}
+              >
+                <SelectTrigger aria-label="Unidad">
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
+                <SelectContent>
+                  {units.map((u) => (
+                    <SelectItem key={u} value={u}>
+                      {UNITS[u].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button type="submit">Agregar</Button>
           </form>
@@ -530,7 +560,9 @@ export function ShoppingList({ data }: { data: Loaded }) {
       </div>
       {note && <p className="m-0 text-sm text-muted-foreground">{note}</p>}
       <p className="m-0 text-sm text-muted-foreground">
-        “Comprar” redondea a los paquetes completos que vende la tienda.
+        “Comprar” redondea a los paquetes completos que pide tu producción; lo
+        que agregas a mano va con la cantidad exacta que escribiste. Tú decides
+        dónde y en qué presentación comprarlo.
       </p>
     </>
   )

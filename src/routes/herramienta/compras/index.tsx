@@ -19,11 +19,13 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
+import { requireToolPage } from '#/lib/tool-access'
 import { formatDay } from '#/lib/cost-purchases'
 import { formatPrice } from '#/lib/costs'
 import { getPurchases } from '#/lib/tool-purchases'
 
 export const Route = createFileRoute('/herramienta/compras/')({
+  beforeLoad: () => requireToolPage('PURCHASES'),
   gcTime: 0,
   staleTime: 0,
   loader: () => getPurchases(),

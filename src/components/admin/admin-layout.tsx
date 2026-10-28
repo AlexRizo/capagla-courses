@@ -17,6 +17,7 @@ const management: NavItem[] = [
 const pro: NavItem[] = [
   { label: 'Promociones', href: '/admin/promociones' },
   { label: 'Cursos', href: '/admin/cursos' },
+  { label: 'Herramienta', href: '/admin/herramienta' },
   { label: 'Marketing', href: '/admin/marketing' },
 ]
 

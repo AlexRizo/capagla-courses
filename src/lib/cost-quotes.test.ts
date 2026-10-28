@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { quoteSchema, quoteSummary } from '#/lib/cost-quotes'
+import {
+  expiryLabel,
+  QUOTE_DAYS,
+  QUOTE_WARN_DAYS,
+  quoteDaysLeft,
+  quoteExpiry,
+  quoteSchema,
+  quoteSummary,
+} from '#/lib/cost-quotes'
 
 // Cifras de la maqueta: pastel de $423.56, 3 h de decorado y 0.5 h para conseguir insumos a $60
 // la hora, y dos extras ($90 y $35) = $758.56.
@@ -124,5 +132,32 @@ describe('quoteSchema', () => {
     expect(bad({ name: 'Palitos', cost: 0 })).toBe(false)
     expect(bad({ name: 'Palitos', cost: -5 })).toBe(false)
     expect(bad({ name: 'Palitos', cost: 35 })).toBe(true)
+  })
+})
+
+describe('vencimiento de las cotizaciones', () => {
+  const now = new Date('2026-10-27T12:00:00Z')
+
+  it('duran 90 días desde el guardado y se avisa 15 días antes', () => {
+    expect(QUOTE_DAYS).toBe(90)
+    expect(QUOTE_WARN_DAYS).toBe(15)
+    const expires = quoteExpiry(now)
+    expect(quoteDaysLeft(expires, now)).toBe(90)
+  })
+
+  it('cuenta los días que faltan, hacia arriba, y negativo si ya venció', () => {
+    expect(quoteDaysLeft('2026-11-26T12:00:00Z', now)).toBe(30)
+    expect(quoteDaysLeft('2026-10-27T18:00:00Z', now)).toBe(1)
+    expect(quoteDaysLeft('2026-10-26T12:00:00Z', now)).toBe(-1)
+  })
+
+  it('el plazo se puede cambiar (por nivel)', () => {
+    expect(quoteDaysLeft(quoteExpiry(now, 30), now)).toBe(30)
+  })
+
+  it('los avisos: en N días, mañana, hoy', () => {
+    expect(expiryLabel(12)).toBe('Vence en 12 días')
+    expect(expiryLabel(1)).toBe('Vence mañana')
+    expect(expiryLabel(0)).toBe('Vence hoy')
   })
 })

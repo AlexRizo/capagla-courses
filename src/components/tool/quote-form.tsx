@@ -37,10 +37,17 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
-import { formatSaved, quoteSchema, quoteSummary } from '#/lib/cost-quotes'
+import {
+  expiryLabel,
+  formatSaved,
+  QUOTE_WARN_DAYS,
+  quoteSchema,
+  quoteSummary,
+} from '#/lib/cost-quotes'
 import { formatPrice, parseDecimal } from '#/lib/costs'
-import { deleteQuote, saveQuote } from '#/lib/tool-quotes'
+import { deleteQuote, duplicateQuote, saveQuote } from '#/lib/tool-quotes'
 import type { getQuoteForm } from '#/lib/tool-quotes'
+import { cn } from '#/lib/utils'
 
 type Loaded = Awaited<ReturnType<typeof getQuoteForm>>
 type Extra = { key: string; name: string; cost: number }
@@ -75,7 +82,7 @@ function Line({
 }
 
 export function QuoteForm({ data }: { data: Loaded }) {
-  const { quote, products, rate, saved } = data
+  const { quote, products, rate, saved, quoteDays } = data
   const navigate = useNavigate()
   const router = useRouter()
   const [productId, setProductId] = useState(
@@ -170,6 +177,28 @@ export function QuoteForm({ data }: { data: Loaded }) {
     } catch {
       setBusy(false)
       setError('No se pudo guardar. Revisa los datos e inténtalo de nuevo.')
+    }
+  }
+
+  async function duplicate() {
+    if (!quote) return
+    setBusy(true)
+    setError(null)
+    try {
+      const copy = await duplicateQuote({ data: { id: quote.id } })
+      if (!copy.id) {
+        setBusy(false)
+        return setError(copy.error ?? 'No se pudo duplicar.')
+      }
+      await router.invalidate()
+      setBusy(false)
+      await navigate({
+        to: '/herramienta/cotizador/$id',
+        params: { id: copy.id },
+      })
+    } catch {
+      setBusy(false)
+      setError('No se pudo duplicar. Inténtalo de nuevo.')
     }
   }
 
@@ -348,7 +377,7 @@ export function QuoteForm({ data }: { data: Loaded }) {
               <div className="text-13 text-muted-foreground">
                 {rate === null ? (
                   <>
-                    Para cobrar estas horas falta tu mano de obra en{' '}
+                    Para cobrar estas horas falta tu tiempo (mano de obra) en{' '}
                     <Link
                       to="/herramienta/ajustes"
                       className="text-primary underline"
@@ -359,7 +388,7 @@ export function QuoteForm({ data }: { data: Loaded }) {
                   </>
                 ) : (
                   <>
-                    Se cobran a tu tarifa de mano de obra de Ajustes (
+                    Se cobran a tu tarifa de tiempo (mano de obra) de Ajustes (
                     {formatPrice(rate)} por hora).
                   </>
                 )}
@@ -378,7 +407,7 @@ export function QuoteForm({ data }: { data: Loaded }) {
             <CardContent className="flex flex-col gap-4">
               {extras.length > 0 && (
                 <div className="overflow-x-auto rounded-lg border">
-                  <Table className="min-w-115 tabular-nums">
+                  <Table className="min-w-160 tabular-nums">
                     <TableBody>
                       {extras.map((e) => (
                         <TableRow key={e.key}>
@@ -484,16 +513,61 @@ export function QuoteForm({ data }: { data: Loaded }) {
           </Card>
 
           {quote && (
-            <div>
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-destructive"
-                onClick={() => setConfirmDelete(true)}
-              >
-                Borrar cotización
-              </Button>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Lo que cotizaste</CardTitle>
+                <CardDescription>
+                  Guardada el {formatSaved(quote.savedAt)}. El precio cotizado
+                  no cambia aunque cambien tus costos.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <div>
+                  <Line
+                    label="Cotizado entonces"
+                    value={total(quote.quotedFloor)}
+                  />
+                  <Line
+                    last
+                    label="Hoy costaría"
+                    value={total(
+                      saved.find((x) => x.id === quote.id)?.floor ?? null,
+                    )}
+                  />
+                </div>
+                <p
+                  className={cn(
+                    'm-0 text-13 leading-normal',
+                    quote.daysLeft <= QUOTE_WARN_DAYS
+                      ? 'font-medium text-warning'
+                      : 'text-muted-foreground',
+                  )}
+                >
+                  {expiryLabel(quote.daysLeft)}: las cotizaciones se guardan{' '}
+                  {quoteDays} días desde el último guardado y luego se borran.
+                  {quote.daysLeft <= QUOTE_WARN_DAYS &&
+                    ' Duplícala o guárdala de nuevo si la sigues necesitando.'}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => void duplicate()}
+                  >
+                    Duplicar cotización
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-destructive"
+                    onClick={() => setConfirmDelete(true)}
+                  >
+                    Borrar cotización
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       </form>
@@ -503,7 +577,9 @@ export function QuoteForm({ data }: { data: Loaded }) {
           <CardHeader>
             <CardTitle>Cotizaciones guardadas</CardTitle>
             <CardDescription>
-              Se recalculan con los costos de hoy.
+              “Cotizado” se queda como lo guardaste; “Mínimo hoy” se recalcula
+              con los costos de hoy. Se guardan {quoteDays} días desde el último
+              guardado.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -512,6 +588,8 @@ export function QuoteForm({ data }: { data: Loaded }) {
                 <TableRow>
                   <TableHead className="pl-4">Producto</TableHead>
                   <TableHead>Guardada</TableHead>
+                  <TableHead>Vence</TableHead>
+                  <TableHead className="text-right">Cotizado</TableHead>
                   <TableHead className="pr-4 text-right">Mínimo hoy</TableHead>
                 </TableRow>
               </TableHeader>
@@ -533,6 +611,16 @@ export function QuoteForm({ data }: { data: Loaded }) {
                       )}
                     </TableCell>
                     <TableCell>{formatSaved(s.savedAt)}</TableCell>
+                    <TableCell
+                      className={cn(
+                        s.daysLeft <= QUOTE_WARN_DAYS && 'text-warning',
+                      )}
+                    >
+                      {expiryLabel(s.daysLeft)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {total(s.quoted)}
+                    </TableCell>
                     <TableCell className="pr-4 text-right">
                       {total(s.floor)}
                     </TableCell>

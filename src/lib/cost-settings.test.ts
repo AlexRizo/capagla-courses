@@ -5,27 +5,27 @@ import {
   fixedCostPerHour,
   fullHour,
   laborPerHour,
+  monthlyDepreciation,
   monthlyHours,
   multiplierExample,
   settingsSchema,
+  taxTypesSchema,
 } from '#/lib/cost-settings'
 import type { CostSettingsValues } from '#/lib/cost-settings'
 
-// Los números del ejemplo de la maqueta: 15 h por semana, horno de 2 kW a $2.80, gas 0.4 kg/h a
-// $22, renta de $6,000 con el 15%, horno de $9,000 que dura 5,000 h y $5,200 al mes.
+// Ejemplo: 15 h por semana (65 al mes), luz $364 y gas $572 al mes, renta de $6,000 con el 15%,
+// maquinaria de $9,000 (5 años por defecto) y $5,200 al mes que quiere ganar.
 const example: CostSettingsValues = {
   ...EMPTY_SETTINGS,
   hoursPerWeek: 15,
-  ovenKw: 2,
-  kwhPrice: 2.8,
-  gasKgPerHour: 0.4,
-  gasPricePerKg: 22,
+  electricityMonthly: 364,
+  gasMonthly: 572,
   rentMonthly: 6000,
   rentSharePct: 15,
-  equipCost: 9000,
-  equipLifeHours: 5000,
+  machineryCost: 9000,
   wantedMonthly: 5200,
-  multiplier: 1.43,
+  multiplier: 2.5,
+  targetMultiplier: 3.5,
 }
 
 describe('horas al mes', () => {
@@ -39,24 +39,66 @@ describe('horas al mes', () => {
   })
 })
 
-describe('gasto fijo por hora', () => {
-  it('suma luz, gas, renta y depreciación como la maqueta', () => {
+describe('gastos fijos por hora', () => {
+  it('(renta × % + gas + luz + depreciación) ÷ horas al mes', () => {
     const c = fixedCostPerHour(example)
     expect(c.electricity).toBeCloseTo(5.6)
     expect(c.gas).toBeCloseTo(8.8)
     expect(c.rent).toBeCloseTo(13.846, 2)
-    expect(c.depreciation).toBeCloseTo(1.8)
-    expect(c.total).toBeCloseTo(30.05, 1)
+    // $9,000 ÷ (5 años × 12) = $150 al mes ÷ 65 h
+    expect(c.depreciationMonthly).toBeCloseTo(150)
+    expect(c.depreciation).toBeCloseTo(2.308, 2)
+    expect(c.total).toBeCloseTo((364 + 572 + 900 + 150) / 65, 4)
   })
 
-  it('la renta se reparte entre las horas al mes: sin horas no se calcula', () => {
+  it('todo se reparte entre las horas al mes: sin horas no se calcula', () => {
     const c = fixedCostPerHour({ ...example, hoursPerWeek: null })
     expect(c.rent).toBeNull()
-    expect(c.total).toBeCloseTo(5.6 + 8.8 + 1.8)
+    expect(c.electricity).toBeNull()
+    expect(c.total).toBe(0)
   })
 
   it('con todo vacío es cero', () => {
     expect(fixedCostPerHour(EMPTY_SETTINGS).total).toBe(0)
+  })
+})
+
+describe('depreciación del equipo', () => {
+  it('maquinaria a 5 años y moldes a 3 por defecto', () => {
+    const d = monthlyDepreciation({
+      machineryCost: 6000,
+      machineryYears: null,
+      moldsCost: 1800,
+      moldsYears: null,
+    })
+    expect(d.machinery).toBeCloseTo(100)
+    expect(d.molds).toBeCloseTo(50)
+    expect(d.total).toBeCloseTo(150)
+  })
+
+  it('en modo pro la alumna cambia los años', () => {
+    const d = monthlyDepreciation({
+      machineryCost: 6000,
+      machineryYears: 10,
+      moldsCost: null,
+      moldsYears: null,
+    })
+    expect(d.machinery).toBeCloseTo(50)
+    expect(d.molds).toBeNull()
+    expect(d.total).toBeCloseTo(50)
+  })
+
+  it('sin equipo no hay depreciación', () => {
+    expect(monthlyDepreciation(EMPTY_SETTINGS).total).toBeNull()
+  })
+
+  it('los años son de medio año a 50', () => {
+    expect(
+      settingsSchema.safeParse({ ...example, machineryYears: 0.2 }).success,
+    ).toBe(false)
+    expect(
+      settingsSchema.safeParse({ ...example, moldsYears: 3 }).success,
+    ).toBe(true)
   })
 })
 
@@ -86,12 +128,12 @@ describe('mano de obra por hora', () => {
 })
 
 describe('tu hora con todo', () => {
-  it('mano de obra más gasto fijo: $80 + $30.05', () => {
-    expect(fullHour(example)).toBeCloseTo(110.05, 1)
+  it('tu tiempo más gastos fijos: $80 + $30.55', () => {
+    expect(fullHour(example)).toBeCloseTo(110.55, 1)
   })
 
-  it('sin mano de obra es solo el gasto fijo', () => {
-    expect(fullHour({ ...example, laborMode: 'NONE' })).toBeCloseTo(30.05, 1)
+  it('sin tu tiempo son solo los gastos fijos', () => {
+    expect(fullHour({ ...example, laborMode: 'NONE' })).toBeCloseTo(30.55, 1)
   })
 
   it('con la mano de obra sin calcular, no hay total', () => {
@@ -126,14 +168,44 @@ describe('settingsSchema', () => {
     expect(
       settingsSchema.safeParse({ ...example, rentSharePct: 101 }).success,
     ).toBe(false)
-    expect(settingsSchema.safeParse({ ...example, taxPct: 120 }).success).toBe(
-      false,
-    )
     expect(
       settingsSchema.safeParse({ ...example, multiplier: 0.9 }).success,
     ).toBe(false)
     expect(
       settingsSchema.safeParse({ ...example, defaultWastePct: 100 }).success,
+    ).toBe(false)
+  })
+
+  it('la meta no puede ser menor que el mínimo', () => {
+    expect(
+      settingsSchema.safeParse({ ...example, targetMultiplier: 2 }).success,
+    ).toBe(false)
+    expect(
+      settingsSchema.safeParse({ ...example, targetMultiplier: 2.5 }).success,
+    ).toBe(true)
+  })
+
+  it('los ajustes vacíos arrancan con los recomendados: ×2.5 y ×3.5', () => {
+    expect(EMPTY_SETTINGS.multiplier).toBe(2.5)
+    expect(EMPTY_SETTINGS.targetMultiplier).toBe(3.5)
+  })
+})
+
+describe('tipos de impuesto', () => {
+  it('nombre y tasa de 0 a 100', () => {
+    expect(
+      taxTypesSchema.safeParse([{ id: null, name: ' IVA ', ratePct: 16 }])
+        .success,
+    ).toBe(true)
+    expect(
+      taxTypesSchema.safeParse([{ id: null, name: '', ratePct: 16 }]).success,
+    ).toBe(false)
+    expect(
+      taxTypesSchema.safeParse([{ id: null, name: 'IVA', ratePct: 120 }])
+        .success,
+    ).toBe(false)
+    expect(
+      taxTypesSchema.safeParse([{ id: 'x', name: 'IVA', ratePct: -1 }]).success,
     ).toBe(false)
   })
 })

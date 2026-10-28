@@ -4,6 +4,7 @@ import { createServerFn, createServerOnlyFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
 import { prisma } from '#/db'
+import { limitError } from '#/lib/tool-usage'
 import { ingredientSchema } from '#/lib/costs'
 import { requireTool } from '#/lib/tool-access'
 
@@ -69,6 +70,8 @@ export const createIngredient = createServerFn({ method: 'POST' })
   .middleware([requireTool])
   .validator(ingredientSchema)
   .handler(async ({ data, context }) => {
+    const full = await limitError(context.userId, context.tier)
+    if (full) return { error: full }
     const row = await prisma.costIngredient.create({
       data: {
         ...data,

@@ -41,6 +41,7 @@ model User {
   costIngredients CostIngredient[]
   costSettings    CostSettings?
   costTags        CostTag[]
+  costTaxTypes    CostTaxType[]
   costPremixes    CostPremix[]
   costRecipes     CostRecipe[]
   costProducts    CostProduct[]
@@ -107,6 +108,14 @@ enum ProductKind {
   TOOL
 }
 
+// Lo que abre cada nivel de la herramienta de costos aparte de lo básico (costos y precios).
+enum ToolModule {
+  PRODUCTION
+  SHOPPING_LIST
+  PURCHASES
+  QUOTES
+}
+
 enum OrderStatus {
   PENDING
   PAID
@@ -145,23 +154,39 @@ enum LessonType {
 }
 
 model Product {
-  id          String             @id @default(cuid())
-  slug        String             @unique
-  name        String
-  kind        ProductKind
-  priceMxn    Int
+  id           String             @id @default(cuid())
+  slug         String             @unique
+  name         String
+  kind         ProductKind
+  priceMxn     Int
+  // Precio de lista que se muestra tachado (solo de referencia; se cobra `priceMxn`).
+  compareAtMxn Int?
   // Descripción corta y portada: se ven en la tarjeta del producto (Home).
-  description String?
-  coverUrl    String?
-  accessDays  Int                @default(365)
+  description  String?
+  coverUrl     String?
+  accessDays   Int                @default(365)
   // Borrador = no es público: no sale en la Home, su landing da 404 y no se vende.
-  status      ContentStatus      @default(DRAFT)
+  status       ContentStatus      @default(DRAFT)
   // Orden en que se muestran los productos en la Home (de menor a mayor).
-  position    Int                @default(0)
-  orderItems  OrderItem[]
-  enrollments Enrollment[]
-  items       CourseItem[]
-  promotions  PromotionProduct[]
+  position     Int                @default(0)
+  orderItems   OrderItem[]
+  enrollments  Enrollment[]
+  items        CourseItem[]
+  promotions   PromotionProduct[]
+  tier         ToolTier?
+}
+
+// Nivel de la herramienta de costos que da un producto de tipo herramienta: cuántos elementos
+// (ingredientes, premezclas, recetas, productos y cotizaciones) se pueden guardar, qué módulos
+// abre y cuánto duran las cotizaciones. Un producto sin nivel se trata como el completo.
+model ToolTier {
+  productId String       @id
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  // 1 = el más básico; el nivel más alto de las inscripciones vigentes es el que cuenta.
+  rank      Int
+  itemLimit Int
+  quoteDays Int          @default(90)
+  modules   ToolModule[]
 }
 
 // Promoción (modo pro): una landing con URL propia (`/navidad`) que vende un curso
@@ -436,6 +461,9 @@ model Order {
   stripePaymentIntentId String?     @unique
   // Renovación del acceso desde Mis cursos (precio de renovación, sin adicionales).
   renewal               Boolean     @default(false)
+  // Mejora de nivel de la herramienta: el producto del nivel que ya tenía. Se cobra la diferencia y
+  // la inscripción nueva conserva el vencimiento de la anterior.
+  upgradeFromProductId  String?
   // Atribución de marketing al comprar (utm_*, fbclid, ttclid, página de entrada) y si la persona
   // aceptó las cookies de medición en ese momento (null = no había elegido). Ver lib/attribution.ts.
   attribution           Json?
@@ -545,41 +573,48 @@ enum CostLaborMode {
   NONE
 }
 
-// Sobre qué costo se aplica el múltiplo del precio.
-enum CostPriceBase {
-  TOTAL
-  INGREDIENTS
-}
-
 // Ajustes de costos de una alumna: se escriben una sola vez y se usan en todas sus recetas. Todo
 // lo que se calcula (gasto fijo por hora, mano de obra por hora) sale al vuelo de estos datos
 // (lib/cost-settings.ts); aquí solo se guarda lo que ella escribe.
 model CostSettings {
-  userId          String        @id
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String        @id
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   // Tus horas
-  hoursPerWeek    Decimal?      @db.Decimal(6, 2)
-  // Gasto fijo por hora: luz, gas, renta y depreciación del horno
-  ovenKw          Decimal?      @db.Decimal(8, 3)
-  kwhPrice        Decimal?      @db.Decimal(10, 3)
-  gasKgPerHour    Decimal?      @db.Decimal(8, 3)
-  gasPricePerKg   Decimal?      @db.Decimal(10, 2)
-  rentMonthly     Decimal?      @db.Decimal(12, 2)
-  rentSharePct    Decimal?      @db.Decimal(5, 2)
-  equipCost       Decimal?      @db.Decimal(12, 2)
-  equipLifeHours  Decimal?      @db.Decimal(12, 2)
+  hoursPerWeek       Decimal?      @db.Decimal(6, 2)
+  // Gastos fijos: lo que paga al mes (luz, gas, renta × % que ocupa) y la depreciación del equipo,
+  // que corre con el tiempo: costo ÷ (años × 12). Años sin valor: 5 maquinaria y 3 moldes.
+  electricityMonthly Decimal?      @db.Decimal(12, 2)
+  gasMonthly         Decimal?      @db.Decimal(12, 2)
+  rentMonthly        Decimal?      @db.Decimal(12, 2)
+  rentSharePct       Decimal?      @db.Decimal(5, 2)
+  machineryCost      Decimal?      @db.Decimal(12, 2)
+  machineryYears     Decimal?      @db.Decimal(5, 2)
+  moldsCost          Decimal?      @db.Decimal(12, 2)
+  moldsYears         Decimal?      @db.Decimal(5, 2)
   // Mano de obra por hora
-  laborMode       CostLaborMode @default(WANTED)
-  wantedMonthly   Decimal?      @db.Decimal(12, 2)
-  dailyMinWage    Decimal?      @db.Decimal(10, 2)
-  // Cómo se fija el precio: vender a N veces el costo (un múltiplo, no un porcentaje)
-  multiplier      Decimal?      @db.Decimal(6, 2)
-  defaultWastePct Decimal?      @db.Decimal(5, 2)
-  priceBase       CostPriceBase @default(TOTAL)
-  // Impuestos, solo si vende como negocio
-  sellsAsBusiness Boolean       @default(false)
-  taxPct          Decimal?      @db.Decimal(5, 2)
-  updatedAt       DateTime      @updatedAt
+  laborMode          CostLaborMode @default(WANTED)
+  wantedMonthly      Decimal?      @db.Decimal(12, 2)
+  dailyMinWage       Decimal?      @db.Decimal(10, 2)
+  // Cómo se fija el precio: vender a N veces el costo total (un múltiplo, no un porcentaje). Mínimo
+  // (por defecto ×2.5) y meta (×3.5); sin valor se usan esos. Cada producto puede tener su mínimo.
+  multiplier         Decimal?      @db.Decimal(6, 2)
+  targetMultiplier   Decimal?      @db.Decimal(6, 2)
+  defaultWastePct    Decimal?      @db.Decimal(5, 2)
+  updatedAt          DateTime      @updatedAt
+}
+
+// Un tipo de impuesto que da de alta la alumna en Ajustes (nombre y tasa). El precio de un producto
+// ya lo incluye: el margen y el semáforo se calculan sobre precio ÷ (1 + tasa).
+model CostTaxType {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  ratePct   Decimal       @db.Decimal(5, 2)
+  createdAt DateTime      @default(now())
+  products  CostProduct[]
+
+  @@index([userId])
 }
 
 // Etiqueta de receta (Pastel, Cupcake, Galleta…): solo sirve para clasificar y filtrar. Se escribe
@@ -691,8 +726,11 @@ model CostProduct {
   sellsSlices    Boolean                @default(false)
   slicesPerPiece Int?
   slicePrice     Decimal?               @db.Decimal(12, 2)
-  // Suma el impuesto de Ajustes al precio sugerido.
-  withTax        Boolean                @default(false)
+  // El impuesto que lleva su precio (ya incluido); sin valor, ninguno.
+  taxTypeId      String?
+  taxType        CostTaxType?           @relation(fields: [taxTypeId], references: [id], onDelete: SetNull)
+  // Su múltiplo mínimo; sin valor usa el general de Ajustes.
+  multiplier     Decimal?               @db.Decimal(6, 2)
   archivedAt     DateTime?
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
@@ -789,8 +827,9 @@ model CostListEntry {
   placeKey     String?
   haveIt       Boolean        @default(false)
   bought       Boolean        @default(false)
-  // Paquetes completos agregados a mano.
-  manualPacks  Int            @default(0)
+  // Lo agregado a mano, en la unidad base del ingrediente (g, ml o pza): la cantidad exacta, sin
+  // redondear a paquetes.
+  manualAmount Decimal        @default(0) @db.Decimal(14, 3)
 
   @@unique([listId, ingredientId])
 }
@@ -838,11 +877,17 @@ model CostQuote {
   // Horas extra de decorado y para conseguir los insumos extra.
   decorHours    Decimal          @default(0) @db.Decimal(7, 2)
   sourcingHours Decimal          @default(0) @db.Decimal(7, 2)
+  // Lo que se cotizó al guardar (el mínimo a cobrar de ese día): se queda fijo aunque cambien los
+  // costos; null si en ese momento no se podía calcular.
+  quotedFloor   Decimal?         @db.Decimal(12, 2)
+  // Vence 90 días después del último guardado y luego se borra (con aviso antes).
+  expiresAt     DateTime
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   extras        CostQuoteExtra[]
 
   @@index([userId, updatedAt])
+  @@index([userId, expiresAt])
   @@index([productId])
 }
 

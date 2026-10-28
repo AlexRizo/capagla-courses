@@ -2,6 +2,7 @@ import { Outlet, createFileRoute } from '@tanstack/react-router'
 
 import { ToolLayout } from '#/components/tool/tool-layout'
 import { requireToolPage } from '#/lib/tool-access'
+import { getToolUsage } from '#/lib/tool-usage'
 
 // Herramienta de costos: todo lo que cuelga de /herramienta comparte este marco y esta guarda.
 // Sin sesión va a /entrar; sin acceso a la herramienta, a Mis cursos.
@@ -15,9 +16,15 @@ export const Route = createFileRoute('/herramienta')({
     ],
   }),
   beforeLoad: () => requireToolPage(),
-  component: () => (
-    <ToolLayout>
+  loader: () => getToolUsage(),
+  component: Herramienta,
+})
+
+function Herramienta() {
+  const { tier, used } = Route.useLoaderData()
+  return (
+    <ToolLayout tier={tier} used={used}>
       <Outlet />
     </ToolLayout>
-  ),
-})
+  )
+}

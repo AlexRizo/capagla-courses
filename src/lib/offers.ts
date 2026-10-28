@@ -35,6 +35,9 @@ export type Offer = {
   testKey?: string
   // Renovación del acceso (ver `resolveRenewal`): precio de renovación y sin adicionales.
   renewal?: boolean
+  // Mejora de nivel de la herramienta (ver `resolveStandalone`): se cobra la diferencia con el nivel
+  // que ya tiene y conserva su vencimiento.
+  upgrade?: { fromProductId: string; keepUntil: Date }
   main: OfferProduct
   // Adicionales de la promoción; solo hay mientras los precios especiales aplican.
   extras: OfferProduct[]
@@ -77,8 +80,15 @@ const asProduct = (
 // vencido o cuando faltan 30 días o menos.
 const RENEWAL_WINDOW_MS = 30 * 24 * 60 * 60 * 1000
 
-export const renewalPrice = (normalMxn: number) =>
-  Math.round((normalMxn * (100 - RENEWAL_DISCOUNT_PCT)) / 100)
+// La herramienta de costos se renueva al mismo precio del primer año (respuesta de la chef,
+// 2026-10-27); los cursos, con el descuento.
+export const renewalPrice = (
+  normalMxn: number,
+  kind: 'COURSE' | 'TOOL' = 'COURSE',
+) =>
+  kind === 'TOOL'
+    ? normalMxn
+    : Math.round((normalMxn * (100 - RENEWAL_DISCOUNT_PCT)) / 100)
 
 export const canRenew = (expiresAt: Date, now = new Date()) =>
   expiresAt.getTime() - now.getTime() <= RENEWAL_WINDOW_MS
@@ -102,7 +112,7 @@ export async function resolveRenewal(
     promotion: null,
     applied: false,
     renewal: true,
-    main: asProduct(product, renewalPrice(product.priceMxn)),
+    main: asProduct(product, renewalPrice(product.priceMxn, product.kind)),
     extras: [],
   }
 }
@@ -110,10 +120,50 @@ export async function resolveRenewal(
 // Compra de la herramienta sola, a precio normal (desde Mis cursos, sin promoción de por medio).
 // Solo vende productos de tipo herramienta: los cursos se venden por su página o su promoción.
 // null si no existe, no es una herramienta o no está publicada.
-export async function resolveStandalone(slug: string): Promise<Offer | null> {
-  const product = await prisma.product.findUnique({ where: { slug } })
+//
+// Con el correo de quien compra: si ya tiene vigente un nivel más bajo de la herramienta, es una
+// mejora: paga la diferencia de precios y la inscripción nueva conserva el vencimiento del nivel
+// que tenía (respuesta pendiente de la chef; criterio por defecto, 2026-10-27).
+export async function resolveStandalone(
+  slug: string,
+  email?: string,
+): Promise<Offer | null> {
+  const product = await prisma.product.findUnique({
+    where: { slug },
+    include: { tier: true },
+  })
   if (!product || product.kind !== 'TOOL' || product.status !== 'PUBLISHED') {
     return null
+  }
+  const lower = email
+    ? await prisma.enrollment.findMany({
+        where: {
+          user: { email: email.trim().toLowerCase() },
+          expiresAt: { gt: new Date() },
+          product: {
+            kind: 'TOOL',
+            tier: { rank: { lt: product.tier?.rank ?? 2 } },
+          },
+        },
+        include: { product: true },
+        orderBy: { product: { priceMxn: 'desc' } },
+      })
+    : []
+  if (lower.length > 0) {
+    const [from] = lower
+    return {
+      promotion: null,
+      applied: false,
+      upgrade: {
+        fromProductId: from.productId,
+        keepUntil: from.expiresAt,
+      },
+      main: asProduct(
+        product,
+        Math.max(0, product.priceMxn - from.product.priceMxn),
+      ),
+      extras: [],
+    }
   }
   return {
     promotion: null,

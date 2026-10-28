@@ -34,6 +34,27 @@ export function neededBase(
   return ing.wasteEnabled && ing.yieldPct ? need / (ing.yieldPct / 100) : need
 }
 
+// Lo agregado a mano, en la unidad base de como se compra: la cantidad que escribe la alumna, sin
+// desperdicio ni redondeo a paquetes (ella decide dónde y en qué presentación comprarlo). Un huevo
+// escrito en gramos se pasa a piezas con su peso promedio. Sin equivalencia devuelve null.
+export function manualBase(
+  ing: EngineIngredient,
+  quantity: number,
+  unit: CostUnit,
+) {
+  const amount = quantity * UNITS[unit].factor
+  if (familyOf(unit) === familyOf(ing.unit)) return amount
+  if (
+    ing.unit === 'PZA' &&
+    ing.flexible &&
+    ing.sampleCount &&
+    ing.sampleGrams
+  ) {
+    return amount / avgPieceGrams(ing.sampleGrams, ing.sampleCount)
+  }
+  return null
+}
+
 // Lo que trae un paquete de lo que compra, en la unidad base (1,000 g, 1,360 g, 180 pza…).
 export const packBase = (ing: Pick<EngineIngredient, 'quantity' | 'unit'>) =>
   ing.quantity * UNITS[ing.unit].factor
@@ -61,19 +82,29 @@ export function buyLabel(
   return `${packs} × ${formatQuantity(ing.quantity)} ${UNITS[ing.unit].label}`
 }
 
-// Un renglón de la lista: lo que pide la producción más los paquetes agregados a mano.
+// Un renglón de la lista: lo que pide la producción (a paquetes completos) más lo agregado a mano
+// (la cantidad exacta, en la unidad base).
 export function listRow(
   ing: EngineIngredient,
   productionNeed: number,
-  manualPacks: number,
+  manualAmount: number,
 ) {
-  const packs = packsFor(ing, productionNeed) + manualPacks
+  const packs = packsFor(ing, productionNeed)
+  const need = productionNeed + manualAmount
+  const wholeByPiece = ing.unit === 'PZA' && ing.quantity === 1
+  const parts: string[] = []
+  if (wholeByPiece && manualAmount > 0) {
+    parts.push(buyLabel(ing, packs + Math.ceil(manualAmount - 1e-9)))
+  } else {
+    if (packs > 0) parts.push(buyLabel(ing, packs))
+    if (manualAmount > 0) parts.push(needLabel(ing, manualAmount))
+  }
   return {
-    need: productionNeed + manualPacks * packBase(ing),
+    need,
     packs,
-    cost: packs * ing.price,
-    needLabel: needLabel(ing, productionNeed + manualPacks * packBase(ing)),
-    buyLabel: buyLabel(ing, packs),
+    cost: packs * ing.price + (manualAmount / packBase(ing)) * ing.price,
+    needLabel: needLabel(ing, need),
+    buyLabel: parts.join(' + '),
   }
 }
 

@@ -19,41 +19,54 @@ const redVelvet: ProductSummaryInput = {
   slicesPerPiece: 35,
   price: 520,
   slicePrice: 25,
+  // El mínimo propio de este producto (la maqueta usa ×1.43); la meta es la general.
   multiplier: 1.43,
-  priceBase: 'TOTAL',
+  target: 3.5,
   taxPct: null,
-  withTax: false,
 }
 
 describe('semáforo', () => {
-  it('rojo si no cubre el costo, amarillo si no llega al múltiplo, verde si lo alcanza', () => {
-    expect(verdictOf(380, 392.51, 392.51, 1.43)).toBe('LOSS')
-    expect(verdictOf(520, 423.56, 423.56, 1.43)).toBe('LOW')
-    expect(verdictOf(420, 258.4, 258.4, 1.43)).toBe('GOOD')
+  it('rojo bajo ×1, amarillo hasta el mínimo, verde hasta la meta y verde brillante arriba', () => {
+    expect(verdictOf(380, 392.51, 2.5, 3.5)).toBe('LOSS')
+    expect(verdictOf(200, 100, 2.5, 3.5)).toBe('LOW')
+    expect(verdictOf(300, 100, 2.5, 3.5)).toBe('GOOD')
+    expect(verdictOf(400, 100, 2.5, 3.5)).toBe('GREAT')
   })
 
-  it('llegar justo al múltiplo ya es verde, y justo al costo ya no es pérdida', () => {
-    expect(verdictOf(143, 100, 100, 1.43)).toBe('GOOD')
-    expect(verdictOf(100, 100, 100, 1.43)).toBe('LOW')
+  it('justo en el mínimo ya es verde, justo en la meta sigue verde y justo al costo ya no es pérdida', () => {
+    expect(verdictOf(250, 100, 2.5, 3.5)).toBe('GOOD')
+    expect(verdictOf(350, 100, 2.5, 3.5)).toBe('GOOD')
+    expect(verdictOf(100, 100, 2.5, 3.5)).toBe('LOW')
   })
 
-  it('sin precio o sin costo no hay semáforo; sin múltiplo, solo se sabe si cubre', () => {
-    expect(verdictOf(null, 100, 100, 1.43)).toBe('NONE')
-    expect(verdictOf(120, 0, 0, 1.43)).toBe('NONE')
-    expect(verdictOf(120, 100, 100, null)).toBe('COVERED')
-    expect(verdictOf(90, 100, 100, null)).toBe('LOSS')
+  it('un producto gancho con mínimo ×1.2 queda verde donde el general lo daría amarillo', () => {
+    expect(verdictOf(130, 100, 2.5, 3.5)).toBe('LOW')
+    expect(verdictOf(130, 100, 1.2, 3.5)).toBe('GOOD')
   })
 
-  it('los textos de la maqueta', () => {
-    expect(verdictText('GOOD', { multiplier: 1.43, ratio: 1.625 })).toBe(
-      'Cubre tus costos y pasa de tu 1.43× (aquí vendes a 1.63× tu costo).',
+  it('si el mínimo del producto pasa la meta, manda el mínimo', () => {
+    expect(verdictOf(390, 100, 4, 3.5)).toBe('LOW')
+    expect(verdictOf(400, 100, 4, 3.5)).toBe('GOOD')
+    expect(verdictOf(420, 100, 4, 3.5)).toBe('GREAT')
+  })
+
+  it('sin precio o sin costo no hay semáforo', () => {
+    expect(verdictOf(null, 100, 2.5, 3.5)).toBe('NONE')
+    expect(verdictOf(120, 0, 2.5, 3.5)).toBe('NONE')
+  })
+
+  it('los textos del aviso', () => {
+    const ctx = { multiplier: 2.5, target: 3.5 }
+    expect(verdictText('GOOD', { ...ctx, ratio: 3.125 })).toBe(
+      'Cubre tus costos y pasa de tu mínimo de 2.5× (aquí vendes a 3.13× tu costo).',
     )
-    expect(verdictText('LOSS', { multiplier: 1.43, ratio: null })).toMatch(
+    expect(verdictText('GREAT', { ...ctx, ratio: 4 })).toBe(
+      'Excelente: vendes a 4.00× tu costo, por encima de tu meta de 3.5×.',
+    )
+    expect(verdictText('LOSS', { ...ctx, ratio: null })).toMatch(
       /por debajo de lo que te cuesta/,
     )
-    expect(verdictText('LOW', { multiplier: 1.43, ratio: null })).toMatch(
-      /muy barato/,
-    )
+    expect(verdictText('LOW', { ...ctx, ratio: null })).toMatch(/muy barato/)
   })
 })
 
@@ -133,29 +146,57 @@ describe('otros productos de la maqueta', () => {
   })
 })
 
-describe('base del múltiplo y impuesto', () => {
-  it('solo ingredientes y empaque: el múltiplo se aplica a lo que se compra', () => {
-    const s = productSummary({ ...redVelvet, priceBase: 'INGREDIENTS' })
-    // (102.25 + 16.10) × 1.43
-    expect(s.whole.suggested).toBeCloseTo(169.24, 1)
-    // $520 ya pasa de ese umbral aunque el costo total sea $423.56
-    expect(s.whole.verdict).toBe('GOOD')
+describe('múltiplo e impuesto', () => {
+  it('el múltiplo siempre se aplica al costo total, con el mínimo del producto', () => {
+    const general = productSummary({ ...redVelvet, multiplier: 2.5 })
+    expect(general.whole.suggested).toBeCloseTo(423.56 * 2.5)
+    // $520 no llega a ×2.5 del costo total: amarillo
+    expect(general.whole.verdict).toBe('LOW')
+    const gancho = productSummary({ ...redVelvet, multiplier: 1.2 })
+    expect(gancho.whole.verdict).toBe('GOOD')
   })
 
-  it('el impuesto se suma al precio sugerido solo si el producto lo pide y hay %', () => {
+  it('el precio sugerido suma el impuesto del producto', () => {
     const base = productSummary(redVelvet).whole.suggested ?? 0
     expect(
-      productSummary({ ...redVelvet, withTax: true, taxPct: 16 }).whole
-        .suggested,
+      productSummary({ ...redVelvet, taxPct: 16 }).whole.suggested,
     ).toBeCloseTo(base * 1.16)
     expect(
-      productSummary({ ...redVelvet, withTax: true, taxPct: null }).whole
-        .suggested,
+      productSummary({ ...redVelvet, taxPct: null }).whole.suggested,
     ).toBeCloseTo(base)
-    expect(
-      productSummary({ ...redVelvet, withTax: false, taxPct: 16 }).whole
-        .suggested,
-    ).toBeCloseTo(base)
+  })
+
+  it('el precio ya incluye el impuesto: margen y semáforo salen de precio ÷ (1 + tasa)', () => {
+    // $580 con 16% son $500 netos: ganas $76.44, no $156.44
+    const s = productSummary({ ...redVelvet, price: 580, taxPct: 16 })
+    expect(s.whole.netPrice).toBeCloseTo(500)
+    expect(s.whole.margin?.gain).toBeCloseTo(500 - 423.56)
+    expect(s.whole.margin?.ratio).toBeCloseTo(500 / 423.56)
+    // el mismo precio sin impuesto sí llegaría a un margen mayor
+    const sin = productSummary({ ...redVelvet, price: 580 })
+    expect(sin.whole.margin?.gain).toBeCloseTo(580 - 423.56)
+  })
+
+  it('el impuesto puede bajar el semáforo: $520 con 16% son $448.28 netos', () => {
+    const s = productSummary({
+      ...redVelvet,
+      multiplier: 1.2,
+      price: 520,
+    })
+    expect(s.whole.verdict).toBe('GOOD')
+    const conImpuesto = productSummary({
+      ...redVelvet,
+      multiplier: 1.2,
+      price: 520,
+      taxPct: 16,
+    })
+    expect(conImpuesto.whole.verdict).toBe('LOW')
+  })
+
+  it('la rebanada también se calcula sobre el neto', () => {
+    const s = productSummary({ ...redVelvet, slicePrice: 29, taxPct: 16 })
+    expect(s.slices?.netPrice).toBeCloseTo(25)
+    expect(s.slices?.allSold).toBeCloseTo(875)
   })
 })
 
@@ -188,7 +229,7 @@ describe('productSchema', () => {
     sellsSlices: true,
     slicesPerPiece: 35,
     slicePrice: 25,
-    withTax: false,
+    taxTypeId: null,
     multiplier: 1.43,
     recipes: [{ recipeId: 'r1', piecesSold: 1 }],
     packaging: [

@@ -23,7 +23,7 @@ export const Route = createFileRoute('/lista-de-tienda')({
     ],
   }),
   validateSearch: z.object({ produccion: z.string().optional() }),
-  beforeLoad: () => requireToolPage(),
+  beforeLoad: () => requireToolPage('SHOPPING_LIST'),
   loaderDeps: ({ search }) => ({ produccion: search.produccion }),
   gcTime: 0,
   staleTime: 0,

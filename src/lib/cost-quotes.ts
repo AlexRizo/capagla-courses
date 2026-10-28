@@ -33,6 +33,27 @@ export function quoteSummary(input: {
   return { hours, product, hoursCost, extras, floor }
 }
 
+// Cuánto dura una cotización desde su último guardado (90 días), y cuántos días antes de vencer se
+// avisa.
+export const QUOTE_DAYS = 90
+export const QUOTE_WARN_DAYS = 15
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+// Días que le quedan (0 el último día); negativo si ya venció.
+export const quoteDaysLeft = (expiresAt: Date | string, now = new Date()) =>
+  Math.ceil((new Date(expiresAt).getTime() - now.getTime()) / DAY_MS)
+
+export const quoteExpiry = (from = new Date(), days = QUOTE_DAYS) =>
+  new Date(from.getTime() + days * DAY_MS)
+
+// "Vence en 12 días", "Vence mañana", "Vence hoy".
+export function expiryLabel(daysLeft: number) {
+  if (daysLeft <= 0) return 'Vence hoy'
+  if (daysLeft === 1) return 'Vence mañana'
+  return `Vence en ${daysLeft} días`
+}
+
 // Lo que se guarda de una cotización: producto, cuántos enteros, horas extra y extras (nombre y costo).
 export const quoteSchema = z.object({
   productId: z.string().min(1, 'Elige el producto.'),

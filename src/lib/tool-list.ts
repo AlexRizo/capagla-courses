@@ -3,8 +3,10 @@ import { createServerFn, createServerOnlyFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
 import { prisma } from '#/db'
-import { listRow, neededBase, packBase } from '#/lib/cost-shopping'
-import { requireTool } from '#/lib/tool-access'
+import { lineUnits } from '#/lib/cost-engine'
+import { COST_UNITS } from '#/lib/costs'
+import { listRow, manualBase, neededBase } from '#/lib/cost-shopping'
+import { requireModule } from '#/lib/tool-access'
 import { toEngine } from '#/lib/tool-recipes'
 import type { IngredientRow } from '#/lib/tool-recipes'
 
@@ -106,7 +108,7 @@ const familyFactor = (unit: IngredientRow['unit']) =>
   unit === 'KG' || unit === 'L' ? 1000 : 1
 
 export const getList = createServerFn()
-  .middleware([requireTool])
+  .middleware([requireModule('SHOPPING_LIST')])
   .validator(z.object({ productionId: z.string().nullable() }))
   .handler(async ({ data, context }) => {
     const userId = context.userId
@@ -135,7 +137,8 @@ export const getList = createServerFn()
     // Entran la lista lo que pide la producción y lo agregado a mano.
     const wanted = ingredients.filter(
       (i) =>
-        (needs.get(i.id) ?? 0) > 0 || (entries.get(i.id)?.manualPacks ?? 0) > 0,
+        (needs.get(i.id) ?? 0) > 0 ||
+        Number(entries.get(i.id)?.manualAmount ?? 0) > 0,
     )
     const known = wanted
       .filter((i) => entries.has(i.id))
@@ -144,7 +147,7 @@ export const getList = createServerFn()
     const rows = [...known, ...fresh].map((i) => {
       const e = entries.get(i.id)
       const prod = needs.get(i.id) ?? 0
-      const manual = e?.manualPacks ?? 0
+      const manual = Number(e?.manualAmount ?? 0)
       const r = listRow(toEngine(i), prod, manual)
       const fallback = i.placeId && placeIds.has(i.placeId) ? i.placeId : NONE
       const placeKey =
@@ -160,7 +163,7 @@ export const getList = createServerFn()
         buyLabel: r.buyLabel,
         cost: r.cost,
         origin: { production: prod > 0, manual: manual > 0 },
-        manualPacks: manual,
+        manualAmount: manual,
         haveIt: e?.haveIt ?? false,
         bought: e?.bought ?? false,
       }
@@ -180,15 +183,18 @@ export const getList = createServerFn()
           id: i.id,
           name: i.name,
           kind: i.kind,
-          pack: packBase(toEngine(i)),
+          // Piezas primero: la lista de compra de un huevo se cuenta en piezas.
+          units: lineUnits(toEngine(i)).sort(
+            (a, b) => Number(b === 'PZA') - Number(a === 'PZA'),
+          ),
         })),
     }
   })
 
-// Guarda lo que la alumna decidió de cada renglón, en el orden en que está. Los paquetes agregados
-// a mano no los manda el navegador: se conservan los que ya hay.
+// Guarda lo que la alumna decidió de cada renglón, en el orden en que está. Lo agregado a mano no
+// lo manda el navegador: se conserva lo que ya hay.
 export const saveListState = createServerFn({ method: 'POST' })
-  .middleware([requireTool])
+  .middleware([requireModule('SHOPPING_LIST')])
   .validator(
     z.object({
       productionId: z.string().nullable(),
@@ -224,7 +230,7 @@ export const saveListState = createServerFn({ method: 'POST' })
       where: { listId: list.id },
     })
     const placeIds = new Set(places.map((p) => p.id))
-    const manual = new Map(current.map((e) => [e.ingredientId, e.manualPacks]))
+    const manual = new Map(current.map((e) => [e.ingredientId, e.manualAmount]))
     const rows = data.entries.map((e, position) => ({
       listId: list.id,
       ingredientId: e.ingredientId,
@@ -235,7 +241,7 @@ export const saveListState = createServerFn({ method: 'POST' })
           : null,
       haveIt: e.haveIt,
       bought: e.bought,
-      manualPacks: manual.get(e.ingredientId) ?? 0,
+      manualAmount: manual.get(e.ingredientId) ?? 0,
     }))
     await prisma.$transaction([
       prisma.costListEntry.deleteMany({ where: { listId: list.id } }),
@@ -260,23 +266,27 @@ const ensureList = createServerOnlyFn(
   },
 )
 
-// "Agregar a la lista": paquetes completos de un ingrediente, por si hace falta algo que no sale
-// de la producción.
+// "Agregar a la lista": la cantidad que hace falta de un ingrediente (en kg, g, ml, l o piezas),
+// por si necesita algo que no sale de la producción. No se redondea a paquetes.
 export const addManualItem = createServerFn({ method: 'POST' })
-  .middleware([requireTool])
+  .middleware([requireModule('SHOPPING_LIST')])
   .validator(
     z.object({
       productionId: z.string().nullable(),
       ingredientId: z.string().min(1),
-      packs: z.number().int().min(1).max(1000),
+      quantity: z.number().positive('Escribe una cantidad.').max(1_000_000),
+      unit: z.enum(COST_UNITS),
     }),
   )
   .handler(async ({ data, context }) => {
-    const own = await prisma.costIngredient.findFirst({
+    const ingredient = await prisma.costIngredient.findFirst({
       where: { id: data.ingredientId, userId: context.userId },
-      select: { id: true },
     })
-    if (!own) return { error: 'Ese ingrediente no existe.' }
+    if (!ingredient) return { error: 'Ese ingrediente no existe.' }
+    const amount = manualBase(toEngine(ingredient), data.quantity, data.unit)
+    if (amount === null) {
+      return { error: 'Esa unidad no sirve para este ingrediente.' }
+    }
     const list = await ensureList(context.userId, data.productionId)
     const last = await prisma.costListEntry.aggregate({
       where: { listId: list.id },
@@ -293,15 +303,15 @@ export const addManualItem = createServerFn({ method: 'POST' })
         listId: list.id,
         ingredientId: data.ingredientId,
         position: (last._max.position ?? -1) + 1,
-        manualPacks: data.packs,
+        manualAmount: amount,
       },
-      update: { manualPacks: { increment: data.packs } },
+      update: { manualAmount: { increment: amount } },
     })
     return { ok: true as const }
   })
 
 export const removeManualItem = createServerFn({ method: 'POST' })
-  .middleware([requireTool])
+  .middleware([requireModule('SHOPPING_LIST')])
   .validator(
     z.object({ productionId: z.string().nullable(), ingredientId: z.string() }),
   )
@@ -312,7 +322,7 @@ export const removeManualItem = createServerFn({ method: 'POST' })
     if (!list) throw notFound()
     await prisma.costListEntry.updateMany({
       where: { listId: list.id, ingredientId: data.ingredientId },
-      data: { manualPacks: 0 },
+      data: { manualAmount: 0 },
     })
     return { ok: true as const }
   })

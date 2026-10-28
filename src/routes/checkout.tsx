@@ -320,10 +320,20 @@ function CheckoutForm({
 }: {
   stripePromise: ReturnType<typeof loadStripe> | null
 }) {
-  const { course, bonuses, tool, special, until, account, renewal } =
-    Route.useLoaderData()
+  const {
+    course,
+    bonuses,
+    tool,
+    special,
+    until,
+    account,
+    renewal,
+    upgradeUntil,
+  } = Route.useLoaderData()
   const { promo, prueba, desde, renovar, producto } = Route.useSearch()
-  const days = `${course.accessDays} días${renewal ? ' más' : ''}`
+  const days = upgradeUntil
+    ? `hasta el ${upgradeUntil}`
+    : `${course.accessDays} días${renewal ? ' más' : ''}`
   const navigate = useNavigate()
   const stripe = useStripe()
   const cardGetters = useRef<CardGetters>({ mobile: null, desktop: null })
@@ -802,7 +812,13 @@ function CheckoutForm({
             </div>
           </div>
           <div className="flex items-baseline justify-between text-15">
-            <span>{renewal ? 'Renovación' : course.label}</span>
+            <span>
+              {renewal
+                ? 'Renovación'
+                : upgradeUntil
+                  ? 'Mejora de nivel'
+                  : course.label}
+            </span>
             <span className="flex items-baseline gap-2">
               {courseStrike && (
                 <span className={strike}>{mxn(course.normalMxn)}</span>
@@ -833,7 +849,9 @@ function CheckoutForm({
           <div className="text-13 leading-normal text-landing-muted">
             {special && `Precio especial${until ? ` hasta el ${until}` : ''}. `}
             {renewal &&
-              `Precio de renovación (${RENEWAL_DISCOUNT_PCT}% de descuento). Los días que te queden se suman. `}
+              `${course.label === 'Herramienta' ? 'Precio de renovación (el mismo del primer año)' : `Precio de renovación (${RENEWAL_DISCOUNT_PCT}% de descuento)`}. Los días que te queden se suman. `}
+            {upgradeUntil &&
+              `Pagas solo la diferencia con tu nivel actual y conservas tu vencimiento (${upgradeUntil}). `}
             Acceso inmediato.
           </div>
         </div>

@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { prisma } from '#/db'
 import { priceChange, purchaseSchema } from '#/lib/cost-purchases'
-import { requireTool } from '#/lib/tool-access'
+import { requireModule } from '#/lib/tool-access'
 
 // Registro de compras de la herramienta de costos. Todo se limita a la dueña (`context.userId`).
 // Al guardar una compra, el precio de cada ingrediente pasa al que se pagó y se conserva el
@@ -14,7 +14,7 @@ const n = (v: { toString: () => string } | null) =>
   v === null ? null : Number(v)
 
 export const getPurchases = createServerFn()
-  .middleware([requireTool])
+  .middleware([requireModule('PURCHASES')])
   .handler(async ({ context }) => {
     const [purchases, places] = await Promise.all([
       prisma.costPurchase.findMany({
@@ -46,7 +46,7 @@ export const getPurchases = createServerFn()
   })
 
 export const getPurchase = createServerFn()
-  .middleware([requireTool])
+  .middleware([requireModule('PURCHASES')])
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data, context }) => {
     const row = await prisma.costPurchase.findFirst({
@@ -76,7 +76,7 @@ export const getPurchase = createServerFn()
 // Lo que necesita el formulario de una compra: las tiendas y los ingredientes con su último
 // precio y las recetas (sin archivar) que cambiarían de costo si ese precio cambia.
 export const getPurchaseForm = createServerFn()
-  .middleware([requireTool])
+  .middleware([requireModule('PURCHASES')])
   .handler(async ({ context }) => {
     const userId = context.userId
     const [places, ingredients, recipes, premixes] = await Promise.all([
@@ -144,7 +144,7 @@ export const getPurchaseForm = createServerFn()
   })
 
 export const savePurchase = createServerFn({ method: 'POST' })
-  .middleware([requireTool])
+  .middleware([requireModule('PURCHASES')])
   .validator(z.object({ values: purchaseSchema }))
   .handler(async ({ data, context }) => {
     const { values } = data

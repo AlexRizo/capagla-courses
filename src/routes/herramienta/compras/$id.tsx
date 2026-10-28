@@ -10,12 +10,14 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
+import { requireToolPage } from '#/lib/tool-access'
 import { changeLabel, formatDay, priceChange } from '#/lib/cost-purchases'
 import { UNITS, formatPrice, formatQuantity } from '#/lib/costs'
 import { getPurchase } from '#/lib/tool-purchases'
 import { cn } from '#/lib/utils'
 
 export const Route = createFileRoute('/herramienta/compras/$id')({
+  beforeLoad: () => requireToolPage('PURCHASES'),
   gcTime: 0,
   staleTime: 0,
   loader: ({ params }) => getPurchase({ data: { id: params.id } }),

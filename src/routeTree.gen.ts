@@ -20,6 +20,7 @@ import { Route as HerramientaRouteImport } from './routes/herramienta'
 import { Route as ListaDeTiendaRouteImport } from './routes/lista-de-tienda'
 import { Route as MisCursosRouteImport } from './routes/mis-cursos'
 import { Route as RevisaTuCorreoRouteImport } from './routes/revisa-tu-correo'
+import { Route as AdminHerramientaRouteImport } from './routes/admin/herramienta'
 import { Route as AdminMarketingRouteImport } from './routes/admin/marketing'
 import { Route as AdminPreguntasRouteImport } from './routes/admin/preguntas'
 import { Route as ApiUploadsRouteImport } from './routes/api/uploads'
@@ -118,6 +119,11 @@ const RevisaTuCorreoRoute = RevisaTuCorreoRouteImport.update({
   id: '/revisa-tu-correo',
   path: '/revisa-tu-correo',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminHerramientaRoute = AdminHerramientaRouteImport.update({
+  id: '/herramienta',
+  path: '/herramienta',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminMarketingRoute = AdminMarketingRouteImport.update({
   id: '/marketing',
@@ -358,6 +364,7 @@ export interface FileRoutesByFullPath {
   '/lista-de-tienda': typeof ListaDeTiendaRoute
   '/mis-cursos': typeof MisCursosRouteWithChildren
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
+  '/admin/herramienta': typeof AdminHerramientaRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -412,6 +419,7 @@ export interface FileRoutesByTo {
   '/gracias': typeof GraciasRoute
   '/lista-de-tienda': typeof ListaDeTiendaRoute
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
+  '/admin/herramienta': typeof AdminHerramientaRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -469,6 +477,7 @@ export interface FileRoutesById {
   '/lista-de-tienda': typeof ListaDeTiendaRoute
   '/mis-cursos': typeof MisCursosRouteWithChildren
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
+  '/admin/herramienta': typeof AdminHerramientaRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -527,6 +536,7 @@ export interface FileRouteTypes {
     | '/lista-de-tienda'
     | '/mis-cursos'
     | '/revisa-tu-correo'
+    | '/admin/herramienta'
     | '/admin/marketing'
     | '/admin/preguntas'
     | '/api/uploads'
@@ -581,6 +591,7 @@ export interface FileRouteTypes {
     | '/gracias'
     | '/lista-de-tienda'
     | '/revisa-tu-correo'
+    | '/admin/herramienta'
     | '/admin/marketing'
     | '/admin/preguntas'
     | '/api/uploads'
@@ -637,6 +648,7 @@ export interface FileRouteTypes {
     | '/lista-de-tienda'
     | '/mis-cursos'
     | '/revisa-tu-correo'
+    | '/admin/herramienta'
     | '/admin/marketing'
     | '/admin/preguntas'
     | '/api/uploads'
@@ -781,6 +793,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/revisa-tu-correo'
       preLoaderRoute: typeof RevisaTuCorreoRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/herramienta': {
+      id: '/admin/herramienta'
+      path: '/herramienta'
+      fullPath: '/admin/herramienta'
+      preLoaderRoute: typeof AdminHerramientaRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/marketing': {
       id: '/admin/marketing'
@@ -1087,6 +1106,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminHerramientaRoute: typeof AdminHerramientaRoute
   AdminMarketingRoute: typeof AdminMarketingRoute
   AdminPreguntasRoute: typeof AdminPreguntasRoute
   AdminCursosSlugRoute: typeof AdminCursosSlugRoute
@@ -1098,6 +1118,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminHerramientaRoute: AdminHerramientaRoute,
   AdminMarketingRoute: AdminMarketingRoute,
   AdminPreguntasRoute: AdminPreguntasRoute,
   AdminCursosSlugRoute: AdminCursosSlugRoute,

@@ -26,6 +26,7 @@ const products = [
     name: 'Postres para vender en Navidad',
     kind: 'COURSE',
     priceMxn: 897,
+    compareAtMxn: null,
     status: 'PUBLISHED',
     position: 0,
     description:
@@ -37,6 +38,7 @@ const products = [
     name: 'Cómo calcular costos de tus postres',
     kind: 'COURSE',
     priceMxn: 347,
+    compareAtMxn: null,
     status: 'DRAFT',
     position: 1,
     description: null,
@@ -44,13 +46,26 @@ const products = [
   },
   {
     slug: 'herramienta-costos',
-    name: 'Herramienta de costos',
+    name: 'Herramienta de costos · Completo',
     kind: 'TOOL',
-    priceMxn: 200,
+    priceMxn: 399,
+    compareAtMxn: 569,
     status: 'PUBLISHED',
     position: 2,
     description:
-      'Calcula el costo por porción y el precio sugerido de cada receta.',
+      'Calcula el costo por porción y el precio sugerido de cada receta, y planea tu producción, tus compras y tus cotizaciones.',
+    coverUrl: null,
+  },
+  {
+    slug: 'herramienta-costos-basico',
+    name: 'Herramienta de costos · Básico',
+    kind: 'TOOL',
+    priceMxn: 299,
+    compareAtMxn: 429,
+    status: 'PUBLISHED',
+    position: 3,
+    description:
+      'Calcula el costo de tus recetas y ponles precio con semáforo.',
     coverUrl: null,
   },
 ] as const
@@ -78,7 +93,38 @@ async function seedProducts() {
       })
     }
   }
+  await seedTiers()
   console.log(`✅ ${products.length} productos`)
+}
+
+// Niveles de la herramienta de costos (respuestas de la chef, 2026-10-27). Solo se crean: lo que se
+// edite después en el panel no se pisa.
+const tiers = [
+  {
+    slug: 'herramienta-costos-basico',
+    rank: 1,
+    itemLimit: 150,
+    quoteDays: 90,
+    modules: [],
+  },
+  {
+    slug: 'herramienta-costos',
+    rank: 2,
+    itemLimit: 1000,
+    quoteDays: 90,
+    modules: ['PRODUCTION', 'SHOPPING_LIST', 'PURCHASES', 'QUOTES'],
+  },
+] as const
+
+async function seedTiers() {
+  for (const { slug, modules, ...tier } of tiers) {
+    const product = await prisma.product.findUniqueOrThrow({ where: { slug } })
+    await prisma.toolTier.upsert({
+      where: { productId: product.id },
+      update: {},
+      create: { productId: product.id, modules: [...modules], ...tier },
+    })
+  }
 }
 
 // Administradora: ver `admin-credentials.ts` (en producción exige ADMIN_EMAIL y ADMIN_PASSWORD).

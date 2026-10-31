@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { prisma } from '#/db'
 import { requireAdmin } from '#/lib/guards'
-import { TOOL_MODULES } from '#/lib/tool-tiers'
+import { TOOL_MODULES, priceOrderError } from '#/lib/tool-tiers'
 
 // Niveles de la herramienta de costos en el panel (modo pro): precio, límite de elementos, módulos
 // y plazo de las cotizaciones de cada nivel, y cuánto usa cada alumna. Toda función lleva
@@ -99,6 +99,19 @@ export const saveToolTier = createServerFn({ method: 'POST' })
     })
     if (!product) throw notFound()
     const { productId, priceMxn, compareAtMxn, ...tier } = data
+    const all = await prisma.product.findMany({
+      where: { kind: 'TOOL' },
+      include: { tier: true },
+    })
+    const error = priceOrderError(
+      // Un producto sin nivel cuenta como Completo (rango 2), igual que en el acceso.
+      all.map((p) => ({
+        name: p.name,
+        rank: p.tier?.rank ?? 2,
+        priceMxn: p.id === productId ? priceMxn : p.priceMxn,
+      })),
+    )
+    if (error) return { ok: false as const, error }
     await prisma.$transaction([
       prisma.product.update({
         where: { id: productId },

@@ -58,3 +58,19 @@ export const atLimit = (used: number, tier: ToolTierInfo) =>
 
 export const limitMessage = (tier: ToolTierInfo) =>
   `Llegaste al límite de ${tier.itemLimit} elementos de tu nivel. Borra o archiva algo, o cambia de nivel para guardar más.`
+
+// Un nivel más alto debe costar más que el de abajo: la mejora cobra la diferencia y Stripe no
+// cobra $0. `tiers` trae todos los niveles con el precio ya cambiado; devuelve el motivo o null.
+export function priceOrderError(
+  tiers: { name: string; rank: number; priceMxn: number }[],
+) {
+  const sorted = [...tiers].sort((a, b) => a.rank - b.rank)
+  for (let i = 1; i < sorted.length; i++) {
+    const lower = sorted[i - 1]
+    const higher = sorted[i]
+    if (higher.rank > lower.rank && higher.priceMxn <= lower.priceMxn) {
+      return `${higher.name} debe costar más que ${lower.name} ($${lower.priceMxn}): la mejora cobra la diferencia y no puede ser $0.`
+    }
+  }
+  return null
+}

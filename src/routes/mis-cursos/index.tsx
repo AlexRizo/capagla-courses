@@ -464,7 +464,7 @@ function FreeCourseCard({ course }: { course: FreeCourse }) {
   )
 }
 
-// Tarjeta de un curso comprado: avance, vencimiento, "Continuar progreso" y recetario.
+// Tarjeta de un curso comprado: avance, vencimiento, "Iniciar curso" (sin lecciones vistas) o "Continuar progreso", y recetario.
 // Herramienta de costos. Con acceso la abre; sin él ofrece comprarla a precio normal; vencida o
 // por vencer, renovarla con descuento (misma regla que los cursos). Ninguno de los tres botones
 // ni los avisos están en la maqueta (decisión del cliente, 2026-10-26).
@@ -655,7 +655,7 @@ function CourseCard({ course }: { course: MyCourse }) {
                 !active && 'pointer-events-none opacity-50',
               )}
             >
-              Continuar progreso
+              {seen > 0 ? 'Continuar progreso' : 'Iniciar curso'}
             </Link>
           ) : (
             <Link

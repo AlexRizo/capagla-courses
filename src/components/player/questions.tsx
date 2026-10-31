@@ -219,8 +219,14 @@ export function Questions({
     .filter((w) => w.length >= 4)
   const filtering = words.length > 0
   const hit = (q: Question) =>
-    words.some((w) => normalize(`${q.text} ${q.answer ?? ''}`).includes(w))
-  const matches = questions.filter((q) => q.answer && hit(q)).length
+    words.some((w) =>
+      normalize(
+        `${q.text} ${q.answer ?? ''} ${q.assistantAnswer ?? ''}`,
+      ).includes(w),
+    )
+  const matches = questions.filter(
+    (q) => (q.answer || q.assistantAnswer) && hit(q),
+  ).length
   const list = filtering
     ? questions.filter(hit)
     : all
@@ -323,6 +329,11 @@ export function Questions({
       {error && (
         <div className="text-sm font-bold text-player-accent">{error}</div>
       )}
+
+      <div className="text-13 text-player-muted">
+        Las preguntas y sus respuestas las ven las demás alumnas de esta
+        lección. No escribas datos personales.
+      </div>
 
       {filtering && !sent && matches > 0 && (
         <div className="text-sm text-player-muted">
@@ -441,9 +452,11 @@ export function Questions({
                 </div>
               </div>
             ) : (
-              <div className="self-start rounded-full bg-player-track px-3 py-1.5 text-13 font-bold text-player-muted">
-                Esperando respuesta de la chef
-              </div>
+              q.status === 'PENDING' && (
+                <div className="self-start rounded-full bg-player-track px-3 py-1.5 text-13 font-bold text-player-muted">
+                  Esperando respuesta de la chef
+                </div>
+              )
             )}
           </div>
         ))}

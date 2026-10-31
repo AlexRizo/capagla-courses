@@ -37,7 +37,7 @@ function TierCard({ tier }: { tier: Tier }) {
     setSaving(true)
     setMessage(null)
     try {
-      await saveToolTier({
+      const result = await saveToolTier({
         data: {
           productId: tier.productId,
           priceMxn: num('priceMxn'),
@@ -47,6 +47,10 @@ function TierCard({ tier }: { tier: Tier }) {
           modules,
         },
       })
+      if (!result.ok) {
+        setMessage(result.error)
+        return
+      }
       await router.invalidate()
       setMessage('Guardado')
     } catch {

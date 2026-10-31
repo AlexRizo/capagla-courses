@@ -9,6 +9,7 @@ import {
   bestTier,
   hasModule,
   limitMessage,
+  priceOrderError,
 } from '#/lib/tool-tiers'
 import type { ToolModuleKey, ToolTierInfo } from '#/lib/tool-tiers'
 import { countItems, limitError } from '#/lib/tool-usage'
@@ -177,5 +178,26 @@ describe('nivel y uso de una alumna', () => {
     expect(await limitError(user.id, { ...basico, itemLimit: 2 })).toMatch(
       /límite de 2 elementos/,
     )
+  })
+})
+
+describe('orden de precios de los niveles', () => {
+  const b = { name: 'Básico', rank: 1, priceMxn: 299 }
+  const c = { name: 'Completo', rank: 2, priceMxn: 399 }
+
+  it('acepta un nivel más alto más caro', () => {
+    expect(priceOrderError([b, c])).toBeNull()
+    expect(priceOrderError([c, b])).toBeNull()
+    expect(priceOrderError([c])).toBeNull()
+  })
+
+  it('rechaza el mismo precio (la mejora costaría $0)', () => {
+    expect(priceOrderError([b, { ...c, priceMxn: 299 }])).toContain(
+      'Completo debe costar más que Básico ($299)',
+    )
+  })
+
+  it('rechaza un nivel más alto más barato', () => {
+    expect(priceOrderError([{ ...b, priceMxn: 500 }, c])).not.toBeNull()
   })
 })

@@ -37,7 +37,7 @@ function Home() {
           <a href="#cursos" className={nav}>
             Cursos
           </a>
-          <a href="#gratis" className={nav}>
+          <a href="/clase-gratis" className={nav}>
             Clase gratis
           </a>
           <a href="#gladis" className={nav}>
@@ -53,7 +53,7 @@ function Home() {
         <MobileMenu
           items={[
             { href: '#cursos', label: 'Cursos' },
-            { href: '#gratis', label: 'Clase gratis' },
+            { href: '/clase-gratis', label: 'Clase gratis' },
             { href: '#gladis', label: 'Quién soy' },
           ]}
         />

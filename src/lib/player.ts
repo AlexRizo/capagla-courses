@@ -18,6 +18,7 @@ import { signedPlaybackUrl } from '#/lib/bunny'
 import { ago } from '#/lib/ago'
 import { parseParts } from '#/lib/duration'
 import { momentName } from '#/lib/moment-name'
+import { inPublicList, visibleQuestionsWhere } from '#/lib/question-visibility'
 import { RECIPE_BOOK_URL_PREFIX } from '#/lib/recipe-books'
 import type { TranscriptLine } from '#/lib/transcript'
 import {
@@ -157,21 +158,9 @@ export const getPlayer = createServerFn()
             select: { itemId: true },
           })
         ).map((f) => f.itemId)
-    // Las respondidas las ven todas; las que espera la chef y las que solo contestó el asistente
-    // (su historial con la IA), solo quien las hizo.
+    // Las preguntas son públicas (ver `lib/question-visibility.ts`).
     const questions = await prisma.lessonQuestion.findMany({
-      where: {
-        itemId: data.lessonId,
-        OR: [
-          { status: 'ANSWERED' },
-          ...(preview
-            ? []
-            : [
-                { status: 'PENDING' as const, userId: session.user.id },
-                { status: 'ASSISTANT' as const, userId: session.user.id },
-              ]),
-        ],
-      },
+      where: visibleQuestionsWhere(data.lessonId, session.user.id, preview),
       include: { user: { select: { name: true } } },
       orderBy: { createdAt: 'desc' },
     })
@@ -235,8 +224,9 @@ export const getPlayer = createServerFn()
           name: m.name,
         })),
         questions: questions
-          .filter((q) => q.status !== 'ASSISTANT')
+          .filter((q) => inPublicList(q, session.user.id))
           .map((q) => ({
+            status: q.status,
             id: q.id,
             // De las demás alumnas solo se ve el primer nombre.
             who:
@@ -246,9 +236,8 @@ export const getPlayer = createServerFn()
             ago: ago(q.createdAt, now),
             text: q.text,
             answer: q.status === 'ANSWERED' ? q.answer : null,
-            // Lo que le contestó el asistente: solo la dueña de la pregunta lo ve.
-            assistantAnswer:
-              q.userId === session.user.id ? q.assistantAnswer : null,
+            // Lo que contestó el asistente también es público.
+            assistantAnswer: q.assistantAnswer,
           })),
         // Sus preguntas que solo contestó el asistente (aún no las manda a la chef).
         assistantQuestions: questions

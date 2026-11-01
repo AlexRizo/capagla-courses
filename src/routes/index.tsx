@@ -99,11 +99,11 @@ function Home() {
               CLASE GRATIS · SIN TARJETA
             </div>
             <div className="text-21 leading-115 font-black tracking-landing-title-sm md:text-28 md:leading-normal md:tracking-landing-title-2xs">
-              Introducción al curso
+              Enjambre de chocolate
             </div>
             <div className="text-sm leading-145 text-landing-lilac md:text-base md:leading-normal">
               <span className="hidden md:inline">
-                Utensilios, duyas y mise en place.{' '}
+                Una receta económica y rendidora.{' '}
               </span>
               Mira la clase completa y conoce cómo enseña Gladis.
             </div>

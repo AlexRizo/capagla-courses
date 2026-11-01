@@ -50,22 +50,22 @@ function ClaseGratis() {
             Clase gratis · sin tarjeta
           </div>
           <h1 className="m-0 text-30 leading-108 font-black tracking-landing-title-xl md:text-46 md:tracking-landing-title-5xl">
-            Empieza gratis con la introducción del curso
+            Aprende a hacer enjambre de chocolate
           </h1>
           <p className="m-0 text-15 leading-normal text-landing-muted md:text-19 md:leading-155">
-            Conoce a Gladis, los utensilios, las duyas y el mise en place antes
-            de tu primera receta
-            <span className="hidden md:inline">
-              , y mira cómo enseña paso a paso
-            </span>
-            .
+            Una receta económica y rendidora: en la clase salen 47 piezas. Te
+            mostramos todo el proceso
+            <span className="hidden md:inline">, de principio a fin</span>.
           </p>
           <div className="relative aspect-video overflow-hidden rounded-14 md:max-w-130 md:rounded-18">
             <img
-              src="/images/gladis-postres.jpg"
-              alt="Gladis con sus postres"
-              className="block size-full object-cover object-hero"
+              src="/images/recetas/enjambre-chocolate.jpg"
+              alt="Enjambre de chocolate"
+              className="block size-full object-cover"
             />
+            <div className="absolute right-2.5 bottom-2.5 rounded-md bg-landing-ink/85 px-2 py-0.75 text-xs font-bold text-white">
+              17:44
+            </div>
           </div>
         </div>
 

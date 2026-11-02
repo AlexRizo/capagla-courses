@@ -51,7 +51,7 @@ export function buildPurchaseEvent(order: PaidOrder): ServerEvent {
 }
 
 // Manda el Purchase de una orden pagada. No manda nada si la persona no aceptó las cookies al
-// pagar, si es una renovación (no viene de un anuncio) o si compró una admin probando.
+// pagar, si es una renovación (no viene de un anuncio), si es gratis o si compró una admin probando.
 // Nunca lanza: medir no debe romper una compra.
 export async function trackPurchase(orderId: string) {
   try {
@@ -59,7 +59,10 @@ export async function trackPurchase(orderId: string) {
       where: { id: orderId },
       include: { items: { include: { product: true } }, user: true },
     })
-    if (order?.status !== 'PAID' || order.renewal) return false
+    // Una orden gratis (promoción que regala el curso) no es una compra de $0 para las plataformas.
+    if (order?.status !== 'PAID' || order.renewal || order.amountMxn === 0) {
+      return false
+    }
     if (order.marketingConsent !== true) return false
     if (order.user?.role === 'ADMIN') return false
     const platforms = await loadPlatforms()

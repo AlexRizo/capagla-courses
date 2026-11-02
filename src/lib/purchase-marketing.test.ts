@@ -180,6 +180,18 @@ describe('compra confirmada → Meta y TikTok', () => {
     expect(calls).toHaveLength(0)
   })
 
+  it('una orden gratis (total $0) no se manda como compra', async () => {
+    const order = await buy('ana@test.com')
+    await vi.waitFor(() => expect(calls).toHaveLength(2))
+    calls.length = 0
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { amountMxn: 0 },
+    })
+    expect(await trackPurchase(order.id)).toBe(false)
+    expect(calls).toHaveLength(0)
+  })
+
   it('la compra de una admin probando no se manda', async () => {
     const order = await buy('ana@test.com')
     await vi.waitFor(() => expect(calls).toHaveLength(2))

@@ -6,7 +6,12 @@ import { auth } from '#/lib/auth'
 import { withLinkPurpose } from '#/lib/mailer'
 import { trackPurchase } from '#/lib/purchase-tracking'
 import type { TrackingContext } from '#/lib/track-core'
-import { resolveOffer, resolveRenewal, resolveStandalone } from '#/lib/offers'
+import {
+  resolveOffer,
+  resolveRenewal,
+  resolveStandalone,
+  withoutOwnedExtras,
+} from '#/lib/offers'
 import { TIME_ZONE } from '#/lib/promotions'
 import { getStripe } from '#/lib/stripe'
 
@@ -57,7 +62,11 @@ export async function createOrder(input: {
   const offer =
     renewal ??
     standalone ??
-    (await resolveOffer(input.promo, true, input.prueba))
+    // Lo que ya tiene vigente de los adicionales no se le vuelve a vender.
+    (await withoutOwnedExtras(
+      await resolveOffer(input.promo, true, input.prueba),
+      input.email,
+    ))
   if (!offer.main.published) throw new Error('El curso no está a la venta.')
   // Una renovación sí puede pagarse con el acceso vigente (en sus últimos 30 días).
   if (!renewal && (await hasActiveAccess(input.email, offer.main.productId))) {

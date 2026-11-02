@@ -173,6 +173,30 @@ export async function resolveStandalone(
   }
 }
 
+// Quita de la oferta los adicionales que el correo ya tiene vigentes (curso o herramienta): no se
+// le cobran ni se le suman días otra vez. El producto principal no se toca (si ya lo tiene, la
+// compra se rechaza aparte).
+export async function withoutOwnedExtras(
+  offer: Offer,
+  email: string | undefined,
+): Promise<Offer> {
+  if (!email || offer.extras.length === 0) return offer
+  const owned = await prisma.enrollment.findMany({
+    where: {
+      user: { email: email.trim().toLowerCase() },
+      productId: { in: offer.extras.map((e) => e.productId) },
+      expiresAt: { gt: new Date() },
+    },
+    select: { productId: true },
+  })
+  if (owned.length === 0) return offer
+  const have = new Set(owned.map((o) => o.productId))
+  return {
+    ...offer,
+    extras: offer.extras.filter((e) => !have.has(e.productId)),
+  }
+}
+
 // Sin promoción (enlace simple) se vende el curso al precio normal. Con promoción: el curso
 // principal de la promoción, y sus adicionales con precio especial si está vigente.
 // `forPayment` extiende el fin 1 hora (quien ya tenía el carrito abierto); para mostrar no.

@@ -72,6 +72,37 @@ describe('createOrder', () => {
     expect(items.map((i) => i.amountMxn).sort()).toEqual([0, 397])
   })
 
+  it('promoción que regala el curso principal: sin la herramienta el total es $0, con ella su precio', async () => {
+    const promo = await prisma.promotion.create({
+      data: {
+        slug: 'costos-gratis',
+        name: 'Costos gratis',
+        startsAt: new Date(Date.now() - DAY),
+        endsAt: new Date(Date.now() + DAY),
+        products: {
+          create: [
+            { productId: catalog.extra.id, priceMxn: 0, position: 0 },
+            { productId: catalog.tool.id, priceMxn: 200, position: 1 },
+          ],
+        },
+      },
+    })
+    const free = await createOrder({
+      ...buyer,
+      withTool: false,
+      promo: 'costos-gratis',
+    })
+    expect(free.amountMxn).toBe(0)
+    expect(free.promotionId).toBe(promo.id)
+    const withTool = await createOrder({
+      email: 'otra@test.com',
+      name: 'Otra',
+      withTool: true,
+      promo: 'costos-gratis',
+    })
+    expect(withTool.amountMxn).toBe(200)
+  })
+
   it('la herramienta solo se cobra si se marcó la casilla', async () => {
     await seedPromotion()
     const order = await createOrder({
@@ -157,6 +188,71 @@ describe('createOrder', () => {
         product: 'herramienta-costos',
       }),
     ).rejects.toThrow(AlreadyOwnedError)
+  })
+
+  it('en una promoción no se vuelve a cobrar la herramienta ni el curso adicional que ya tiene vigentes', async () => {
+    await seedPromotion()
+    // Ya tiene la herramienta y el curso adicional.
+    const first = await createOrder({
+      ...buyer,
+      withTool: true,
+      promo: 'navidad',
+    })
+    await completeOrder(first.id)
+    const before = await prisma.enrollment.findMany({
+      where: { user: { email: 'ana@test.com' } },
+    })
+    // Otra persona compra el curso principal (ana ya lo tiene), así que se prueba con una
+    // cuenta que solo tiene los adicionales.
+    await prisma.enrollment.deleteMany({
+      where: { productId: catalog.course.id },
+    })
+    const second = await createOrder({
+      ...buyer,
+      withTool: true,
+      promo: 'navidad',
+    })
+    // Solo el curso principal: la herramienta y el curso adicional ya los tiene.
+    expect(second.amountMxn).toBe(397)
+    const items = await prisma.orderItem.findMany({
+      where: { orderId: second.id },
+    })
+    expect(items.map((i) => i.productId)).toEqual([catalog.course.id])
+    await completeOrder(second.id)
+    const after = await prisma.enrollment.findMany({
+      where: {
+        user: { email: 'ana@test.com' },
+        productId: { in: [catalog.tool.id, catalog.extra.id] },
+      },
+    })
+    // Sus días no se alargaron.
+    for (const e of after) {
+      const was = before.find((b) => b.productId === e.productId)!
+      expect(e.expiresAt.getTime()).toBe(was.expiresAt.getTime())
+    }
+  })
+
+  it('si el adicional ya venció, sí se le vuelve a vender', async () => {
+    await seedPromotion()
+    const first = await createOrder({
+      ...buyer,
+      withTool: true,
+      promo: 'navidad',
+    })
+    await completeOrder(first.id)
+    await prisma.enrollment.deleteMany({
+      where: { productId: catalog.course.id },
+    })
+    await prisma.enrollment.updateMany({
+      where: { productId: catalog.tool.id },
+      data: { expiresAt: new Date(Date.now() - DAY) },
+    })
+    const second = await createOrder({
+      ...buyer,
+      withTool: true,
+      promo: 'navidad',
+    })
+    expect(second.amountMxn).toBe(497)
   })
 
   it('la herramienta sigue vendiéndose como casilla de la promoción', async () => {
@@ -286,6 +382,38 @@ describe('completeOrder', () => {
         Math.abs(e.expiresAt.getTime() - (Date.now() + 365 * DAY)),
       ).toBeLessThan(5000)
     }
+  })
+
+  it('una orden gratis se completa sin cobro: cuenta e inscripción de 365 días', async () => {
+    await prisma.promotion.create({
+      data: {
+        slug: 'costos-gratis',
+        name: 'Costos gratis',
+        startsAt: new Date(Date.now() - DAY),
+        endsAt: new Date(Date.now() + DAY),
+        products: {
+          create: [{ productId: catalog.extra.id, priceMxn: 0, position: 0 }],
+        },
+      },
+    })
+    const order = await createOrder({
+      ...buyer,
+      withTool: false,
+      promo: 'costos-gratis',
+    })
+    expect(order.amountMxn).toBe(0)
+    await completeOrder(order.id)
+    const paid = await prisma.order.findUniqueOrThrow({
+      where: { id: order.id },
+    })
+    expect(paid.status).toBe('PAID')
+    const enrollments = await prisma.enrollment.findMany({
+      where: { user: { email: 'ana@test.com' } },
+    })
+    expect(enrollments.map((e) => e.productId)).toEqual([catalog.extra.id])
+    expect(
+      Math.abs(enrollments[0].expiresAt.getTime() - (Date.now() + 365 * DAY)),
+    ).toBeLessThan(5000)
   })
 
   it('es idempotente: completarla dos veces no suma días ni duplica', async () => {

@@ -25,13 +25,18 @@ export const Route = createFileRoute('/gracias')({
 
 function Gracias() {
   const order = Route.useLoaderData()
+  // Una orden gratis (promoción que regala el curso) no tiene pagos: se listan sus productos.
+  const free = order.amountMxn === 0
   // El curso de costos gratis no es una línea cobrada: solo se listan los pagos.
-  const lines = order.items.filter((item) => item.amountMxn > 0)
+  const lines = free
+    ? order.items
+    : order.items.filter((item) => item.amountMxn > 0)
 
   // Marketing: compra confirmada (navegador). El servidor manda la suya con el mismo `eventId`,
   // así que `track` no la repite al servidor. Una renovación no cuenta como compra de anuncio.
   useEffect(() => {
-    if (order.renewal) return
+    // Ni una renovación ni una orden gratis cuentan como compra de anuncio.
+    if (order.renewal || free) return
     track('Purchase', {
       eventId: purchaseEventId(order.id),
       params: {
@@ -42,7 +47,7 @@ function Gracias() {
         contentName: order.items.map((i) => i.product.name).join(', '),
       },
     })
-  }, [order.id, order.renewal, order.amountMxn, order.items])
+  }, [order.id, order.renewal, free, order.amountMxn, order.items])
 
   return (
     <AuthShell logoLink={false}>
@@ -63,8 +68,8 @@ function Gracias() {
           ¡Listo, ya tienes tu curso!
         </h1>
         <p className="m-0 text-15 leading-normal text-landing-muted md:text-lg md:leading-155">
-          Tu pago se confirmó. También te enviamos un correo con un enlace para
-          entrar cuando quieras
+          {free ? 'Tu acceso ya está activo.' : 'Tu pago se confirmó.'} También
+          te enviamos un correo con un enlace para entrar cuando quieras
           <span className="hidden md:inline"> desde cualquier dispositivo</span>
           .
         </p>
@@ -77,16 +82,18 @@ function Gracias() {
               className="flex justify-between gap-2 text-sm md:text-15"
             >
               <span>{item.product.name}</span>
-              <span className="flex-none">{mxn(item.amountMxn)}</span>
+              <span className="flex-none">
+                {item.amountMxn === 0 ? 'Gratis' : mxn(item.amountMxn)}
+              </span>
             </div>
           ))}
           <div className="h-px bg-landing-line" />
           <div className="flex justify-between text-base font-black md:text-17">
-            <span>Total pagado</span>
-            <span>{mxn(order.amountMxn)}</span>
+            <span>{free ? 'Total' : 'Total pagado'}</span>
+            <span>{free ? 'Gratis' : mxn(order.amountMxn)}</span>
           </div>
           <div className="text-xs text-landing-muted md:text-13">
-            Recibo enviado a {order.email}
+            {free ? 'Acceso enviado a' : 'Recibo enviado a'} {order.email}
           </div>
         </div>
 

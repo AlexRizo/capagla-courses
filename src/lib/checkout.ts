@@ -25,14 +25,17 @@ import {
   resolveOffer,
   resolveRenewal,
   resolveStandalone,
+  withoutOwnedExtras,
 } from '#/lib/offers'
 import { clientIp } from '#/lib/track-core'
 import type { TrackingContext } from '#/lib/track-core'
 import { recordPromotionEvent } from '#/lib/promo-stats'
 import { longDate } from '#/lib/promotions'
 import { env } from '#/env'
+import { tooManyAttempts } from '#/lib/rate-limit'
 import {
   AlreadyOwnedError,
+  completeOrder,
   createOrder,
   failOrder,
   settleOrder,
@@ -72,7 +75,13 @@ export const getCheckoutData = createServerFn()
         ? await resolveStandalone(data.producto, session?.user.email)
         : null
       if (data.producto && !standalone) throw notFound()
-      offer = standalone ?? (await resolveOffer(data.promo, true, data.prueba))
+      offer =
+        standalone ??
+        // Con sesión, lo que ya tiene de los adicionales no se muestra ni se cobra.
+        (await withoutOwnedExtras(
+          await resolveOffer(data.promo, true, data.prueba),
+          session?.user.email,
+        ))
       // Con el acceso vigente no hay nada que comprar (el pago se rechazaría): en sus últimos
       // 30 días va a la renovación; antes, de vuelta a Mis cursos. Vencido sí puede comprar.
       const enrollment = session
@@ -150,6 +159,17 @@ const orderSignature = (orderId: string) =>
   createHmac('sha256', env.BETTER_AUTH_SECRET)
     .update(`orden:${orderId}`)
     .digest('base64url')
+
+// Deja en el navegador la orden que acaba de iniciar (la lee `getThanksOrder`).
+function rememberOrder(orderId: string) {
+  setCookie(ORDER_COOKIE, `${orderId}.${orderSignature(orderId)}`, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 24,
+  })
+}
 
 function isOwnOrder(cookie: string | undefined, orderId: string) {
   const expected = Buffer.from(`${orderId}.${orderSignature(orderId)}`)
@@ -237,6 +257,25 @@ export const startCheckout = createServerFn({ method: 'POST' })
       }
       throw error
     }
+    // Orden gratis: solo cuando una promoción regala el producto principal y no se agregó nada de
+    // paga. No pasa por Stripe: se completa aquí mismo (cuenta, inscripción y correo con el acceso).
+    // Una renovación o mejora de $0, o un precio normal de $0 sin promoción, siguen rechazadas.
+    if (
+      order.amountMxn === 0 &&
+      order.promotionId &&
+      !order.renewal &&
+      !order.upgradeFromProductId
+    ) {
+      // Como la clase gratis: solo se pide un correo, así que se limita por correo e IP.
+      const ip = clientIp(getRequestHeader('x-forwarded-for'))
+      if (tooManyAttempts(`gratis|${order.email}|${ip}`)) {
+        await failOrder(order.id)
+        throw new Error('Demasiados intentos. Intenta más tarde.')
+      }
+      await completeOrder(order.id)
+      rememberOrder(order.id)
+      return { orderId: order.id, free: true as const }
+    }
     // Stripe no cobra menos de $10 MXN.
     if (order.amountMxn < 10) throw new Error('El monto es menor al mínimo.')
     const promotion = order.promotionId
@@ -265,13 +304,7 @@ export const startCheckout = createServerFn({ method: 'POST' })
       where: { id: order.id },
       data: { stripePaymentIntentId: intent.id },
     })
-    setCookie(ORDER_COOKIE, `${order.id}.${orderSignature(order.id)}`, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 60 * 60 * 24,
-    })
+    rememberOrder(order.id)
     return { orderId: order.id, clientSecret: intent.client_secret }
   })
 

@@ -80,6 +80,13 @@ const stageText: Record<Exclude<Stage, 'idle'>, string> = {
   activating: '¡Pago aprobado! Activando tu acceso…',
 }
 
+// Una orden gratis no pasa por el banco ni "aprueba un pago".
+const freeStageText: Record<Exclude<Stage, 'idle'>, string> = {
+  preparing: 'Activando tu acceso…',
+  confirming: 'Activando tu acceso…',
+  activating: '¡Listo! Activando tu acceso…',
+}
+
 function Spinner({ className }: { className: string }) {
   return (
     <svg
@@ -339,7 +346,8 @@ function CheckoutForm({
   const cardGetters = useRef<CardGetters>({ mobile: null, desktop: null })
   const formRef = useRef<HTMLFormElement>(null)
   const errorRef = useRef<HTMLDivElement>(null)
-  const [withTool, setWithTool] = useState(true)
+  // Con el producto principal gratis la herramienta es un extra opcional: arranca sin marcar.
+  const [withTool, setWithTool] = useState(course.priceMxn > 0)
   const [stage, setStage] = useState<Stage>('idle')
   const busy = stage !== 'idle'
   const [error, setErrorText] = useState<string | null>(null)
@@ -355,7 +363,8 @@ function CheckoutForm({
   const attempt = useRef<{
     key: string
     orderId: string
-    clientSecret: string
+    // null: orden gratis, ya completada en el servidor (no hay cobro).
+    clientSecret: string | null
   } | null>(null)
 
   const addTool = tool !== null && withTool
@@ -363,11 +372,15 @@ function CheckoutForm({
   const toolDiscount = tool
     ? Math.round((1 - tool.priceMxn / tool.normalMxn) * 100)
     : 0
+  // Sin descuento (la promoción la vende a su precio normal) no se promete uno ni se presiona.
+  const deal = toolDiscount > 0
   const total =
     course.priceMxn +
     bonuses.reduce((sum, b) => sum + b.priceMxn, 0) +
     (addTool ? tool.priceMxn : 0)
-  const payText = `Pagar ${mxn(total)}`
+  // Total $0 (promoción que regala el curso y sin la herramienta): no hay cobro ni tarjeta.
+  const free = total === 0
+  const payText = free ? 'Obtener gratis' : `Pagar ${mxn(total)}`
   const cartParams = {
     value: total,
     currency: 'MXN',
@@ -381,13 +394,14 @@ function CheckoutForm({
     cartTracked.current = true
     track('AddToCart', { email: account?.email, params: cartParams })
   }, [])
+  const stageLabel = free ? freeStageText : stageText
   const payLabel =
     stage === 'idle' ? (
       payText
     ) : (
       <>
         <Spinner className="size-5" />
-        {stageText[stage]}
+        {stageLabel[stage]}
       </>
     )
   const shownError = error ?? fieldError?.message ?? null
@@ -435,6 +449,10 @@ function CheckoutForm({
       },
     })
     if ('error' in result) throw new AlreadyOwned()
+    if ('free' in result) {
+      attempt.current = { key, orderId: result.orderId, clientSecret: null }
+      return attempt.current
+    }
     if (!result.clientSecret) throw new Error('No se pudo iniciar el pago.')
     attempt.current = {
       key,
@@ -442,6 +460,13 @@ function CheckoutForm({
       clientSecret: result.clientSecret,
     }
     return attempt.current
+  }
+
+  // Pagos con tarjeta o cartera digital: solo existen con un total mayor a $0, así que siempre hay cobro.
+  async function startCardPayment(buyer: Buyer) {
+    const { orderId, clientSecret } = await startPayment(buyer)
+    if (!clientSecret) throw new Error('No se pudo iniciar el pago.')
+    return { orderId, clientSecret }
   }
 
   const goToLogin = (email: string) =>
@@ -456,14 +481,44 @@ function CheckoutForm({
     return navigate({ to: '/gracias', search: { orden: orderId } })
   }
 
+  // Orden gratis: el servidor la completa sin cobro y se va directo a "Listo".
+  async function getFree(buyer: Buyer) {
+    if (!attempt.current) {
+      track('InitiateCheckout', {
+        email: buyer.email,
+        fullName: buyer.name,
+        params: cartParams,
+      })
+    }
+    setStage('preparing')
+    setError(null)
+    try {
+      const { orderId } = await startPayment(buyer)
+      setStage('activating')
+      await goToThanks(orderId)
+    } catch (err) {
+      if (err instanceof AlreadyOwned) {
+        await goToLogin(buyer.email)
+        return
+      }
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : 'No se pudo activar tu acceso. Intenta de nuevo.',
+      )
+      setStage('idle')
+    }
+  }
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!stripe) return
     const form = e.currentTarget
     const buyer = {
       email: String(form.correo.value).trim(),
       name: String(form.nombre.value).trim(),
     }
+    if (free) return getFree(buyer)
+    if (!stripe) return
     // Escritorio: tres campos; móvil: uno solo (la maqueta los muestra distinto). El corte es
     // el `md` de Tailwind (48rem): con px no coincide si el navegador cambia el tamaño de letra.
     const desktop = window.matchMedia('(min-width: 48rem)').matches
@@ -491,6 +546,13 @@ function CheckoutForm({
     setError(null)
     try {
       const { orderId, clientSecret } = await startPayment(buyer)
+      // Sin sesión el servidor puede quitar un adicional que ya tenías: si con eso el total quedó
+      // en $0, la orden ya está activa y no hay nada que cobrar.
+      if (!clientSecret) {
+        setStage('activating')
+        await goToThanks(orderId)
+        return
+      }
       setStage('confirming')
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
@@ -523,7 +585,7 @@ function CheckoutForm({
       className="flex min-h-screen flex-col bg-landing-page font-sans text-landing-ink"
     >
       <span role="status" className="sr-only">
-        {stage === 'idle' ? '' : stageText[stage]}
+        {stage === 'idle' ? '' : stageLabel[stage]}
       </span>
       <div className="flex items-center justify-between border-b border-landing-line bg-white px-4 py-3.5 md:px-8 md:py-4">
         <Link
@@ -575,7 +637,7 @@ function CheckoutForm({
             {renewal ? 'Renueva tu acceso' : 'Finaliza tu compra'}
           </h1>
 
-          {stripePromise && (
+          {stripePromise && !free && (
             <Elements
               stripe={stripePromise}
               options={{
@@ -593,7 +655,7 @@ function CheckoutForm({
                   email: formRef.current?.correo.value.trim(),
                   name: formRef.current?.nombre.value.trim(),
                 })}
-                pay={startPayment}
+                pay={startCardPayment}
                 onOwned={(email) => void goToLogin(email)}
                 onPaid={(orderId) => {
                   setStage('activating')
@@ -639,7 +701,16 @@ function CheckoutForm({
             />
           </div>
 
-          <div className="flex flex-col gap-1.5 md:gap-2.5">
+          {free && (
+            <div className="rounded-12 border-1.5 border-landing-pink-line bg-landing-pink p-3.5 text-sm leading-145 text-landing-muted md:p-4.5 md:text-15">
+              <strong className="text-landing-ink">
+                No necesitas tarjeta.
+              </strong>{' '}
+              Tu curso es gratis: solo escribe tu correo y tu nombre.
+            </div>
+          )}
+
+          <div className={free ? 'hidden' : 'flex flex-col gap-1.5 md:gap-2.5'}>
             <div className={label}>Tarjeta de crédito o débito</div>
             {/* Móvil: un solo campo de Stripe */}
             <Elements stripe={stripePromise} options={stripeOptions}>
@@ -695,7 +766,7 @@ function CheckoutForm({
           {tool && (
             <div
               className={`flex items-start gap-3 rounded-xl border-1.5 p-3.5 md:gap-3.5 md:p-4.5 ${
-                withTool
+                withTool || !deal
                   ? 'border-landing-pink-line bg-landing-pink'
                   : 'border-landing-warn-line bg-landing-warn'
               }`}
@@ -713,12 +784,14 @@ function CheckoutForm({
                 className="flex flex-col gap-1 text-sm leading-145 md:gap-1.5 md:text-15 md:leading-normal"
               >
                 <span className="text-15 font-black md:text-base">
-                  {withTool
-                    ? `Agrega la herramienta de costos${toolDiscount > 0 ? ` con ${toolDiscount}% de descuento` : ''}`
+                  {withTool || !deal
+                    ? `Agrega la herramienta de costos${deal ? ` con ${toolDiscount}% de descuento` : ''}`
                     : '¿Seguro que no la quieres?'}
                 </span>
                 <span className="text-landing-muted">
-                  {withTool ? (
+                  {!deal ? (
+                    'Es opcional y se suma a tu compra.'
+                  ) : withTool ? (
                     <>
                       <span className="md:hidden">
                         Normalmente cuesta más. Si la agregas ahora, te llevas
@@ -756,7 +829,7 @@ function CheckoutForm({
 
           <button
             type="submit"
-            disabled={busy || !stripe}
+            disabled={busy || (!free && !stripe)}
             aria-busy={busy}
             className={`${payBtn} hidden min-h-14.5 text-19 md:flex`}
           >
@@ -865,7 +938,7 @@ function CheckoutForm({
         </div>
         <button
           type="submit"
-          disabled={busy || !stripe}
+          disabled={busy || (!free && !stripe)}
           aria-busy={busy}
           className={`${payBtn} flex min-h-14 text-lg`}
         >

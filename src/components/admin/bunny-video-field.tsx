@@ -4,6 +4,7 @@ import { Upload } from 'tus-js-client'
 import { field, input, label } from '#/components/admin/form-styles'
 import {
   cancelVideoUpload,
+  deleteUnusedVideo,
   getBunnyVideos,
   startVideoUpload,
 } from '#/lib/admin-bunny'
@@ -11,10 +12,18 @@ import { formatDuration } from '#/lib/duration'
 
 type Library = Awaited<ReturnType<typeof getBunnyVideos>>
 
+// Nombre del video en Bunny: el del archivo sin extensión (igual que `titleFromFilename`).
+const baseTitle = (name: string) =>
+  name
+    .replace(/\.[^./\\]+$/, '')
+    .trim()
+    .toLowerCase()
+
 // "Video" de una lección de video: el archivo de la biblioteca de Bunny y su duración,
 // con "Reemplazar" para elegir otro y "Subir nuevo" para mandar un archivo a Bunny desde aquí
 // (directo del navegador, con TUS; el servidor solo crea el video y firma la subida).
-// La duración sale del propio archivo.
+// La duración sale del propio archivo. Cada video que ninguna lección usa se puede borrar de Bunny
+// ("Borrar", con confirmación), y al subir uno con el mismo nombre que otro se pregunta antes.
 export function BunnyVideoField({
   value,
   onChange,
@@ -32,6 +41,16 @@ export function BunnyVideoField({
     percent: number
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Archivo con el mismo nombre que un video de la biblioteca, a la espera de que se decida.
+  const [duplicate, setDuplicate] = useState<{
+    file: File
+    existing: { id: string; title: string; durationSec: number }
+  } | null>(null)
+  // Video de la lista con la confirmación de borrar abierta, y si se está borrando.
+  const [deleting, setDeleting] = useState<{
+    id: string
+    busy: boolean
+  } | null>(null)
   const file = useRef<HTMLInputElement>(null)
   const running = useRef<{ tus: Upload; videoId: string } | null>(null)
 
@@ -62,12 +81,23 @@ export function BunnyVideoField({
     await cancelVideoUpload({ data: { id: videoId } }).catch(() => {})
   }
 
-  async function send(selected: File | undefined) {
+  // `force`: ya se avisó que hay un video con ese nombre y se decidió subirlo de todos modos.
+  async function send(selected: File | undefined, force = false) {
     if (file.current) file.current.value = ''
     if (!selected) return
     setError(null)
+    setDuplicate(null)
     if (!selected.type.startsWith('video/')) {
       setError('Elige un archivo de video.')
+      return
+    }
+    const existing = force
+      ? undefined
+      : (videos ?? []).find(
+          (v) => v.title.trim().toLowerCase() === baseTitle(selected.name),
+        )
+    if (existing) {
+      setDuplicate({ file: selected, existing })
       return
     }
     setUpload({ name: selected.name, percent: 0 })
@@ -131,6 +161,17 @@ export function BunnyVideoField({
     const timer = setTimeout(() => void refresh(), 10_000)
     return () => clearTimeout(timer)
   }, [processing, library])
+
+  async function remove(id: string) {
+    setDeleting({ id, busy: true })
+    setError(null)
+    const result = await deleteUnusedVideo({ data: { id } }).catch(() => null)
+    setDeleting(null)
+    if (!result?.deleted) {
+      setError(result?.error ?? 'No se pudo borrar. Intenta de nuevo.')
+    }
+    await refresh()
+  }
 
   const videos = library?.configured ? library.videos : null
   const current = videos?.find((v) => v.id === value)
@@ -216,6 +257,41 @@ export function BunnyVideoField({
           </span>
         </div>
       )}
+      {duplicate && (
+        <div className="flex flex-col gap-2 rounded-md border border-border px-3 py-2.5 text-13">
+          <span>
+            Ya hay un video llamado «{duplicate.existing.title}» (
+            {formatDuration(duplicate.existing.durationSec)}) en Bunny. ¿Subir
+            este de todos modos? Quedarían los dos en la biblioteca.
+          </span>
+          <span className="flex flex-wrap gap-x-4 gap-y-1">
+            <button
+              type="button"
+              onClick={() => {
+                onChange(duplicate.existing.id)
+                setDuplicate(null)
+              }}
+              className="cursor-pointer border-0 bg-transparent p-0 font-admin text-13 font-medium text-foreground"
+            >
+              Usar el que ya está
+            </button>
+            <button
+              type="button"
+              onClick={() => void send(duplicate.file, true)}
+              className="cursor-pointer border-0 bg-transparent p-0 font-admin text-13 font-medium text-foreground"
+            >
+              Subir de todos modos
+            </button>
+            <button
+              type="button"
+              onClick={() => setDuplicate(null)}
+              className="cursor-pointer border-0 bg-transparent p-0 font-admin text-13 font-medium text-muted-foreground"
+            >
+              Cancelar
+            </button>
+          </span>
+        </div>
+      )}
       {error && <span className="text-xs text-destructive">{error}</span>}
       {library && !library.configured && (
         <span className="text-xs text-muted-foreground">
@@ -239,26 +315,66 @@ export function BunnyVideoField({
           />
           <div className="flex max-h-60 flex-col overflow-y-auto">
             {shown.map((v) => (
-              <button
+              <div
                 key={v.id}
-                type="button"
-                disabled={!v.ready}
-                onClick={() => {
-                  onChange(v.id)
-                  setOpen(false)
-                  setQuery('')
-                }}
-                className="flex cursor-pointer flex-col items-start gap-0.5 rounded-md border-0 bg-transparent px-2 py-1.5 text-left font-admin text-13 text-foreground hover:bg-accent disabled:cursor-default disabled:opacity-50"
+                className="flex items-center gap-2 rounded-md hover:bg-accent"
               >
-                <span className="max-w-full truncate">
-                  {v.title} · {formatDuration(v.durationSec)}
-                </span>
-                {(v.usedBy || !v.ready) && (
-                  <span className="text-xs text-muted-foreground">
-                    {v.ready ? `Ya en: ${v.usedBy}` : 'Procesando'}
+                <button
+                  type="button"
+                  disabled={!v.ready}
+                  onClick={() => {
+                    onChange(v.id)
+                    setOpen(false)
+                    setQuery('')
+                  }}
+                  className="flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-0.5 rounded-md border-0 bg-transparent px-2 py-1.5 text-left font-admin text-13 text-foreground disabled:cursor-default disabled:opacity-50"
+                >
+                  <span className="max-w-full truncate">
+                    {v.title} · {formatDuration(v.durationSec)}
+                  </span>
+                  {(v.usedBy || !v.ready) && (
+                    <span className="text-xs text-muted-foreground">
+                      {v.ready ? `Ya en: ${v.usedBy}` : 'Procesando'}
+                    </span>
+                  )}
+                </button>
+                {/* Solo un video terminado que nadie usa (y que no es el elegido ahora). */}
+                {v.ready && !v.usedBy && v.id !== value && (
+                  <span className="flex shrink-0 items-center gap-2 pr-2">
+                    {deleting?.id === v.id ? (
+                      <>
+                        <span className="text-xs text-muted-foreground">
+                          ¿Borrar de Bunny?
+                        </span>
+                        <button
+                          type="button"
+                          disabled={deleting.busy}
+                          onClick={() => void remove(v.id)}
+                          className="cursor-pointer border-0 bg-transparent p-0 font-admin text-13 font-medium text-destructive disabled:opacity-60"
+                        >
+                          {deleting.busy ? 'Borrando…' : 'Sí'}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deleting.busy}
+                          onClick={() => setDeleting(null)}
+                          className="cursor-pointer border-0 bg-transparent p-0 font-admin text-13 font-medium text-muted-foreground"
+                        >
+                          No
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setDeleting({ id: v.id, busy: false })}
+                        className="cursor-pointer border-0 bg-transparent p-0 font-admin text-13 font-medium text-destructive"
+                      >
+                        Borrar
+                      </button>
+                    )}
                   </span>
                 )}
-              </button>
+              </div>
             ))}
             {shown.length === 0 && (
               <span className="px-2 py-1.5 text-13 text-muted-foreground">

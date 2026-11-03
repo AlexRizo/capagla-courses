@@ -5,12 +5,14 @@ import { prisma } from '#/db'
 import {
   MAX_UPLOAD_BYTES,
   createBunnyUpload,
+  deleteBunnyVideo,
   deleteEmptyBunnyVideo,
   isBunnyId,
   listBunnyVideos,
   titleFromFilename,
 } from '#/lib/bunny'
 import { env } from '#/env'
+import { bunnyVideoUsage, bunnyVideoUsedBy } from '#/lib/bunny-usage'
 import { requireAdmin } from '#/lib/guards'
 
 // Videos de la biblioteca de Bunny para elegir uno en una lección, con la lección que ya lo usa.
@@ -21,14 +23,10 @@ export const getBunnyVideos = createServerFn()
       return { configured: false as const }
     }
     try {
-      const [videos, used] = await Promise.all([
+      const [videos, usedBy] = await Promise.all([
         listBunnyVideos(),
-        prisma.courseItem.findMany({
-          where: { bunnyVideoId: { not: null } },
-          select: { bunnyVideoId: true, title: true },
-        }),
+        bunnyVideoUsage(),
       ])
-      const usedBy = new Map(used.map((u) => [u.bunnyVideoId, u.title]))
       return {
         configured: true as const,
         videos: videos.map((v) => ({ ...v, usedBy: usedBy.get(v.id) ?? null })),
@@ -54,6 +52,28 @@ export const startVideoUpload = createServerFn({ method: 'POST' })
       throw new Error('Bunny no está configurado.')
     }
     return createBunnyUpload(titleFromFilename(data.filename))
+  })
+
+// "Borrar" un video del selector: lo quita de la biblioteca de Bunny (no se puede deshacer). Solo si
+// ninguna lección ni la intro de una promoción lo usa; el servidor lo comprueba aunque la pantalla
+// ya lo oculte.
+export const deleteUnusedVideo = createServerFn({ method: 'POST' })
+  .middleware([requireAdmin])
+  .validator(z.object({ id: z.string().refine(isBunnyId) }))
+  .handler(async ({ data }) => {
+    const usedBy = await bunnyVideoUsedBy(data.id)
+    if (usedBy) {
+      return { deleted: false as const, error: `Lo usa ${usedBy}.` }
+    }
+    try {
+      await deleteBunnyVideo(data.id)
+      return { deleted: true as const }
+    } catch {
+      return {
+        deleted: false as const,
+        error: 'No se pudo borrar. Revisa Bunny e intenta de nuevo.',
+      }
+    }
   })
 
 // Subida cancelada o fallida: quita el video vacío para que no quede en la biblioteca.

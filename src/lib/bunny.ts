@@ -136,6 +136,14 @@ export async function createBunnyUpload(title: string) {
   }
 }
 
+// Borra un video de la biblioteca, sea cual sea su estado. Quien lo llama debe haber comprobado que
+// ninguna lección ni promoción lo use (ver `deleteUnusedVideo`).
+export async function deleteBunnyVideo(id: string) {
+  if (!isBunnyId(id)) return false
+  await api(`/videos/${id}`, { method: 'DELETE' })
+  return true
+}
+
 // Borra un video al que nunca llegó el archivo (subida cancelada o fallida). Nunca toca uno
 // que ya recibió el archivo.
 export async function deleteEmptyBunnyVideo(id: string) {

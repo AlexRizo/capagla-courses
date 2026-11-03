@@ -8,6 +8,7 @@ import { prisma } from '#/db'
 import { resetDb } from '#/test/db'
 
 import { parseTranscript } from '#/lib/transcript'
+import { seedCostsCourseTree } from '../../prisma/costs-course-seed'
 import { loadTranscripts } from '../../prisma/transcripts-load'
 
 // Las transcripciones corregidas que se cargan a la plataforma (`prisma/data/transcripciones`).
@@ -163,6 +164,77 @@ describe('loadTranscripts (seed)', () => {
       'Cierre y plan de 7 pasos',
     ]
     for (const t of titles) await lesson(costos.id, t)
+    const { loaded, skipped } = await loadTranscripts(
+      prisma,
+      'prisma/data/transcripciones-costos',
+      [],
+      { productSlug: 'calcular-costos', keepExisting: true },
+    )
+    expect(skipped).toEqual([])
+    expect(loaded).toHaveLength(8)
+  })
+})
+
+// El curso de costos que arma el seed (`prisma/data/curso-costos.json`) y sus transcripciones.
+describe('árbol del curso de costos (seed)', () => {
+  const file = new URL('../../prisma/data/curso-costos.json', import.meta.url)
+  const GUID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/
+
+  beforeEach(resetDb)
+
+  it('arma 3 bloques y 8 lecciones de video con su video de Bunny y su duración', async () => {
+    await prisma.product.create({
+      data: {
+        slug: 'calcular-costos',
+        name: 'Costos',
+        kind: 'COURSE',
+        priceMxn: 347,
+        accessDays: 365,
+        status: 'PUBLISHED',
+      },
+    })
+    await seedCostsCourseTree(prisma, file)
+    const blocks = await prisma.courseItem.findMany({
+      where: { kind: 'BLOCK' },
+      orderBy: { position: 'asc' },
+    })
+    expect(blocks.map((b) => b.title)).toEqual([
+      'Introducción',
+      'Calcula tus costos',
+      'Cierre',
+    ])
+    const lessons = await prisma.courseItem.findMany({
+      where: { kind: 'LESSON' },
+    })
+    expect(lessons).toHaveLength(8)
+    for (const l of lessons) {
+      expect(l.lessonType, l.title).toBe('VIDEO')
+      expect(l.bunnyVideoId, l.title).toMatch(GUID)
+      expect(l.durationSec ?? 0, l.title).toBeGreaterThan(0)
+    }
+    // Ningún video se repite entre lecciones.
+    expect(new Set(lessons.map((l) => l.bunnyVideoId)).size).toBe(8)
+  })
+
+  it('con lecciones ya armadas no se toca, y las 8 transcripciones encuentran su lección', async () => {
+    const course = await prisma.product.create({
+      data: {
+        slug: 'calcular-costos',
+        name: 'Costos',
+        kind: 'COURSE',
+        priceMxn: 347,
+        accessDays: 365,
+        status: 'PUBLISHED',
+      },
+    })
+    await seedCostsCourseTree(prisma, file)
+    const before = await prisma.courseItem.count({
+      where: { productId: course.id },
+    })
+    await seedCostsCourseTree(prisma, file)
+    expect(
+      await prisma.courseItem.count({ where: { productId: course.id } }),
+    ).toBe(before)
     const { loaded, skipped } = await loadTranscripts(
       prisma,
       'prisma/data/transcripciones-costos',

@@ -1,0 +1,76 @@
+[
+  {
+    "kind": "BLOCK",
+    "title": "Introducción",
+    "children": [
+      {
+        "kind": "LESSON",
+        "title": "Bienvenida",
+        "lessonType": "VIDEO",
+        "bunnyVideoId": "e56ef22f-0e3a-43e7-a944-8c3e107a6406",
+        "durationSec": 107
+      }
+    ]
+  },
+  {
+    "kind": "BLOCK",
+    "title": "Calcula tus costos",
+    "children": [
+      {
+        "kind": "LESSON",
+        "title": "El dinero que no ves",
+        "lessonType": "VIDEO",
+        "bunnyVideoId": "c338cb44-3ce0-471a-a1da-6c450b1af7c4",
+        "durationSec": 183
+      },
+      {
+        "kind": "LESSON",
+        "title": "Cuánto cuesta cada ingrediente",
+        "lessonType": "VIDEO",
+        "bunnyVideoId": "21e160a0-8af2-40aa-85e6-6d6f1afe24a3",
+        "durationSec": 351
+      },
+      {
+        "kind": "LESSON",
+        "title": "Cuánto cuesta una pieza",
+        "lessonType": "VIDEO",
+        "bunnyVideoId": "1813e080-ed2f-4f09-a49d-2845ddaa64e2",
+        "durationSec": 208
+      },
+      {
+        "kind": "LESSON",
+        "title": "Cuánto vale tu tiempo",
+        "lessonType": "VIDEO",
+        "bunnyVideoId": "4ab816c6-7fc8-4474-9911-5b8831100123",
+        "durationSec": 209
+      },
+      {
+        "kind": "LESSON",
+        "title": "Ponle precio",
+        "lessonType": "VIDEO",
+        "bunnyVideoId": "b36c9bf0-8e5b-424f-b171-68220f423f6f",
+        "durationSec": 209
+      },
+      {
+        "kind": "LESSON",
+        "title": "Produce sin perder",
+        "lessonType": "VIDEO",
+        "bunnyVideoId": "683a8516-15ab-412f-bb88-86c66719bde2",
+        "durationSec": 148
+      }
+    ]
+  },
+  {
+    "kind": "BLOCK",
+    "title": "Cierre",
+    "children": [
+      {
+        "kind": "LESSON",
+        "title": "Cierre y plan de 7 pasos",
+        "lessonType": "VIDEO",
+        "bunnyVideoId": "3d0c5180-d4b6-49a3-84c5-52245d853f36",
+        "durationSec": 121
+      }
+    ]
+  }
+]

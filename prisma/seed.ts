@@ -8,6 +8,7 @@ import { hashPassword } from 'better-auth/crypto'
 import { adminCredentials } from './admin-credentials'
 import { courseTreeFromMap } from './course-map'
 import type { MapEntry } from './course-map'
+import { seedCostsCourseTree } from './costs-course-seed'
 import { courseTreeFromIndex, createItems } from './course-tree'
 import { loadLessonTexts } from './lesson-texts'
 import { loadLessonResources } from './lesson-resources'
@@ -299,6 +300,7 @@ async function main() {
   await seedProducts()
   await seedAdmin()
   await seedCourseTree()
+  await seedCostsCourseTree(prisma)
   await seedTranscripts(prisma)
   await seedLessonTexts()
   await seedLessonResources()

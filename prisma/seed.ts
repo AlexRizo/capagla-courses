@@ -12,7 +12,7 @@ import { courseTreeFromIndex, createItems } from './course-tree'
 import { loadLessonTexts } from './lesson-texts'
 import { loadLessonResources } from './lesson-resources'
 import type { VideoName } from './transcript-plan'
-import { loadTranscripts } from './transcripts-load'
+import { seedTranscripts } from './transcripts-seed'
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
@@ -172,7 +172,7 @@ async function seedAdmin() {
 // Árbol del curso: estructura del índice de contenido (`prisma/data/curso-principal.json`) con el
 // orden y los videos de Bunny del mapa de videos (`prisma/data/mapa-videos.json`, el mismo
 // orden y GUID de `UBICACION-VIDEOS.md` (guardado fuera del repo)), más las transcripciones
-// (`prisma/data/transcripciones`). Sin el mapa, solo la estructura del índice.
+// (las transcripciones las carga `seedTranscripts`). Sin el mapa, solo la estructura del índice.
 async function seedCourseTree() {
   const course = await prisma.product.findUniqueOrThrow({
     where: { slug: 'postres-navidad' },
@@ -199,18 +199,6 @@ async function seedCourseTree() {
     VideoName)[]
   await createItems(prisma, course.id, courseTreeFromMap(index, map), null)
   console.log('✅ árbol de postres-navidad con el mapa de videos')
-
-  const dir = fileURLToPath(new URL('./data/transcripciones', import.meta.url))
-  if (!existsSync(dir)) return
-  const { loaded, skipped, withoutTranscript } = await loadTranscripts(
-    prisma,
-    dir,
-    map,
-  )
-  console.log(
-    `✅ transcripciones: ${loaded.length} archivos cargados` +
-      `, ${skipped.length} sin cargar, ${withoutTranscript.length} lecciones con video sin transcripción`,
-  )
 }
 
 // Texto de las lecciones de texto de la Introducción, desde
@@ -311,6 +299,7 @@ async function main() {
   await seedProducts()
   await seedAdmin()
   await seedCourseTree()
+  await seedTranscripts(prisma)
   await seedLessonTexts()
   await seedLessonResources()
   await seedPromotion()

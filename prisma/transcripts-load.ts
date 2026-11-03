@@ -9,17 +9,36 @@ import type { VideoName } from './transcript-plan'
 
 // Carga a la base las transcripciones de una carpeta de archivos .vtt, .srt o .txt. La
 // asignación a lecciones la decide `transcript-plan.ts`. Lo usan `pnpm db:import-transcripts`
-// y el seed. Con `dry` solo dice qué haría.
+// y el seed. Con `dry` solo dice qué haría. `productSlug` limita la asignación a las lecciones de
+// un curso (un título como "Bienvenida" puede repetirse en otro). `keepExisting` no pisa las
+// lecciones que ya tienen transcripción: solo rellena las que faltan.
 export async function loadTranscripts(
   prisma: PrismaClient,
   dir: string,
   videos: VideoName[],
-  { dry = false } = {},
+  {
+    dry = false,
+    productSlug,
+    keepExisting = false,
+  }: { dry?: boolean; productSlug?: string; keepExisting?: boolean } = {},
 ) {
   const lessons = await prisma.courseItem.findMany({
-    where: { kind: 'LESSON' },
+    where: {
+      kind: 'LESSON',
+      ...(productSlug && { product: { slug: productSlug } }),
+    },
     include: { parent: { select: { kind: true, title: true } } },
   })
+  const hasTranscript = keepExisting
+    ? new Set(
+        (
+          await prisma.lessonTranscript.findMany({
+            where: { itemId: { in: lessons.map((l) => l.id) } },
+            select: { itemId: true },
+          })
+        ).map((t) => t.itemId),
+      )
+    : new Set<string>()
   const files = new Map(
     readdirSync(dir)
       .filter((f) =>
@@ -38,8 +57,13 @@ export async function loadTranscripts(
       skipped.push(`${file} (vacío)`)
       continue
     }
+    const pending = lessonIds.filter((id) => !hasTranscript.has(id))
+    if (pending.length === 0) {
+      skipped.push(`${file} (ya cargada)`)
+      continue
+    }
     if (!dry) {
-      for (const itemId of lessonIds) {
+      for (const itemId of pending) {
         await prisma.lessonTranscript.upsert({
           where: { itemId },
           create: { itemId, lines },
@@ -48,7 +72,7 @@ export async function loadTranscripts(
       }
     }
     loaded.push(
-      `${file} → ${lines.length} líneas, ${lessonIds.length} lección(es)`,
+      `${file} → ${lines.length} líneas, ${pending.length} lección(es)`,
     )
   }
   return {

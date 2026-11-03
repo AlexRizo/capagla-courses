@@ -1,8 +1,14 @@
-import { readFileSync, readdirSync } from 'node:fs'
+import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+
+import { prisma } from '#/db'
+import { resetDb } from '#/test/db'
 
 import { parseTranscript } from '#/lib/transcript'
+import { loadTranscripts } from '../../prisma/transcripts-load'
 
 // Las transcripciones corregidas que se cargan a la plataforma (`prisma/data/transcripciones`).
 // Vienen de una transcripción automática que se revisó contra el recetario: aquí se comprueba que
@@ -75,5 +81,95 @@ describe('transcripciones corregidas', () => {
     expect(get('06-04')).toContain('110 gramos de nuez picada')
     expect(get('08-01')).toContain('20 gramos de cocoa en polvo')
     expect(get('06-01')).toContain('Gladis Aparicio')
+  })
+})
+
+// Carga a la base (`loadTranscripts`) para el seed: acotada a un curso y sin pisar lo cargado.
+describe('loadTranscripts (seed)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'transcripts-'))
+  writeFileSync(join(dir, 'Bienvenida.txt'), 'Hola a todas.\nEmpezamos.\n')
+
+  const course = async (slug: string) =>
+    prisma.product.create({
+      data: {
+        slug,
+        name: slug,
+        kind: 'COURSE',
+        priceMxn: 0,
+        accessDays: 365,
+        status: 'PUBLISHED',
+      },
+    })
+  const lesson = (productId: string, title: string) =>
+    prisma.courseItem.create({
+      data: { productId, kind: 'LESSON', position: 0, title },
+    })
+
+  beforeEach(resetDb)
+
+  it('solo asigna a las lecciones del curso indicado, aunque otro tenga el mismo título', async () => {
+    const [navidad, costos] = [await course('navidad'), await course('costos')]
+    const other = await lesson(navidad.id, 'Bienvenida')
+    const mine = await lesson(costos.id, 'Bienvenida')
+    const { loaded } = await loadTranscripts(prisma, dir, [], {
+      productSlug: 'costos',
+    })
+    expect(loaded).toHaveLength(1)
+    expect(
+      await prisma.lessonTranscript.findUnique({ where: { itemId: mine.id } }),
+    ).not.toBeNull()
+    expect(
+      await prisma.lessonTranscript.findUnique({ where: { itemId: other.id } }),
+    ).toBeNull()
+  })
+
+  it('con keepExisting no pisa una transcripción ya cargada ni la cuenta como nueva', async () => {
+    const costos = await course('costos')
+    const mine = await lesson(costos.id, 'Bienvenida')
+    await prisma.lessonTranscript.create({
+      data: { itemId: mine.id, lines: [{ t: 0, x: 'editada a mano' }] },
+    })
+    const result = await loadTranscripts(prisma, dir, [], {
+      productSlug: 'costos',
+      keepExisting: true,
+    })
+    expect(result.loaded).toHaveLength(0)
+    expect(result.skipped).toEqual(['Bienvenida.txt (ya cargada)'])
+    const row = await prisma.lessonTranscript.findUniqueOrThrow({
+      where: { itemId: mine.id },
+    })
+    expect(row.lines).toEqual([{ t: 0, x: 'editada a mano' }])
+    // Sin keepExisting (db:import-transcripts) sí la reemplaza a propósito.
+    await loadTranscripts(prisma, dir, [], { productSlug: 'costos' })
+    const replaced = await prisma.lessonTranscript.findUniqueOrThrow({
+      where: { itemId: mine.id },
+    })
+    expect(replaced.lines).toEqual([
+      { t: 0, x: 'Hola a todas.' },
+      { t: 0, x: 'Empezamos.' },
+    ])
+  })
+
+  it('los archivos del curso de costos coinciden con los títulos de sus 8 lecciones', async () => {
+    const costos = await course('calcular-costos')
+    const titles = [
+      'Bienvenida',
+      'El dinero que no ves',
+      'Cuánto cuesta cada ingrediente',
+      'Cuánto cuesta una pieza',
+      'Cuánto vale tu tiempo',
+      'Ponle precio',
+      'Produce sin perder',
+      'Cierre y plan de 7 pasos',
+    ]
+    for (const t of titles) await lesson(costos.id, t)
+    const { loaded, skipped } = await loadTranscripts(
+      prisma,
+      'prisma/data/transcripciones-costos',
+      [],
+      { productSlug: 'calcular-costos', keepExisting: true },
+    )
+    expect(skipped).toEqual([])
+    expect(loaded).toHaveLength(8)
   })
 })

@@ -134,7 +134,10 @@ export const getCheckoutData = createServerFn()
         label: offer.main.isCourse ? 'Curso' : 'Herramienta',
         image: offer.main.coverUrl,
         accessDays: offer.main.accessDays,
-        recipes: courseContents[offer.main.slug]?.recipes.length ?? null,
+        recipes: (() => {
+          const content = courseContents[offer.main.slug]
+          return content?.layout === 'recipes' ? content.recipes.length : null
+        })(),
       },
       bonuses: offer.extras.filter((e) => e.isCourse).map(line),
       tool: tool ? line(tool) : null,

@@ -25,7 +25,7 @@ export async function seedCatalog() {
   const extra = await prisma.product.create({
     data: {
       slug: 'calcular-costos',
-      name: 'Cómo calcular costos',
+      name: 'Aprende a Costear',
       kind: 'COURSE',
       priceMxn: 347,
       accessDays: 365,

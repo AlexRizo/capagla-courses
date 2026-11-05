@@ -256,6 +256,24 @@
   --color-landing-lavender: #ecd6f3;
   --color-landing-grape: #b83bcc;
   --color-landing-grape-dark: #8a2088;
+  --color-landing-berry: #a3027f;
+  /* Curso de costeo: gráfica «¿Cuánto te queda por postre?» y temario */
+  --color-costing-ink: #2b1732;
+  --color-costing-muted: #674d71;
+  --color-costing-text: #4a3553;
+  --color-costing-line: #ebdcee;
+  --color-costing-line-2: #e9d9ed;
+  --color-costing-paper: #fdf8fc;
+  --color-costing-bg: #fdf9fc;
+  --color-costing-rose: #a0176b;
+  --color-costing-plum: #784088;
+  --color-costing-bracket: #b764a0;
+  --color-costing-track: #eee1ef;
+  --color-costing-face: #f4dfef;
+  --color-costing-face-plum: #efdef4;
+  --color-costing-mark: #f1e3f4;
+  --color-costing-step-1: #602481;
+  --color-costing-step-2: #8c3d9e;
   --color-player-video: #1b0f22;
   --color-player-seen: #1f8a4c;
   --color-player-fill: #bd94e3;
@@ -278,6 +296,8 @@
   --text-52: 52px;
   --text-46: 46px;
   --text-30: 30px;
+  --text-29: 29px;
+  --text-64: 64px;
 
   --leading-115: 1.15;
   --leading-110: 1.1;
@@ -293,6 +313,10 @@
   --leading-155: 1.55;
   --leading-160: 1.6;
   --leading-170: 1.7;
+  --leading-102: 1.02;
+  --leading-112: 1.12;
+  --leading-113: 1.13;
+  --leading-150: 1.5;
 
   --tracking-grip: -2px;
   --tracking-landing-logo: -0.5px;
@@ -308,6 +332,10 @@
   --tracking-landing-title-2xs: -0.6px;
   --tracking-landing-title-3xs: -0.3px;
   --tracking-landing-caps-lg: 0.8px;
+  --tracking-landing-hero: -2px;
+  --tracking-landing-kicker: 0.12em;
+  --tracking-landing-tight: -0.04em;
+  --tracking-landing-tighter: -0.035em;
   --tracking-player-caps: 1px;
   --tracking-player-caps-lg: 1.1px;
 
@@ -317,6 +345,7 @@
   --radius-16: 16px;
   --radius-18: 18px;
   --radius-20: 20px;
+  --radius-22: 22px;
 
   --shadow-landing-card: 0 10px 28px rgba(107, 24, 165, 0.08);
   --shadow-landing-menu: 0 12px 32px rgba(107, 24, 165, 0.14);

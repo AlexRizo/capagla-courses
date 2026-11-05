@@ -346,8 +346,9 @@ function CheckoutForm({
   const cardGetters = useRef<CardGetters>({ mobile: null, desktop: null })
   const formRef = useRef<HTMLFormElement>(null)
   const errorRef = useRef<HTMLDivElement>(null)
-  // Con el producto principal gratis la herramienta es un extra opcional: arranca sin marcar.
-  const [withTool, setWithTool] = useState(course.priceMxn > 0)
+  // La herramienta arranca marcada también con el curso gratis (la maqueta y la landing de la
+  // promoción lo dicen: «ya viene en tu carrito»); quien solo quiere el curso la quita aquí.
+  const [withTool, setWithTool] = useState(true)
   const [stage, setStage] = useState<Stage>('idle')
   const busy = stage !== 'idle'
   const [error, setErrorText] = useState<string | null>(null)

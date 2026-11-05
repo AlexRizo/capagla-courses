@@ -36,7 +36,7 @@ const products = [
   },
   {
     slug: 'calcular-costos',
-    name: 'Cómo calcular costos de tus postres',
+    name: 'Aprende a Costear',
     kind: 'COURSE',
     priceMxn: 347,
     compareAtMxn: null,

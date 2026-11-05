@@ -1,133 +1,42 @@
 import { Link } from '@tanstack/react-router'
-import { useEffect, useRef, useState } from 'react'
 
+import { CostingLanding } from '#/components/costing-landing'
+import { IntroVideo, Play, useLandingIntro } from '#/components/landing-parts'
 import { MobileMenu } from '#/components/mobile-menu'
-import type { CoursePage } from '#/lib/course-pages'
-import { track } from '#/lib/track-client'
+import type { CoursePage, RecipesCoursePage } from '#/lib/course-pages'
 
 const solid =
   'flex items-center justify-center rounded-12 bg-landing-primary font-black text-white no-underline'
 const footerLink = 'text-landing-muted'
 
 // Landing de venta de un curso: la usan /cursos/$slug (precio normal) y las promociones.
+// Cada curso tiene su diseño (`layout`): recetas (Navidad) o curso de costeo.
 export function CourseLanding({ page }: { page: CoursePage }) {
-  const [playing, setPlaying] = useState(false)
-  // Marketing: ver el curso o la promoción (solo el navegador).
-  useEffect(() => {
-    track('ViewContent', {
-      params: {
-        contentName: page.title,
-        contentIds: [page.slug],
-        value: page.priceMxn,
-        currency: 'MXN',
-      },
-    })
-  }, [page.slug, page.promoSlug, page.title, page.priceMxn])
-  // Sin video de intro el botón queda como en la maqueta (sin acción).
-  const onPlay = page.introVideo ? () => setPlaying(true) : undefined
+  if (page.layout === 'costing') return <CostingLanding page={page} />
+  return <RecipesLanding page={page} />
+}
+
+function RecipesLanding({ page }: { page: RecipesCoursePage }) {
+  const { playing, close, onPlay } = useLandingIntro(page)
 
   return (
     <div className="min-h-screen bg-landing-page font-sans text-landing-ink">
       <Desktop page={page} onPlay={onPlay} />
       <Mobile page={page} onPlay={onPlay} />
       {playing && page.introVideo && (
-        <IntroVideo src={page.introVideo} onClose={() => setPlaying(false)} />
+        <IntroVideo src={page.introVideo} onClose={close} />
       )}
     </div>
   )
 }
 
-function Play({ mobile, onPlay }: { mobile?: boolean; onPlay?: () => void }) {
-  const className = `relative flex items-center justify-center rounded-full bg-landing-primary/92 shadow-landing-play ${mobile ? 'size-16' : 'size-21'}`
-  const triangle = (
-    <div
-      className={`size-0 border-y-transparent border-l-white ${mobile ? 'ml-1.25 border-y-12 border-l-19' : 'ml-1.5 border-y-15 border-l-25'}`}
-    />
-  )
-  if (!onPlay) return <div className={className}>{triangle}</div>
-  return (
-    <button
-      type="button"
-      onClick={onPlay}
-      aria-label="Ver el video de presentación"
-      className={`${className} cursor-pointer border-0 p-0`}
-    >
-      {triangle}
-    </button>
-  )
-}
-
-// Video de intro de la promoción en una ventana sobre la página (Bunny, por HLS).
-// Se cierra con ✕, con Escape o tocando fuera del video.
-function IntroVideo({ src, onClose }: { src: string; onClose: () => void }) {
-  const video = useRef<HTMLVideoElement>(null)
-  const close = useRef<HTMLButtonElement>(null)
-
-  useEffect(() => {
-    const el = video.current
-    if (!el) return
-    let hls: { destroy: () => void } | undefined
-    let cancelled = false
-    void import('hls.js').then(({ default: Hls }) => {
-      if (cancelled) return
-      if (Hls.isSupported()) {
-        const player = new Hls()
-        player.loadSource(src)
-        player.attachMedia(el)
-        hls = player
-      } else {
-        el.src = src
-      }
-      void el.play().catch(() => {})
-    })
-    close.current?.focus()
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    const overflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      cancelled = true
-      hls?.destroy()
-      window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = overflow
-    }
-  }, [src, onClose])
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Video de presentación"
-      onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-landing-ink/85 p-4"
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-5xl"
-      >
-        <button
-          ref={close}
-          type="button"
-          onClick={onClose}
-          aria-label="Cerrar video"
-          className="absolute -top-12 right-0 flex size-10 cursor-pointer items-center justify-center rounded-full border-0 bg-white text-lg font-black text-landing-ink"
-        >
-          ✕
-        </button>
-        <video
-          ref={video}
-          controls
-          playsInline
-          className="block aspect-video w-full rounded-16 bg-black"
-        />
-      </div>
-    </div>
-  )
-}
-
-function Desktop({ page, onPlay }: { page: CoursePage; onPlay?: () => void }) {
+function Desktop({
+  page,
+  onPlay,
+}: {
+  page: RecipesCoursePage
+  onPlay?: () => void
+}) {
   const link = 'text-15 text-landing-ink no-underline'
   const h2 = 'm-0 text-34 font-black tracking-landing-title-md'
 
@@ -365,8 +274,8 @@ function Desktop({ page, onPlay }: { page: CoursePage; onPlay?: () => void }) {
             Empieza hoy y prepara tus primeros postres
           </h2>
           <div className="text-lg text-landing-lavender">
-            <span>{page.price}</span> · pago único con tarjeta · acceso
-            inmediato
+            <span>{page.price}</span> · pago con tarjeta · acceso inmediato por
+            365 días
           </div>
           <Link
             to="/checkout"
@@ -397,7 +306,13 @@ function Desktop({ page, onPlay }: { page: CoursePage; onPlay?: () => void }) {
   )
 }
 
-function Mobile({ page, onPlay }: { page: CoursePage; onPlay?: () => void }) {
+function Mobile({
+  page,
+  onPlay,
+}: {
+  page: RecipesCoursePage
+  onPlay?: () => void
+}) {
   const h2 = 'm-0 text-2xl font-black tracking-landing-logo'
 
   return (
@@ -597,7 +512,7 @@ function Mobile({ page, onPlay }: { page: CoursePage; onPlay?: () => void }) {
           Empieza hoy y prepara tus primeros postres
         </div>
         <div className="text-sm text-landing-lavender">
-          {page.price} · pago único · acceso inmediato
+          {page.price} · acceso inmediato por 365 días
         </div>
         <Link
           to="/checkout"

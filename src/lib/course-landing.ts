@@ -41,20 +41,49 @@ export function buildCoursePage(offer: Offer): CoursePage | null {
     ? longDate(offer.promotion.endsAt)
     : null
   const special = offer.applied && offer.main.normalMxn > offer.main.priceMxn
-  const intro = offer.promotion?.introText || content.intro
-
-  return {
-    ...content,
-    title: offer.promotion?.introTitle || content.title,
-    intro,
-    introShort: offer.promotion?.introText || content.introShort,
+  const prices = {
     price: mxn(offer.main.priceMxn),
     priceMxn: offer.main.priceMxn,
     strike: special ? mxn(offer.main.normalMxn) : '',
     strikeShort: special ? `$${offer.main.normalMxn}` : '',
     priceNote: offer.applied
-      ? `pago único · precio especial${until ? ` hasta el ${until}` : ''}`
-      : 'pago único',
+      ? `acceso a 365 días · precio especial${until ? ` hasta el ${until}` : ''}`
+      : 'acceso a 365 días',
+    promoSlug: offer.promotion?.slug,
+    promoTest: offer.testKey,
+  }
+  const title = offer.promotion?.introTitle || content.title
+
+  if (content.layout === 'costing') {
+    // La promoción que regala el curso (landing «Empieza gratis hoy»); con la herramienta
+    // como adicional opcional.
+    const free = offer.applied && offer.main.priceMxn === 0
+    const { freeFaq, ...rest } = content
+    const tool = free ? offer.extras.find((e) => !e.isCourse) : undefined
+    return {
+      ...rest,
+      ...prices,
+      title,
+      intro: offer.promotion?.introText || content.intro,
+      faq: free ? freeFaq : content.faq,
+      free,
+      tool: tool
+        ? {
+            name: tool.name,
+            old: tool.normalMxn > 0 ? mxn(tool.normalMxn) : '',
+            now: tool.priceMxn === 0 ? 'Gratis' : mxn(tool.priceMxn),
+          }
+        : null,
+    }
+  }
+
+  const intro = offer.promotion?.introText || content.intro
+  return {
+    ...content,
+    ...prices,
+    title,
+    intro,
+    introShort: offer.promotion?.introText || content.introShort,
     promo:
       offer.applied && offer.extras.length > 0
         ? {
@@ -62,8 +91,6 @@ export function buildCoursePage(offer: Offer): CoursePage | null {
             offers: offer.extras.map((e) => card(e, until)),
           }
         : null,
-    promoSlug: offer.promotion?.slug,
-    promoTest: offer.testKey,
   }
 }
 

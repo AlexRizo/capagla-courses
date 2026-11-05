@@ -231,16 +231,16 @@ export function CostingLanding({ page }: { page: CostingCoursePage }) {
 
       <div className="flex flex-wrap justify-center gap-x-7 gap-y-4 px-4 py-7 text-sm text-landing-muted md:px-8">
         <span>© Capagla</span>
-        <a href="#" className={footerLink}>
+        <Link to="/terminos" className={footerLink}>
           Términos y condiciones
-        </a>
-        <a href="#" className={footerLink}>
+        </Link>
+        <Link to="/privacidad" className={footerLink}>
           Aviso de privacidad
-        </a>
-        <a href="#" className={footerLink}>
+        </Link>
+        <Link to="/devoluciones" className={footerLink}>
           Política de devoluciones
-        </a>
-        <a href="#" className={footerLink}>
+        </Link>
+        <a href="mailto:contacto@capagla.com" className={footerLink}>
           Contacto
         </a>
       </div>

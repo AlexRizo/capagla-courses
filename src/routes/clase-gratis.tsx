@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { AuthShell } from '#/components/auth-shell'
@@ -105,9 +105,14 @@ function ClaseGratis() {
               className="text-13 leading-145 text-landing-muted md:text-sm md:leading-normal"
             >
               Acepto el{' '}
-              <a href="#" className="text-landing-primary">
+              <Link
+                to="/privacidad"
+                target="_blank"
+                rel="noopener"
+                className="text-landing-primary"
+              >
                 aviso de privacidad
-              </a>{' '}
+              </Link>{' '}
               y quiero recibir correos de Capagla con recetas y ofertas. Puedo
               darme de baja cuando quiera.
             </label>

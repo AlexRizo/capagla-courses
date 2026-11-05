@@ -361,12 +361,12 @@ function MisCursos() {
         <span>Las dudas de una lección van en su pestaña Preguntas.</span>
         <div className="flex flex-wrap gap-x-4 gap-y-1.5">
           <span>© Capagla</span>
-          <a href="#" className="text-landing-muted">
+          <Link to="/privacidad" className="text-landing-muted">
             Aviso de privacidad
-          </a>
-          <a href="#" className="text-landing-muted">
+          </Link>
+          <Link to="/terminos" className="text-landing-muted">
             Términos y condiciones
-          </a>
+          </Link>
         </div>
       </div>
       <div className="hidden border-t border-landing-line bg-white md:block">
@@ -382,12 +382,12 @@ function MisCursos() {
             >
               Ayuda y reportar un fallo
             </button>
-            <a href="#" className="text-landing-muted">
+            <Link to="/privacidad" className="text-landing-muted">
               Aviso de privacidad
-            </a>
-            <a href="#" className="text-landing-muted">
+            </Link>
+            <Link to="/terminos" className="text-landing-muted">
               Términos y condiciones
-            </a>
+            </Link>
           </div>
         </div>
       </div>

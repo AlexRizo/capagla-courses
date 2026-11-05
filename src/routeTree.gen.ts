@@ -14,12 +14,16 @@ import { Route as PromoRouteImport } from './routes/$promo'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ClaseGratisRouteImport } from './routes/clase-gratis'
+import { Route as CookiesRouteImport } from './routes/cookies'
+import { Route as DevolucionesRouteImport } from './routes/devoluciones'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as GraciasRouteImport } from './routes/gracias'
 import { Route as HerramientaRouteImport } from './routes/herramienta'
 import { Route as ListaDeTiendaRouteImport } from './routes/lista-de-tienda'
 import { Route as MisCursosRouteImport } from './routes/mis-cursos'
+import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as RevisaTuCorreoRouteImport } from './routes/revisa-tu-correo'
+import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as AdminHerramientaRouteImport } from './routes/admin/herramienta'
 import { Route as AdminMarketingRouteImport } from './routes/admin/marketing'
 import { Route as AdminPreguntasRouteImport } from './routes/admin/preguntas'
@@ -90,6 +94,16 @@ const ClaseGratisRoute = ClaseGratisRouteImport.update({
   path: '/clase-gratis',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CookiesRoute = CookiesRouteImport.update({
+  id: '/cookies',
+  path: '/cookies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevolucionesRoute = DevolucionesRouteImport.update({
+  id: '/devoluciones',
+  path: '/devoluciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EntrarRoute = EntrarRouteImport.update({
   id: '/entrar',
   path: '/entrar',
@@ -115,9 +129,19 @@ const MisCursosRoute = MisCursosRouteImport.update({
   path: '/mis-cursos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacidadRoute = PrivacidadRouteImport.update({
+  id: '/privacidad',
+  path: '/privacidad',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RevisaTuCorreoRoute = RevisaTuCorreoRouteImport.update({
   id: '/revisa-tu-correo',
   path: '/revisa-tu-correo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TerminosRoute = TerminosRouteImport.update({
+  id: '/terminos',
+  path: '/terminos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminHerramientaRoute = AdminHerramientaRouteImport.update({
@@ -358,12 +382,16 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/clase-gratis': typeof ClaseGratisRoute
+  '/cookies': typeof CookiesRoute
+  '/devoluciones': typeof DevolucionesRoute
   '/entrar': typeof EntrarRoute
   '/gracias': typeof GraciasRoute
   '/herramienta': typeof HerramientaRouteWithChildren
   '/lista-de-tienda': typeof ListaDeTiendaRoute
   '/mis-cursos': typeof MisCursosRouteWithChildren
+  '/privacidad': typeof PrivacidadRoute
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
+  '/terminos': typeof TerminosRoute
   '/admin/herramienta': typeof AdminHerramientaRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
@@ -415,10 +443,14 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/clase-gratis': typeof ClaseGratisRoute
+  '/cookies': typeof CookiesRoute
+  '/devoluciones': typeof DevolucionesRoute
   '/entrar': typeof EntrarRoute
   '/gracias': typeof GraciasRoute
   '/lista-de-tienda': typeof ListaDeTiendaRoute
+  '/privacidad': typeof PrivacidadRoute
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
+  '/terminos': typeof TerminosRoute
   '/admin/herramienta': typeof AdminHerramientaRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
@@ -471,12 +503,16 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/clase-gratis': typeof ClaseGratisRoute
+  '/cookies': typeof CookiesRoute
+  '/devoluciones': typeof DevolucionesRoute
   '/entrar': typeof EntrarRoute
   '/gracias': typeof GraciasRoute
   '/herramienta': typeof HerramientaRouteWithChildren
   '/lista-de-tienda': typeof ListaDeTiendaRoute
   '/mis-cursos': typeof MisCursosRouteWithChildren
+  '/privacidad': typeof PrivacidadRoute
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
+  '/terminos': typeof TerminosRoute
   '/admin/herramienta': typeof AdminHerramientaRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
@@ -530,12 +566,16 @@ export interface FileRouteTypes {
     | '/admin'
     | '/checkout'
     | '/clase-gratis'
+    | '/cookies'
+    | '/devoluciones'
     | '/entrar'
     | '/gracias'
     | '/herramienta'
     | '/lista-de-tienda'
     | '/mis-cursos'
+    | '/privacidad'
     | '/revisa-tu-correo'
+    | '/terminos'
     | '/admin/herramienta'
     | '/admin/marketing'
     | '/admin/preguntas'
@@ -587,10 +627,14 @@ export interface FileRouteTypes {
     | '/admin'
     | '/checkout'
     | '/clase-gratis'
+    | '/cookies'
+    | '/devoluciones'
     | '/entrar'
     | '/gracias'
     | '/lista-de-tienda'
+    | '/privacidad'
     | '/revisa-tu-correo'
+    | '/terminos'
     | '/admin/herramienta'
     | '/admin/marketing'
     | '/admin/preguntas'
@@ -642,12 +686,16 @@ export interface FileRouteTypes {
     | '/admin'
     | '/checkout'
     | '/clase-gratis'
+    | '/cookies'
+    | '/devoluciones'
     | '/entrar'
     | '/gracias'
     | '/herramienta'
     | '/lista-de-tienda'
     | '/mis-cursos'
+    | '/privacidad'
     | '/revisa-tu-correo'
+    | '/terminos'
     | '/admin/herramienta'
     | '/admin/marketing'
     | '/admin/preguntas'
@@ -700,12 +748,16 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   CheckoutRoute: typeof CheckoutRoute
   ClaseGratisRoute: typeof ClaseGratisRoute
+  CookiesRoute: typeof CookiesRoute
+  DevolucionesRoute: typeof DevolucionesRoute
   EntrarRoute: typeof EntrarRoute
   GraciasRoute: typeof GraciasRoute
   HerramientaRoute: typeof HerramientaRouteWithChildren
   ListaDeTiendaRoute: typeof ListaDeTiendaRoute
   MisCursosRoute: typeof MisCursosRouteWithChildren
+  PrivacidadRoute: typeof PrivacidadRoute
   RevisaTuCorreoRoute: typeof RevisaTuCorreoRoute
+  TerminosRoute: typeof TerminosRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
   CursosSlugRoute: typeof CursosSlugRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -752,6 +804,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClaseGratisRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cookies': {
+      id: '/cookies'
+      path: '/cookies'
+      fullPath: '/cookies'
+      preLoaderRoute: typeof CookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/devoluciones': {
+      id: '/devoluciones'
+      path: '/devoluciones'
+      fullPath: '/devoluciones'
+      preLoaderRoute: typeof DevolucionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/entrar': {
       id: '/entrar'
       path: '/entrar'
@@ -787,11 +853,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MisCursosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacidad': {
+      id: '/privacidad'
+      path: '/privacidad'
+      fullPath: '/privacidad'
+      preLoaderRoute: typeof PrivacidadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/revisa-tu-correo': {
       id: '/revisa-tu-correo'
       path: '/revisa-tu-correo'
       fullPath: '/revisa-tu-correo'
       preLoaderRoute: typeof RevisaTuCorreoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terminos': {
+      id: '/terminos'
+      path: '/terminos'
+      fullPath: '/terminos'
+      preLoaderRoute: typeof TerminosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/herramienta': {
@@ -1213,12 +1293,16 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   CheckoutRoute: CheckoutRoute,
   ClaseGratisRoute: ClaseGratisRoute,
+  CookiesRoute: CookiesRoute,
+  DevolucionesRoute: DevolucionesRoute,
   EntrarRoute: EntrarRoute,
   GraciasRoute: GraciasRoute,
   HerramientaRoute: HerramientaRouteWithChildren,
   ListaDeTiendaRoute: ListaDeTiendaRoute,
   MisCursosRoute: MisCursosRouteWithChildren,
+  PrivacidadRoute: PrivacidadRoute,
   RevisaTuCorreoRoute: RevisaTuCorreoRoute,
+  TerminosRoute: TerminosRoute,
   ApiUploadsRoute: ApiUploadsRoute,
   CursosSlugRoute: CursosSlugRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

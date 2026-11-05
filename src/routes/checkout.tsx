@@ -845,9 +845,14 @@ function CheckoutForm({
               </strong>{' '}
               Tus datos viajan cifrados y no guardamos los datos de tu tarjeta.
               Al pagar aceptas los{' '}
-              <a href="#" className="text-landing-muted">
+              <Link
+                to="/terminos"
+                target="_blank"
+                rel="noopener"
+                className="text-landing-muted"
+              >
                 términos y condiciones
-              </a>
+              </Link>
               .
             </span>
           </div>

@@ -1,4 +1,4 @@
-import { useRouterState } from '@tanstack/react-router'
+import { Link, useRouterState } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
 import { captureAttribution } from '#/lib/attribution'
@@ -39,7 +39,13 @@ export function CookieNotice() {
       <p className="m-0 text-13 leading-normal text-landing-muted md:text-sm">
         Usamos cookies para medir qué anuncios funcionan y mejorar tu
         experiencia. Puedes aceptarlas o quedarte solo con las necesarias para
-        que el sitio funcione.
+        que el sitio funcione.{' '}
+        <Link
+          to="/cookies"
+          className="font-bold text-landing-primary underline"
+        >
+          Más información
+        </Link>
       </p>
       <div className="flex flex-wrap gap-2">
         <button

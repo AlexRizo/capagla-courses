@@ -280,13 +280,13 @@ function Home() {
       <div className="mx-auto flex max-w-280 flex-col gap-2 px-4 pt-5 pb-7 text-13 text-landing-muted md:flex-row md:flex-wrap md:justify-between md:gap-x-7 md:gap-y-4 md:p-8 md:text-sm">
         <span>© Capagla</span>
         <div className="flex flex-wrap gap-x-4 gap-y-1.5 md:gap-5">
-          <a href="#" className="text-landing-muted">
+          <Link to="/privacidad" className="text-landing-muted">
             Aviso de privacidad
-          </a>
-          <a href="#" className="text-landing-muted">
+          </Link>
+          <Link to="/terminos" className="text-landing-muted">
             Términos y condiciones
-          </a>
-          <a href="#" className="text-landing-muted">
+          </Link>
+          <a href="mailto:contacto@capagla.com" className="text-landing-muted">
             <span className="md:hidden">Contacto</span>
             <span className="hidden md:inline">contacto@capagla.com</span>
           </a>

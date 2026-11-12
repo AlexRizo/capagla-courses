@@ -19,6 +19,7 @@ import { Route as DevolucionesRouteImport } from './routes/devoluciones'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as GraciasRouteImport } from './routes/gracias'
 import { Route as HerramientaRouteImport } from './routes/herramienta'
+import { Route as HerramientaDeCostosRouteImport } from './routes/herramienta-de-costos'
 import { Route as ListaDeTiendaRouteImport } from './routes/lista-de-tienda'
 import { Route as MisCursosRouteImport } from './routes/mis-cursos'
 import { Route as PrivacidadRouteImport } from './routes/privacidad'
@@ -117,6 +118,11 @@ const GraciasRoute = GraciasRouteImport.update({
 const HerramientaRoute = HerramientaRouteImport.update({
   id: '/herramienta',
   path: '/herramienta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HerramientaDeCostosRoute = HerramientaDeCostosRouteImport.update({
+  id: '/herramienta-de-costos',
+  path: '/herramienta-de-costos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ListaDeTiendaRoute = ListaDeTiendaRouteImport.update({
@@ -387,6 +393,7 @@ export interface FileRoutesByFullPath {
   '/entrar': typeof EntrarRoute
   '/gracias': typeof GraciasRoute
   '/herramienta': typeof HerramientaRouteWithChildren
+  '/herramienta-de-costos': typeof HerramientaDeCostosRoute
   '/lista-de-tienda': typeof ListaDeTiendaRoute
   '/mis-cursos': typeof MisCursosRouteWithChildren
   '/privacidad': typeof PrivacidadRoute
@@ -447,6 +454,7 @@ export interface FileRoutesByTo {
   '/devoluciones': typeof DevolucionesRoute
   '/entrar': typeof EntrarRoute
   '/gracias': typeof GraciasRoute
+  '/herramienta-de-costos': typeof HerramientaDeCostosRoute
   '/lista-de-tienda': typeof ListaDeTiendaRoute
   '/privacidad': typeof PrivacidadRoute
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
@@ -508,6 +516,7 @@ export interface FileRoutesById {
   '/entrar': typeof EntrarRoute
   '/gracias': typeof GraciasRoute
   '/herramienta': typeof HerramientaRouteWithChildren
+  '/herramienta-de-costos': typeof HerramientaDeCostosRoute
   '/lista-de-tienda': typeof ListaDeTiendaRoute
   '/mis-cursos': typeof MisCursosRouteWithChildren
   '/privacidad': typeof PrivacidadRoute
@@ -571,6 +580,7 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/gracias'
     | '/herramienta'
+    | '/herramienta-de-costos'
     | '/lista-de-tienda'
     | '/mis-cursos'
     | '/privacidad'
@@ -631,6 +641,7 @@ export interface FileRouteTypes {
     | '/devoluciones'
     | '/entrar'
     | '/gracias'
+    | '/herramienta-de-costos'
     | '/lista-de-tienda'
     | '/privacidad'
     | '/revisa-tu-correo'
@@ -691,6 +702,7 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/gracias'
     | '/herramienta'
+    | '/herramienta-de-costos'
     | '/lista-de-tienda'
     | '/mis-cursos'
     | '/privacidad'
@@ -753,6 +765,7 @@ export interface RootRouteChildren {
   EntrarRoute: typeof EntrarRoute
   GraciasRoute: typeof GraciasRoute
   HerramientaRoute: typeof HerramientaRouteWithChildren
+  HerramientaDeCostosRoute: typeof HerramientaDeCostosRoute
   ListaDeTiendaRoute: typeof ListaDeTiendaRoute
   MisCursosRoute: typeof MisCursosRouteWithChildren
   PrivacidadRoute: typeof PrivacidadRoute
@@ -837,6 +850,13 @@ declare module '@tanstack/react-router' {
       path: '/herramienta'
       fullPath: '/herramienta'
       preLoaderRoute: typeof HerramientaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/herramienta-de-costos': {
+      id: '/herramienta-de-costos'
+      path: '/herramienta-de-costos'
+      fullPath: '/herramienta-de-costos'
+      preLoaderRoute: typeof HerramientaDeCostosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lista-de-tienda': {
@@ -1298,6 +1318,7 @@ const rootRouteChildren: RootRouteChildren = {
   EntrarRoute: EntrarRoute,
   GraciasRoute: GraciasRoute,
   HerramientaRoute: HerramientaRouteWithChildren,
+  HerramientaDeCostosRoute: HerramientaDeCostosRoute,
   ListaDeTiendaRoute: ListaDeTiendaRoute,
   MisCursosRoute: MisCursosRouteWithChildren,
   PrivacidadRoute: PrivacidadRoute,

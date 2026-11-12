@@ -2,6 +2,9 @@
 // uno y cuántos elementos se pueden guardar. Solo reglas, sin base de datos: las usan el servidor,
 // el menú y el panel.
 
+// Curso que incluye la herramienta, en cualquier nivel (maqueta última, 2026-11-11).
+export const TOOL_INCLUDED_COURSE_SLUG = 'calcular-costos'
+
 export const TOOL_MODULES = [
   'PRODUCTION',
   'SHOPPING_LIST',

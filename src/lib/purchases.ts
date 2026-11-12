@@ -14,6 +14,7 @@ import {
 } from '#/lib/offers'
 import { TIME_ZONE } from '#/lib/promotions'
 import { getStripe } from '#/lib/stripe'
+import { TOOL_INCLUDED_COURSE_SLUG } from '#/lib/tool-tiers'
 
 // El correo ya tiene acceso vigente al producto: comprarlo otra vez solo cobraría de más.
 // Con el acceso vencido sí se puede comprar (es una renovación).
@@ -21,10 +22,9 @@ export class AlreadyOwnedError extends Error {}
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-// La herramienta (cualquier nivel) incluye el curso Aprende a Costear (maqueta última,
-// 2026-11-11): al pagarla se inscribe también al curso, con el mismo vencimiento. Si ya tenía
-// el curso no se le cobra de menos aquí: «Escríbenos y te descontamos» (manual).
-export const TOOL_INCLUDED_COURSE_SLUG = 'calcular-costos'
+// La herramienta (cualquier nivel) incluye el curso Aprende a Costear (`TOOL_INCLUDED_COURSE_SLUG`):
+// al pagarla se inscribe también al curso, con el mismo vencimiento. Si ya tenía el curso no se
+// le cobra de menos aquí: «Escríbenos y te descontamos» (manual).
 
 async function includedCourse() {
   return prisma.product.findUnique({

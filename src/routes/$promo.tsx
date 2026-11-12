@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 
 import { CourseLanding } from '#/components/course-landing'
+import { ToolLanding } from '#/components/tool-landing'
 import { getPromotionLanding } from '#/lib/course-landing'
 
 // Landing de una promoción (/navidad): el curso principal con los precios especiales del
@@ -21,5 +22,7 @@ export const Route = createFileRoute('/$promo')({
 })
 
 function PromoPage() {
-  return <CourseLanding page={Route.useLoaderData()} />
+  const page = Route.useLoaderData()
+  if (page.layout === 'tool') return <ToolLanding page={page} />
+  return <CourseLanding page={page} />
 }

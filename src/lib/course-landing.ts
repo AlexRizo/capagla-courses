@@ -12,6 +12,7 @@ import { resolveOffer } from '#/lib/offers'
 import type { Offer } from '#/lib/offers'
 import { recordPromotionEvent } from '#/lib/promo-stats'
 import { longDate } from '#/lib/promotions'
+import { loadToolPage } from '#/lib/tool-page-data'
 
 // Textos del recuadro de un adicional, a partir de su precio especial.
 function card(extra: Offer['extras'][number], until: string | null): OfferCard {
@@ -138,6 +139,13 @@ export const getPromotionLanding = createServerFn()
     if (!exists) throw notFound()
     const offer = await resolveOffer(data.promo, false, data.prueba)
     if (!offer.main.published && !(await isAdminRequest())) throw notFound()
+    // Promoción con un nivel de la herramienta como principal: su landing es la página de la
+    // herramienta con el precio especial de ese nivel.
+    if (!offer.main.isCourse) {
+      const page = await loadToolPage(offer)
+      await recordPromotionEvent(exists.id, 'VISIT')
+      return page
+    }
     const page = buildCoursePage(offer)
     if (!page) throw notFound()
     await recordPromotionEvent(exists.id, 'VISIT')

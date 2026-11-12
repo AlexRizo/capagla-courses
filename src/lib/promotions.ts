@@ -11,12 +11,19 @@ const RESERVED_SLUGS = [
   'api',
   'checkout',
   'clase-gratis',
+  'cookies',
   'cursos',
+  'devoluciones',
   'entrar',
   'gracias',
+  'herramienta',
+  'herramienta-de-costos',
+  'lista-de-tienda',
   'mis-cursos',
   'pago-prueba',
+  'privacidad',
   'revisa-tu-correo',
+  'terminos',
 ]
 
 // "/Navidad-Final" → "navidad-final". Devuelve null si no es una URL válida o está reservada.

@@ -268,6 +268,28 @@
   --color-landing-done: #a596ab;
   --color-landing-bar: #d9b8e3;
   --font-system: system-ui, sans-serif;
+  /* Página pública de la herramienta (/herramienta-de-costos, maqueta última) */
+  --color-tool-muted: #604968;
+  --color-tool-icon: #f4e4f7;
+  --color-tool-glow: #f8e6f3;
+  --color-tool-bar-1: #7a3c8c;
+  --color-tool-bar-2: #a35bb5;
+  --color-tool-bar-3: #c97fd6;
+  --color-tool-bar-4: #e3b4ea;
+  --color-tool-bar-4-ink: #4a1d57;
+  --color-tool-mock: #f3f1f3;
+  --color-tool-mock-line: #e4dfe5;
+  --color-tool-row: #eee7f0;
+  --color-tool-loss: #ef4444;
+  --color-tool-low: #f5b400;
+  --color-tool-good: #22a050;
+  --color-tool-great: #3ee07a;
+  --color-tool-loss-ink: #9b1c1c;
+  --color-tool-loss-bg: #fde4e4;
+  --color-tool-low-ink: #7a5200;
+  --color-tool-low-bg: #fff1cc;
+  --color-tool-great-ink: #0b5a26;
+  --color-tool-great-bg: #b9f0c9;
   /* Curso de costeo: gráfica «¿Cuánto te queda por postre?» y temario */
   --color-costing-ink: #2b1732;
   --color-costing-muted: #674d71;
@@ -369,6 +391,10 @@
   --shadow-admin-dialog: 0 24px 64px rgba(0, 0, 0, 0.3);
   --shadow-landing-play: 0 8px 24px rgba(42, 18, 51, 0.3);
   --shadow-landing-card-lg: 0 12px 32px rgba(107, 24, 165, 0.08);
+  --shadow-tool-video: 0 18px 40px rgba(42, 18, 51, 0.18);
+  --shadow-tool-plan: 0 14px 34px rgba(107, 24, 165, 0.14);
+  --shadow-tool-great: 0 0 0 3px rgba(62, 224, 122, 0.3);
+  --shadow-tool-seam: inset 1px 0 rgba(255, 255, 255, 0.6);
   --shadow-landing-slide: 0 10px 24px rgba(42, 18, 51, 0.12);
   --shadow-landing-arrow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }

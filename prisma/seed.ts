@@ -82,12 +82,10 @@ async function seedProducts() {
       update: { kind, position },
       create: product,
     })
-    if (description) {
-      await prisma.product.updateMany({
-        where: { slug: product.slug, description: null },
-        data: { description },
-      })
-    }
+    await prisma.product.updateMany({
+      where: { slug: product.slug, description: null },
+      data: { description },
+    })
     if (coverUrl) {
       await prisma.product.updateMany({
         where: { slug: product.slug, coverUrl: null },

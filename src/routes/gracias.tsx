@@ -27,10 +27,6 @@ function Gracias() {
   const order = Route.useLoaderData()
   // Una orden gratis (promoción que regala el curso) no tiene pagos: se listan sus productos.
   const free = order.amountMxn === 0
-  // El curso de costos gratis no es una línea cobrada: solo se listan los pagos.
-  const lines = free
-    ? order.items
-    : order.items.filter((item) => item.amountMxn > 0)
 
   // Marketing: compra confirmada (navegador). El servidor manda la suya con el mismo `eventId`,
   // así que `track` no la repite al servidor. Una renovación no cuenta como compra de anuncio.
@@ -76,7 +72,9 @@ function Gracias() {
 
         <div className="box-border flex w-full flex-col gap-2.5 rounded-xl border border-landing-line bg-white p-4 text-left md:gap-3 md:rounded-16 md:p-6">
           <div className="text-15 font-black md:text-base">Tu compra</div>
-          {lines.map((item) => (
+          {/* Todo lo que incluye la orden, también lo regalado ($0 → «Gratis»): en la promoción
+              gratis el curso es justo el renglón de $0 y antes no salía. */}
+          {order.items.map((item) => (
             <div
               key={item.id}
               className="flex justify-between gap-2 text-sm md:text-15"

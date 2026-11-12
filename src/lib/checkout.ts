@@ -324,7 +324,13 @@ export const getThanksOrder = createServerFn()
     )
     const order = await prisma.order.findUnique({
       where: { id: data.orderId },
-      include: { items: { include: { product: true } } },
+      // En el orden de las tarjetas (`Product.position`): el curso antes que la herramienta.
+      include: {
+        items: {
+          include: { product: true },
+          orderBy: { product: { position: 'asc' } },
+        },
+      },
     })
     if (order?.status !== 'PAID') return order && { ...order, signedIn: false }
     // Quien acaba de pagar queda con la sesión abierta (ver `signInAfterPurchase`).

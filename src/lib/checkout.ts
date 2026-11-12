@@ -108,15 +108,16 @@ export const getCheckoutData = createServerFn()
     // Llegar al pago desde la landing de una promoción es "agregar al carrito".
     if (offer.promotion) await recordPromotionEvent(offer.promotion.id, 'CART')
     const line = (p: {
+      slug: string
       name: string
       normalMxn: number
       priceMxn: number
     }) => ({
+      slug: p.slug,
       name: p.name,
       normalMxn: p.normalMxn,
       priceMxn: p.priceMxn,
     })
-    const tool = offer.extras.find((e) => !e.isCourse)
     // Una cuenta de clase gratis aún sin nombre real lo escribe aquí la primera vez.
     const nameLocked = !!session && !hasPlaceholderName(session.user)
     const account = session
@@ -140,7 +141,8 @@ export const getCheckoutData = createServerFn()
         })(),
       },
       bonuses: offer.extras.filter((e) => e.isCourse).map(line),
-      tool: tool ? line(tool) : null,
+      // Niveles de la herramienta que trae la promoción (se elige uno o ninguno).
+      tools: offer.extras.filter((e) => !e.isCourse).map(line),
       // Clave publicable de Stripe (es pública): la usa el navegador para los campos de pago.
       stripeKey: env.STRIPE_PUBLISH_KEY ?? null,
       account,
@@ -192,6 +194,8 @@ export const startCheckout = createServerFn({ method: 'POST' })
       email: z.string().email().optional(),
       name: z.string().trim().min(1).optional(),
       withTool: z.boolean(),
+      // Nivel elegido cuando la promoción trae varios (sin él, el primero).
+      toolSlug: z.string().optional(),
       promo: z.string().optional(),
       prueba: z.string().optional(),
       renovar: z.string().optional(),

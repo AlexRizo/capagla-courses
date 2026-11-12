@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { prisma } from '#/db'
 import { RENEWAL_DISCOUNT_PCT } from '#/lib/catalog'
-import { canRenew, renewalPrice } from '#/lib/offers'
+import {
+  canRenew,
+  renewalPrice,
+  resolveOffer,
+  withoutOwnedExtras,
+} from '#/lib/offers'
 import {
   AlreadyOwnedError,
   completeOrder,
@@ -735,5 +740,121 @@ describe('mejora de nivel de la herramienta', () => {
     expect(left.map((e) => e.productId).sort()).toEqual(
       [basico.id, catalog.extra.id].sort(),
     )
+  })
+})
+
+describe('promoción con los dos niveles de la herramienta', () => {
+  // Curso de costeo gratis + Básico $299 + Completo $399 (como la maqueta última).
+  async function seedCosteo() {
+    const basico = await prisma.product.create({
+      data: {
+        slug: 'herramienta-costos-basico',
+        name: 'Herramienta de costos · Básico',
+        kind: 'TOOL',
+        priceMxn: 429,
+        accessDays: 365,
+        status: 'PUBLISHED',
+        tier: { create: { rank: 1, itemLimit: 150, modules: [] } },
+      },
+    })
+    await prisma.toolTier.create({
+      data: {
+        productId: catalog.tool.id,
+        rank: 2,
+        itemLimit: 1000,
+        modules: [],
+      },
+    })
+    await prisma.product.update({
+      where: { id: catalog.extra.id },
+      data: { status: 'PUBLISHED' },
+    })
+    await prisma.promotion.create({
+      data: {
+        slug: 'costeo',
+        name: 'Costeo',
+        startsAt: new Date(Date.now() - DAY),
+        products: {
+          create: [
+            { productId: catalog.extra.id, priceMxn: 0, position: 0 },
+            { productId: basico.id, priceMxn: 299, position: 1 },
+            { productId: catalog.tool.id, priceMxn: 399, position: 2 },
+          ],
+        },
+      },
+    })
+    return basico
+  }
+
+  it('cobra solo el nivel elegido, nunca los dos', async () => {
+    const basico = await seedCosteo()
+    const order = await createOrder({
+      ...buyer,
+      withTool: true,
+      toolSlug: basico.slug,
+      promo: 'costeo',
+    })
+    expect(order.amountMxn).toBe(299)
+    const items = await prisma.orderItem.findMany({
+      where: { orderId: order.id },
+    })
+    expect(items.map((i) => i.productId).sort()).toEqual(
+      [catalog.extra.id, basico.id].sort(),
+    )
+  })
+
+  it('sin nivel elegido agrega solo uno; sin la casilla, solo el curso gratis', async () => {
+    await seedCosteo()
+    const one = await createOrder({ ...buyer, withTool: true, promo: 'costeo' })
+    expect(await prisma.orderItem.count({ where: { orderId: one.id } })).toBe(2)
+    const none = await createOrder({
+      ...buyer,
+      withTool: false,
+      promo: 'costeo',
+    })
+    expect(none.amountMxn).toBe(0)
+  })
+
+  it('rechaza un nivel que no está en la promoción', async () => {
+    await seedCosteo()
+    await expect(
+      createOrder({
+        ...buyer,
+        withTool: true,
+        toolSlug: 'otro',
+        promo: 'costeo',
+      }),
+    ).rejects.toThrow('no está en la promoción')
+  })
+
+  it('con el Completo vigente ya no se le ofrece el Básico', async () => {
+    await seedCosteo()
+    const order = await createOrder({
+      ...buyer,
+      withTool: false,
+      product: 'herramienta-costos',
+    })
+    await completeOrder(order.id)
+    // El curso ya lo tiene (viene con la herramienta) y ningún nivel es mayor que el Completo.
+    const offer = await withoutOwnedExtras(
+      await resolveOffer('costeo', false),
+      buyer.email,
+    )
+    expect(offer.extras).toEqual([])
+  })
+
+  it('con el Básico vigente se le sigue ofreciendo el Completo', async () => {
+    const basico = await seedCosteo()
+    const order = await createOrder({
+      ...buyer,
+      withTool: false,
+      product: basico.slug,
+    })
+    await completeOrder(order.id)
+    const offer = await withoutOwnedExtras(
+      await resolveOffer('costeo', false),
+      buyer.email,
+    )
+    expect(offer.extras.map((e) => e.slug)).toEqual(['herramienta-costos'])
   })
 })

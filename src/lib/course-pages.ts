@@ -108,12 +108,12 @@ type Priced = {
 export type RecipesCoursePage = RecipesContent &
   Priced & { promo: { title: string; offers: Offer[] } | null }
 
-// Curso de costeo: `free` es la promoción que lo regala (landing «Empieza gratis hoy»); `tool` es
-// la herramienta opcional que acompaña a esa promoción.
+// Curso de costeo: `free` es la promoción que lo regala (landing «Quiero empezar gratis»); `promo`,
+// sus adicionales (los niveles de la herramienta), con el mismo bloque que la landing de recetas.
 export type CostingCoursePage = Omit<CostingContent, 'freeFaq'> &
   Priced & {
     free: boolean
-    tool: { name: string; old: string; now: string } | null
+    promo: { title: string; offers: Offer[] } | null
   }
 
 export type CoursePage = RecipesCoursePage | CostingCoursePage

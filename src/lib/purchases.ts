@@ -51,6 +51,8 @@ export async function createOrder(input: {
   email: string
   name: string
   withTool: boolean
+  // Nivel elegido si la promoción trae varios; nunca se venden dos niveles juntos.
+  toolSlug?: string
   promo?: string
   prueba?: string
   // Herramienta sola a precio normal (desde Mis cursos); la promoción sigue vendiéndola como casilla.
@@ -83,9 +85,19 @@ export async function createOrder(input: {
   if (!renewal && (await hasActiveAccess(input.email, offer.main.productId))) {
     throw new AlreadyOwnedError()
   }
+  const tools = offer.extras.filter((e) => !e.isCourse)
+  const tool = input.withTool
+    ? input.toolSlug
+      ? tools.find((t) => t.slug === input.toolSlug)
+      : tools[0]
+    : undefined
+  if (input.withTool && input.toolSlug && !tool) {
+    throw new Error('Ese nivel de la herramienta no está en la promoción.')
+  }
   const items = [
     offer.main,
-    ...offer.extras.filter((e) => e.isCourse || input.withTool),
+    ...offer.extras.filter((e) => e.isCourse),
+    ...(tool ? [tool] : []),
   ].map((p) => ({ productId: p.productId, amountMxn: p.priceMxn }))
 
   return prisma.order.create({

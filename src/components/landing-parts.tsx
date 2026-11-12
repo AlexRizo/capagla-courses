@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import type { CoursePage } from '#/lib/course-pages'
+import type { CoursePage, Offer } from '#/lib/course-pages'
 import { track } from '#/lib/track-client'
 
 // Piezas que comparten las landings de venta (recetas y curso de costeo).
@@ -123,6 +123,90 @@ export function IntroVideo({
           playsInline
           className="block aspect-video w-full rounded-16 bg-black"
         />
+      </div>
+    </div>
+  )
+}
+
+// «Llévate más con tu curso, por tiempo limitado»: los adicionales de la promoción (lo mismo en
+// las landings de recetas y del curso de costeo). Curso adicional en rosa; herramienta en morado.
+export function PromoOffers({
+  promo,
+  mobile,
+}: {
+  promo: { title: string; offers: Offer[] }
+  mobile?: boolean
+}) {
+  const isCourse = (o: Offer) => o.tag !== 'HERRAMIENTA'
+  const card = (o: Offer) =>
+    isCourse(o)
+      ? 'border-landing-pink-line bg-landing-pink'
+      : 'border-landing-primary bg-landing-tint'
+  const pill = (o: Offer) =>
+    isCourse(o) ? 'bg-landing-accent' : 'bg-landing-primary'
+
+  if (mobile) {
+    return (
+      <div className="flex flex-col gap-3 border-y border-landing-promo-line bg-landing-promo px-4 py-5.5">
+        <div className="text-19 leading-120 font-black tracking-landing-title-sm">
+          {promo.title}
+        </div>
+        {promo.offers.map((o) => (
+          <div
+            key={o.title}
+            className={`flex flex-col gap-1 rounded-xl border-1.5 p-3.5 ${card(o)}`}
+          >
+            <div
+              className={`self-start rounded-full px-2.25 py-0.75 text-10 font-black tracking-landing-caps text-white ${pill(o)}`}
+            >
+              {o.tag}
+            </div>
+            <div className="text-base font-black">{o.title}</div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm text-landing-strike line-through">
+                {o.old}
+              </span>
+              <span className="text-22 font-black">{o.now}</span>
+            </div>
+            <div className="text-xs text-landing-muted">{o.note}</div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="border-y border-landing-promo-line bg-landing-promo py-12">
+      <div className="mx-auto flex max-w-280 flex-col gap-5 px-8">
+        <h2 className="m-0 text-26 font-black tracking-landing-title-2xs">
+          {promo.title}
+        </h2>
+        <div className="grid grid-cols-2 gap-5">
+          {promo.offers.map((o) => (
+            <div
+              key={o.title}
+              className={`flex flex-col gap-2.5 rounded-18 border-1.5 p-6 ${card(o)}`}
+            >
+              <div
+                className={`self-start rounded-full px-2.5 py-1 text-xs font-black tracking-landing-caps text-white ${pill(o)}`}
+              >
+                {o.tag}
+              </div>
+              <div className="text-22 font-black tracking-landing-title-sm">
+                {o.title}
+              </div>
+              <div className="flex flex-wrap items-baseline gap-2.5">
+                <span className="text-lg text-landing-strike line-through">
+                  {o.old}
+                </span>
+                <span className="text-3xl font-black">{o.now}</span>
+              </div>
+              <div className="text-15 leading-normal text-landing-muted">
+                {o.note}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

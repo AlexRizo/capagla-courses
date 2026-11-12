@@ -1,7 +1,12 @@
 import { Link } from '@tanstack/react-router'
 import type { CSSProperties, ReactNode } from 'react'
 
-import { IntroVideo, Play, useLandingIntro } from '#/components/landing-parts'
+import {
+  IntroVideo,
+  Play,
+  PromoOffers,
+  useLandingIntro,
+} from '#/components/landing-parts'
 import { MobileMenu } from '#/components/mobile-menu'
 import type {
   CostingCoursePage,
@@ -15,7 +20,7 @@ const footerLink = 'text-landing-muted underline'
 const sectionX = 'mx-auto max-w-296 px-4 md:px-8'
 
 // Landing de venta del curso de costeo («Aprende a Costear»): la usan /cursos/calcular-costos
-// (precio normal) y la promoción que lo regala (`page.free`, «Empieza gratis hoy»). La maqueta
+// (precio normal) y la promoción que lo regala (`page.free`) con sus adicionales. La maqueta
 // solo trae escritorio; el móvil es el mismo diseño apilado.
 export function CostingLanding({ page }: { page: CostingCoursePage }) {
   const { playing, close, onPlay } = useLandingIntro(page)
@@ -139,10 +144,19 @@ export function CostingLanding({ page }: { page: CostingCoursePage }) {
         </div>
       </div>
 
-      {page.free && <FreeOffer page={page} cta={buy} />}
+      {page.promo && (
+        <>
+          <div className="hidden md:block">
+            <PromoOffers promo={page.promo} />
+          </div>
+          <div className="md:hidden">
+            <PromoOffers promo={page.promo} mobile />
+          </div>
+        </>
+      )}
 
       <div
-        className={`${page.free ? 'border-b' : 'border-y'} border-landing-line bg-white`}
+        className={`${page.promo ? 'border-b' : 'border-y'} border-landing-line bg-white`}
       >
         <div
           className={`${sectionX} flex flex-wrap items-center gap-x-14 gap-y-10 py-10 md:py-16`}
@@ -248,174 +262,6 @@ export function CostingLanding({ page }: { page: CostingCoursePage }) {
       {playing && page.introVideo && (
         <IntroVideo src={page.introVideo} onClose={close} />
       )}
-    </div>
-  )
-}
-
-// Promoción gratis: la tarjeta del curso y, si la promoción la trae, la herramienta opcional.
-function FreeOffer({
-  page,
-  cta,
-}: {
-  page: CostingCoursePage
-  cta: (className: string, label?: string) => ReactNode
-}) {
-  const pill =
-    'self-start rounded-full px-2.5 py-1 text-xs font-black tracking-landing-caps text-white'
-  const button =
-    'flex min-h-13.5 items-center justify-center rounded-12 bg-landing-primary text-lg font-black text-white no-underline'
-
-  return (
-    <div className="border-y border-landing-promo-line bg-landing-promo">
-      <div className={`${sectionX} flex flex-col gap-6 py-10 md:py-14`}>
-        <h2 className="m-0 text-26 font-black tracking-landing-title md:text-30">
-          Empieza gratis hoy
-        </h2>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(340px,100%),1fr))] items-stretch gap-6">
-          <div className="flex flex-col gap-3.5 rounded-20 border-1.5 border-landing-primary bg-white p-5 md:p-7">
-            <div className={`${pill} bg-landing-primary`}>TU CURSO</div>
-            <div className="text-28 leading-110 font-black tracking-landing-title-md md:text-30">
-              {page.title}
-            </div>
-            <div className="text-15 leading-normal text-landing-muted">
-              {page.courseCardText}
-            </div>
-            <div className="flex flex-wrap items-baseline gap-3">
-              {page.strike && (
-                <span className="text-xl text-landing-strike line-through">
-                  {page.strike}
-                </span>
-              )}
-              <span className="text-40 font-black tracking-landing-title-2xl">
-                Gratis
-              </span>
-            </div>
-            <div className="text-15 text-landing-muted">
-              Acceso gratuito por entrar desde nuestras redes.
-            </div>
-            <div className="flex-1" />
-            {cta(button, 'Empieza gratis ahora')}
-          </div>
-
-          {page.tool && (
-            <div className="flex flex-col gap-3.5 rounded-20 border-1.5 border-landing-pink-line bg-landing-pink p-5 md:p-7">
-              <div className={`${pill} bg-landing-berry`}>
-                OFERTA ESPECIAL PARA TI · OPCIONAL
-              </div>
-              <ToolPreview />
-              <div className="text-2xl font-black tracking-landing-logo">
-                {page.tool.name}
-              </div>
-              <div className="text-15 leading-normal text-landing-muted">
-                Registra ingredientes, recetas y gastos, calcula de forma
-                automática y genera tus listas de compra y producciones.
-              </div>
-              <div className="flex flex-wrap items-baseline gap-3">
-                {page.tool.old && (
-                  <span className="text-lg text-landing-strike line-through">
-                    {page.tool.old}
-                  </span>
-                )}
-                <span className="text-32 font-black tracking-landing-title-md">
-                  {page.tool.now}
-                </span>
-              </div>
-              <div className="flex items-start gap-2.5 rounded-12 border border-landing-promo-line bg-white px-3.5 py-3 text-sm leading-normal text-landing-ink">
-                <svg
-                  aria-hidden="true"
-                  width={18}
-                  height={18}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  strokeWidth={2.4}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="mt-0.5 flex-none stroke-landing-lock"
-                >
-                  <path d="M5 12l4 4 10-10" />
-                </svg>
-                <span>
-                  <b>Ya viene en tu carrito como oferta especial.</b> Si solo
-                  quieres el curso gratuito, la quitas al revisar tu carrito.
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Vista previa decorativa de la herramienta (lista de productos). Es una ilustración de la
-// maqueta: sus colores y tamaños diminutos no son del sistema de diseño, por eso van sueltos.
-function ToolPreview() {
-  const row =
-    'grid grid-cols-[2.2fr_1fr_1fr_1.6fr] items-center gap-1 px-2 py-[5px] text-[8px] text-[#1c1220]'
-  const chip = 'justify-self-start rounded-[9px] px-[5px] py-px text-[7px]'
-  const nav = 'px-[5px] text-[8px] text-[#cdb4e6]'
-  return (
-    <div
-      role="img"
-      aria-label="Vista previa de la herramienta de costos: lista de productos con costo, precio y estado"
-      className="flex aspect-video overflow-hidden rounded-12 border border-[#d9c3df] bg-[#f3f1f3]"
-    >
-      <div
-        aria-hidden="true"
-        className="flex flex-[0_0_24%] flex-col gap-1.5 bg-[#2a1340] px-2 py-2.5"
-      >
-        <div className="flex items-center gap-[5px]">
-          <span className="size-3.5 flex-none rounded bg-[#8b3be6]" />
-          <span className="text-[9px] font-bold text-[#f2e9fb]">Capagla</span>
-        </div>
-        <div className="flex h-3.5 items-center rounded bg-[#5a1fa0] px-[5px] text-[8px] text-white">
-          Productos
-        </div>
-        <div className={nav}>Recetas</div>
-        <div className={nav}>Ingredientes</div>
-        <div className={nav}>Lista de compra</div>
-        <div className={nav}>Producción</div>
-      </div>
-      <div
-        aria-hidden="true"
-        className="flex min-w-0 flex-1 flex-col gap-1.5 px-3 py-2.5"
-      >
-        <div className="text-xs font-bold text-[#1c1220]">Productos</div>
-        <div className="flex flex-col rounded-md border border-[#e6dfe8] bg-white">
-          <div
-            className={`${row} border-b border-[#eee7f0] text-[7.5px] !text-[#7a6a80]`}
-          >
-            <span>Producto</span>
-            <span>Costo</span>
-            <span>Precio</span>
-            <span>Estado</span>
-          </div>
-          <div className={`${row} border-b border-[#eee7f0]`}>
-            <span>Pastel Red Velvet</span>
-            <span>$423.56</span>
-            <span>$520.00</span>
-            <span className={`${chip} bg-[#fcefc7] text-[#7a4a05]`}>
-              Te queda poco
-            </span>
-          </div>
-          <div className={`${row} border-b border-[#eee7f0]`}>
-            <span>Pastel tradicional</span>
-            <span>$392.51</span>
-            <span>$380.00</span>
-            <span className={`${chip} bg-[#fbe1e1] text-[#8a1c1c]`}>
-              Vendes a pérdida
-            </span>
-          </div>
-          <div className={row}>
-            <span>Brownie de cheesecake</span>
-            <span>$258.40</span>
-            <span>$420.00</span>
-            <span className={`${chip} bg-[#d9f3e0] text-[#1d6b35]`}>
-              Buen margen
-            </span>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

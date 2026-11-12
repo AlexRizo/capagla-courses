@@ -1,7 +1,12 @@
 import { Link } from '@tanstack/react-router'
 
 import { CostingLanding } from '#/components/costing-landing'
-import { IntroVideo, Play, useLandingIntro } from '#/components/landing-parts'
+import {
+  IntroVideo,
+  Play,
+  useLandingIntro,
+  PromoOffers,
+} from '#/components/landing-parts'
 import { MobileMenu } from '#/components/mobile-menu'
 import type { CoursePage, RecipesCoursePage } from '#/lib/course-pages'
 
@@ -108,41 +113,7 @@ function Desktop({
         </div>
       </div>
 
-      {page.promo && (
-        <div className="border-y border-landing-promo-line bg-landing-promo py-12">
-          <div className="mx-auto flex max-w-280 flex-col gap-5 px-8">
-            <h2 className="m-0 text-26 font-black tracking-landing-title-2xs">
-              {page.promo.title}
-            </h2>
-            <div className="grid grid-cols-2 gap-5">
-              {page.promo.offers.map((o, i) => (
-                <div
-                  key={o.tag}
-                  className={`flex flex-col gap-2.5 rounded-18 border-1.5 p-6 ${i === 0 ? 'border-landing-pink-line bg-landing-pink' : 'border-landing-primary bg-landing-tint'}`}
-                >
-                  <div
-                    className={`self-start rounded-full px-2.5 py-1 text-xs font-black tracking-landing-caps text-white ${i === 0 ? 'bg-landing-accent' : 'bg-landing-primary'}`}
-                  >
-                    {o.tag}
-                  </div>
-                  <div className="text-22 font-black tracking-landing-title-sm">
-                    {o.title}
-                  </div>
-                  <div className="flex flex-wrap items-baseline gap-2.5">
-                    <span className="text-lg text-landing-strike line-through">
-                      {o.old}
-                    </span>
-                    <span className="text-3xl font-black">{o.now}</span>
-                  </div>
-                  <div className="text-15 leading-normal text-landing-muted">
-                    {o.note}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {page.promo && <PromoOffers promo={page.promo} />}
 
       <div className="border-y border-landing-line bg-white">
         <div className="mx-auto flex max-w-280 flex-col gap-7 px-8 py-14">
@@ -371,33 +342,7 @@ function Mobile({
         </Link>
       </div>
 
-      {page.promo && (
-        <div className="flex flex-col gap-3 border-y border-landing-promo-line bg-landing-promo px-4 py-5.5">
-          <div className="text-19 leading-120 font-black tracking-landing-title-sm">
-            {page.promo.title}
-          </div>
-          {page.promo.offers.map((o, i) => (
-            <div
-              key={o.tag}
-              className={`flex flex-col gap-1 rounded-xl border-1.5 p-3.5 ${i === 0 ? 'border-landing-pink-line bg-landing-pink' : 'border-landing-primary bg-landing-tint'}`}
-            >
-              <div
-                className={`self-start rounded-full px-2.25 py-0.75 text-10 font-black tracking-landing-caps text-white ${i === 0 ? 'bg-landing-accent' : 'bg-landing-primary'}`}
-              >
-                {o.tag}
-              </div>
-              <div className="text-base font-black">{o.title}</div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-sm text-landing-strike line-through">
-                  {o.old}
-                </span>
-                <span className="text-22 font-black">{o.now}</span>
-              </div>
-              <div className="text-xs text-landing-muted">{o.note}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      {page.promo && <PromoOffers promo={page.promo} mobile />}
 
       <div className="flex flex-col gap-3.5 px-4 pt-7 pb-2">
         <h2 className={h2}>Este curso es para ti si…</h2>

@@ -138,6 +138,91 @@ type Line = { name: string; normalMxn: number; priceMxn: number }
 const normalText = (line: Line) =>
   line.normalMxn > 0 ? mxn(line.normalMxn) : '[valor real]'
 
+// Casilla para agregar un nivel de la herramienta con el precio de la promoción. Con varios
+// niveles hay una por nivel y se excluyen entre sí (lo controla el formulario).
+function ToolBump({
+  tool,
+  checked,
+  noneChosen,
+  disabled,
+  onToggle,
+}: {
+  tool: { slug: string; name: string; normalMxn: number; priceMxn: number }
+  checked: boolean
+  noneChosen: boolean
+  disabled: boolean
+  onToggle: () => void
+}) {
+  const id = `bump-${tool.slug}`
+  const toolDiscount = Math.round((1 - tool.priceMxn / tool.normalMxn) * 100)
+  // Sin descuento (la promoción la vende a su precio normal) no se promete uno ni se presiona.
+  const deal = toolDiscount > 0
+  // «Herramienta de costos · Completo» → «Completo» (nombre del nivel, como la maqueta).
+  const toolTier = tool.name.split(' · ')[1] ?? ''
+  const warn = deal && !checked && noneChosen
+  return (
+    <div
+      className={`flex items-start gap-3 rounded-xl border-1.5 p-3.5 md:gap-3.5 md:p-4.5 ${
+        !warn
+          ? 'border-landing-pink-line bg-landing-pink'
+          : 'border-landing-warn-line bg-landing-warn'
+      }`}
+    >
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={onToggle}
+        className="mt-0.5 size-5.5 flex-none accent-landing-primary md:mt-0.75"
+      />
+      <label
+        htmlFor={id}
+        className="flex flex-col gap-1 text-sm leading-145 md:gap-1.5 md:text-15 md:leading-normal"
+      >
+        <span className="text-15 font-black md:text-base">
+          {!warn
+            ? `Agrega la herramienta de costos${toolTier ? ` ${toolTier}` : ''}${deal ? ` con ${toolDiscount}% de descuento` : ''}`
+            : '¿Seguro que no la quieres?'}
+        </span>
+        <span className="text-landing-muted">
+          {!deal ? (
+            'Es opcional y se suma a tu compra.'
+          ) : !warn ? (
+            <>
+              <span className="md:hidden">
+                Normalmente cuesta más. Si la agregas ahora, te llevas un
+                descuento especial.
+              </span>
+              <span className="hidden md:inline">
+                Normalmente cuesta más, pero si la agregas ahora te llevas un
+                descuento especial. Se suma a tu compra.
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="md:hidden">
+                Esta promoción no se repite: después cuesta ${tool.normalMxn}.
+                Marca la casilla para conservar tu descuento.
+              </span>
+              <span className="hidden md:inline">
+                Esta promoción no se repite: después la herramienta cuesta $
+                {tool.normalMxn}. Marca la casilla para conservar tu descuento.
+              </span>
+            </>
+          )}
+        </span>
+        <span className="flex items-baseline gap-2">
+          <span className={strike}>{mxn(tool.normalMxn)}</span>
+          <span className="text-base font-black md:text-lg">
+            {mxn(tool.priceMxn)}
+          </span>
+        </span>
+      </label>
+    </div>
+  )
+}
+
 // Curso adicional de la promoción, con su precio especial (0 = incluido gratis).
 function IncludedCourse({
   course,
@@ -328,7 +413,7 @@ function CheckoutForm({
   const {
     course,
     bonuses,
-    tool,
+    tools,
     special,
     until,
     account,
@@ -344,9 +429,16 @@ function CheckoutForm({
   const cardGetters = useRef<CardGetters>({ mobile: null, desktop: null })
   const formRef = useRef<HTMLFormElement>(null)
   const errorRef = useRef<HTMLDivElement>(null)
-  // La herramienta arranca marcada también con el curso gratis (la maqueta y la landing de la
-  // promoción lo dicen: «ya viene en tu carrito»); quien solo quiere el curso la quita aquí.
-  const [withTool, setWithTool] = useState(true)
+  // La herramienta arranca marcada también con el curso gratis; quien solo quiere el curso la
+  // quita aquí. Si la promoción trae varios niveles (Básico y Completo) se elige uno o ninguno,
+  // nunca los dos: arranca marcado el más caro (decisión del usuario, 2026-11-11).
+  const [chosen, setChosen] = useState<string | null>(
+    () =>
+      tools.reduce<(typeof tools)[number] | null>(
+        (best, t) => (!best || t.normalMxn > best.normalMxn ? t : best),
+        null,
+      )?.slug ?? null,
+  )
   const [stage, setStage] = useState<Stage>('idle')
   const busy = stage !== 'idle'
   const [error, setErrorText] = useState<string | null>(null)
@@ -366,15 +458,9 @@ function CheckoutForm({
     clientSecret: string | null
   } | null>(null)
 
-  const addTool = tool !== null && withTool
+  const tool = tools.find((t) => t.slug === chosen) ?? null
+  const addTool = tool !== null
   const courseStrike = course.priceMxn < course.normalMxn
-  const toolDiscount = tool
-    ? Math.round((1 - tool.priceMxn / tool.normalMxn) * 100)
-    : 0
-  // Sin descuento (la promoción la vende a su precio normal) no se promete uno ni se presiona.
-  const deal = toolDiscount > 0
-  // «Herramienta de costos · Completo» → «Completo» (nombre del nivel, como la maqueta).
-  const toolTier = tool ? (tool.name.split(' · ')[1] ?? '') : ''
   const total =
     course.priceMxn +
     bonuses.reduce((sum, b) => sum + b.priceMxn, 0) +
@@ -429,7 +515,7 @@ function CheckoutForm({
     const key = JSON.stringify([
       buyer.email,
       buyer.name,
-      addTool,
+      chosen,
       promo,
       prueba,
       renovar,
@@ -442,6 +528,7 @@ function CheckoutForm({
         // manda si la cuenta aún no tiene uno real).
         ...(!account ? buyer : account.nameLocked ? {} : { name: buyer.name }),
         withTool: addTool,
+        toolSlug: tool?.slug,
         promo,
         prueba,
         renovar,
@@ -764,69 +851,17 @@ function CheckoutForm({
             )}
           </div>
 
-          {tool && (
-            <div
-              className={`flex items-start gap-3 rounded-xl border-1.5 p-3.5 md:gap-3.5 md:p-4.5 ${
-                withTool || !deal
-                  ? 'border-landing-pink-line bg-landing-pink'
-                  : 'border-landing-warn-line bg-landing-warn'
-              }`}
-            >
-              <input
-                id="bump"
-                type="checkbox"
-                checked={withTool}
-                disabled={busy}
-                onChange={() => setWithTool(!withTool)}
-                className="mt-0.5 size-5.5 flex-none accent-landing-primary md:mt-0.75"
-              />
-              <label
-                htmlFor="bump"
-                className="flex flex-col gap-1 text-sm leading-145 md:gap-1.5 md:text-15 md:leading-normal"
-              >
-                <span className="text-15 font-black md:text-base">
-                  {withTool || !deal
-                    ? `Agrega la herramienta de costos${toolTier ? ` ${toolTier}` : ''}${deal ? ` con ${toolDiscount}% de descuento` : ''}`
-                    : '¿Seguro que no la quieres?'}
-                </span>
-                <span className="text-landing-muted">
-                  {!deal ? (
-                    'Es opcional y se suma a tu compra.'
-                  ) : withTool ? (
-                    <>
-                      <span className="md:hidden">
-                        Normalmente cuesta más. Si la agregas ahora, te llevas
-                        un descuento especial.
-                      </span>
-                      <span className="hidden md:inline">
-                        Normalmente cuesta más, pero si la agregas ahora te
-                        llevas un descuento especial. Se suma a tu compra.
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="md:hidden">
-                        Esta promoción no se repite: después cuesta $
-                        {tool.normalMxn}. Marca la casilla para conservar tu
-                        descuento.
-                      </span>
-                      <span className="hidden md:inline">
-                        Esta promoción no se repite: después la herramienta
-                        cuesta ${tool.normalMxn}. Marca la casilla para
-                        conservar tu descuento.
-                      </span>
-                    </>
-                  )}
-                </span>
-                <span className="flex items-baseline gap-2">
-                  <span className={strike}>{mxn(tool.normalMxn)}</span>
-                  <span className="text-base font-black md:text-lg">
-                    {mxn(tool.priceMxn)}
-                  </span>
-                </span>
-              </label>
-            </div>
-          )}
+          {tools.map((t) => (
+            <ToolBump
+              key={t.slug}
+              tool={t}
+              checked={chosen === t.slug}
+              // Nada elegido: cada nivel con descuento insiste («¿Seguro que no la quieres?»).
+              noneChosen={chosen === null}
+              disabled={busy}
+              onToggle={() => setChosen(chosen === t.slug ? null : t.slug)}
+            />
+          ))}
 
           <button
             type="submit"

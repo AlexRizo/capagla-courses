@@ -184,16 +184,38 @@ export async function withoutOwnedExtras(
   const owned = await prisma.enrollment.findMany({
     where: {
       user: { email: email.trim().toLowerCase() },
-      productId: { in: offer.extras.map((e) => e.productId) },
       expiresAt: { gt: new Date() },
+      OR: [
+        { productId: { in: offer.extras.map((e) => e.productId) } },
+        { product: { kind: 'TOOL' } },
+      ],
     },
-    select: { productId: true },
+    select: {
+      productId: true,
+      product: { select: { kind: true, tier: true } },
+    },
   })
   if (owned.length === 0) return offer
   const have = new Set(owned.map((o) => o.productId))
+  // Con un nivel de la herramienta vigente tampoco se le venden los niveles más bajos (un
+  // producto de herramienta sin nivel cuenta como el completo, igual que en `tool-tiers`).
+  const ownedRank = Math.max(
+    0,
+    ...owned
+      .filter((o) => o.product.kind === 'TOOL')
+      .map((o) => o.product.tier?.rank ?? Infinity),
+  )
+  const tiers = await prisma.toolTier.findMany({
+    where: { productId: { in: offer.extras.map((e) => e.productId) } },
+  })
+  const rank = new Map(tiers.map((t) => [t.productId, t.rank]))
   return {
     ...offer,
-    extras: offer.extras.filter((e) => !have.has(e.productId)),
+    extras: offer.extras.filter(
+      (e) =>
+        !have.has(e.productId) &&
+        (e.isCourse || (rank.get(e.productId) ?? Infinity) > ownedRank),
+    ),
   }
 }
 

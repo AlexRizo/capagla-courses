@@ -15,17 +15,25 @@ import { longDate } from '#/lib/promotions'
 import { loadToolPage } from '#/lib/tool-page-data'
 
 // Textos del recuadro de un adicional, a partir de su precio especial.
-function card(extra: Offer['extras'][number], until: string | null): OfferCard {
+// `fromSocial`: la promoción que regala el curso de costeo (entraron desde las redes); sus
+// adicionales llevan la nota de la maqueta.
+function card(
+  extra: Offer['extras'][number],
+  until: string | null,
+  fromSocial = false,
+): OfferCard {
   const when = until ? ` hasta el ${until}` : ''
-  const discount =
-    extra.priceMxn === 0
+  const discount = fromSocial
+    ? `Precio especial por venir de nuestras redes.${extra.isCourse ? '' : ' Al año, incluye el curso.'}`
+    : extra.priceMxn === 0
       ? 'Incluido gratis con tu curso.'
       : extra.normalMxn > extra.priceMxn
         ? `${Math.round((1 - extra.priceMxn / extra.normalMxn) * 100)}% de descuento${when}.`
         : `Precio especial${when}.`
   return {
     tag: extra.isCourse ? 'CURSO ADICIONAL' : 'HERRAMIENTA',
-    title: extra.name,
+    // «Herramienta de costos · Completo» → «Herramienta de costos Completo» (como la maqueta).
+    title: extra.name.replace(' · ', ' '),
     old: extra.normalMxn > 0 ? mxn(extra.normalMxn) : '[valor real]',
     now: extra.priceMxn === 0 ? 'Gratis' : mxn(extra.priceMxn),
     note: discount,
@@ -55,12 +63,19 @@ export function buildCoursePage(offer: Offer): CoursePage | null {
   }
   const title = offer.promotion?.introTitle || content.title
 
+  const promo = (fromSocial = false) =>
+    offer.applied && offer.extras.length > 0
+      ? {
+          title: 'Llévate más con tu curso, por tiempo limitado',
+          offers: offer.extras.map((e) => card(e, until, fromSocial)),
+        }
+      : null
+
   if (content.layout === 'costing') {
-    // La promoción que regala el curso (landing «Empieza gratis hoy»); con la herramienta
-    // como adicional opcional.
+    // La promoción que regala el curso (landing «Quiero empezar gratis»), con los niveles de la
+    // herramienta como adicionales.
     const free = offer.applied && offer.main.priceMxn === 0
     const { freeFaq, ...rest } = content
-    const tool = free ? offer.extras.find((e) => !e.isCourse) : undefined
     return {
       ...rest,
       ...prices,
@@ -68,13 +83,7 @@ export function buildCoursePage(offer: Offer): CoursePage | null {
       intro: offer.promotion?.introText || content.intro,
       faq: free ? freeFaq : content.faq,
       free,
-      tool: tool
-        ? {
-            name: tool.name,
-            old: tool.normalMxn > 0 ? mxn(tool.normalMxn) : '',
-            now: tool.priceMxn === 0 ? 'Gratis' : mxn(tool.priceMxn),
-          }
-        : null,
+      promo: promo(free),
     }
   }
 
@@ -85,13 +94,7 @@ export function buildCoursePage(offer: Offer): CoursePage | null {
     title,
     intro,
     introShort: offer.promotion?.introText || content.introShort,
-    promo:
-      offer.applied && offer.extras.length > 0
-        ? {
-            title: 'Llévate más con tu curso, por tiempo limitado',
-            offers: offer.extras.map((e) => card(e, until)),
-          }
-        : null,
+    promo: promo(),
   }
 }
 

@@ -21,6 +21,17 @@ export class AlreadyOwnedError extends Error {}
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+// La herramienta (cualquier nivel) incluye el curso Aprende a Costear (maqueta última,
+// 2026-11-11): al pagarla se inscribe también al curso, con el mismo vencimiento. Si ya tenía
+// el curso no se le cobra de menos aquí: «Escríbenos y te descontamos» (manual).
+export const TOOL_INCLUDED_COURSE_SLUG = 'calcular-costos'
+
+async function includedCourse() {
+  return prisma.product.findUnique({
+    where: { slug: TOOL_INCLUDED_COURSE_SLUG },
+  })
+}
+
 async function hasActiveAccess(email: string, productId: string) {
   const count = await prisma.enrollment.count({
     where: {
@@ -168,21 +179,36 @@ async function completeOrderLocked(orderId: string) {
     }),
   )
 
+  // Curso incluido con la herramienta: vence cuando vence la herramienta (o después, si ya lo
+  // tenía con más días o viene también en la orden).
+  const toolItem = order.items.find((i) => i.product.kind === 'TOOL')
+  const course = toolItem ? await includedCourse() : null
+  if (toolItem && course) {
+    const prev = await prisma.enrollment.findUnique({
+      where: {
+        userId_productId: { userId: user.id, productId: course.id },
+      },
+    })
+    const until = Math.max(
+      newExpiry.get(toolItem.productId)!.getTime(),
+      newExpiry.get(course.id)?.getTime() ?? 0,
+      prev?.expiresAt.getTime() ?? 0,
+    )
+    newExpiry.set(course.id, new Date(until))
+  }
+
   const [paid] = await prisma.$transaction([
     prisma.order.update({
       where: { id: order.id },
       data: { status: 'PAID', paidAt: new Date(), userId: user.id },
     }),
-    ...order.items.map((item) => {
-      const expiresAt = newExpiry.get(item.productId)!
-      return prisma.enrollment.upsert({
-        where: {
-          userId_productId: { userId: user.id, productId: item.productId },
-        },
-        create: { userId: user.id, productId: item.productId, expiresAt },
+    ...[...newExpiry].map(([productId, expiresAt]) =>
+      prisma.enrollment.upsert({
+        where: { userId_productId: { userId: user.id, productId } },
+        create: { userId: user.id, productId, expiresAt },
         update: { expiresAt },
-      })
-    }),
+      }),
+    ),
   ])
 
   // Correo de compra (o de renovación, con la nueva fecha): lo que incluye y el enlace.
@@ -195,7 +221,12 @@ async function completeOrderLocked(orderId: string) {
   await withLinkPurpose(
     {
       kind: 'purchase',
-      items: order.items.map((i) => i.product.name),
+      items: [
+        ...order.items.map((i) => i.product.name),
+        ...(course && !order.items.some((i) => i.productId === course.id)
+          ? [`${course.name} (incluido con la herramienta)`]
+          : []),
+      ],
       renewedUntil,
     },
     () =>
@@ -295,6 +326,28 @@ export async function refundOrder(orderId: string) {
               productId: item.productId,
               days: item.product.accessDays,
             })
+        }
+      }
+      // El curso que vino incluido con la herramienta se quita con ella, salvo que lo tenga por
+      // otra compra pagada (del curso o de la herramienta); en ese caso se deja como está.
+      if (
+        order.userId &&
+        order.status === 'PAID' &&
+        order.items.some((i) => i.product.kind === 'TOOL')
+      ) {
+        const course = await includedCourse()
+        if (course && !order.items.some((i) => i.productId === course.id)) {
+          const other = await prisma.orderItem.count({
+            where: {
+              OR: [{ productId: course.id }, { product: { kind: 'TOOL' } }],
+              order: {
+                userId: order.userId,
+                status: 'PAID',
+                id: { not: order.id },
+              },
+            },
+          })
+          if (other === 0) revoke.push(course.id)
         }
       }
       const kept = await prisma.enrollment.findMany({

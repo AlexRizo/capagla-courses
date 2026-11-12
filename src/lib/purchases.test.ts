@@ -148,10 +148,12 @@ describe('createOrder', () => {
       where: { orderId: order.id },
     })
     expect(items.map((i) => i.productId)).toEqual([catalog.tool.id])
-    // Al pagar queda inscrita a la herramienta (y a nada más).
+    // Al pagar queda inscrita a la herramienta y al curso que incluye (Aprende a Costear).
     await completeOrder(order.id)
     const enrollments = await prisma.enrollment.findMany()
-    expect(enrollments.map((e) => e.productId)).toEqual([catalog.tool.id])
+    expect(enrollments.map((e) => e.productId).sort()).toEqual(
+      [catalog.tool.id, catalog.extra.id].sort(),
+    )
   })
 
   it('la compra suelta no vende cursos ni herramientas en borrador', async () => {
@@ -462,6 +464,74 @@ describe('completeOrder', () => {
   })
 })
 
+describe('la herramienta incluye el curso Aprende a Costear', () => {
+  const toolOnly = () =>
+    createOrder({ ...buyer, withTool: false, product: 'herramienta-costos' })
+
+  it('inscribe al curso con el mismo vencimiento de la herramienta', async () => {
+    await completeOrder((await toolOnly()).id)
+    const [tool, course] = await Promise.all(
+      [catalog.tool.id, catalog.extra.id].map((productId) =>
+        prisma.enrollment.findFirstOrThrow({ where: { productId } }),
+      ),
+    )
+    expect(course.expiresAt.getTime()).toBe(tool.expiresAt.getTime())
+  })
+
+  it('si ya tenía el curso con más días, conserva su vencimiento', async () => {
+    await completeOrder((await toolOnly()).id)
+    const user = await prisma.user.findFirstOrThrow()
+    const later = new Date(Date.now() + 500 * DAY)
+    await prisma.enrollment.update({
+      where: {
+        userId_productId: { userId: user.id, productId: catalog.extra.id },
+      },
+      data: { expiresAt: later },
+    })
+    // Otra compra de la herramienta (renovación simulada con el acceso vencido).
+    await prisma.enrollment.update({
+      where: {
+        userId_productId: { userId: user.id, productId: catalog.tool.id },
+      },
+      data: { expiresAt: new Date(Date.now() - DAY) },
+    })
+    await completeOrder((await toolOnly()).id)
+    const course = await prisma.enrollment.findFirstOrThrow({
+      where: { productId: catalog.extra.id },
+    })
+    expect(course.expiresAt.getTime()).toBe(later.getTime())
+  })
+
+  it('el reembolso de la herramienta quita también el curso incluido', async () => {
+    const order = await toolOnly()
+    await completeOrder(order.id)
+    await refundOrder(order.id)
+    expect(await prisma.enrollment.count()).toBe(0)
+  })
+
+  it('si el curso lo compró aparte, el reembolso de la herramienta no se lo quita', async () => {
+    // Compra del curso suelto (pagada antes que la herramienta).
+    const courseOrder = await prisma.order.create({
+      data: {
+        email: 'ana@test.com',
+        name: 'Ana',
+        amountMxn: catalog.extra.priceMxn,
+        items: {
+          create: [
+            { productId: catalog.extra.id, amountMxn: catalog.extra.priceMxn },
+          ],
+        },
+      },
+    })
+    await completeOrder(courseOrder.id)
+    const order = await toolOnly()
+    await completeOrder(order.id)
+    await refundOrder(order.id)
+    const left = await prisma.enrollment.findMany()
+    expect(left.map((e) => e.productId)).toEqual([catalog.extra.id])
+  })
+})
+
 describe('failOrder', () => {
   it('marca fallida una orden pendiente pero no una ya pagada', async () => {
     const pending = await createOrder({ ...buyer, withTool: false })
@@ -661,6 +731,9 @@ describe('mejora de nivel de la herramienta', () => {
     await completeOrder(order.id)
     await refundOrder(order.id)
     const left = await prisma.enrollment.findMany()
-    expect(left.map((e) => e.productId)).toEqual([basico.id])
+    // El curso incluido se queda: lo sigue dando el Básico (otra compra pagada).
+    expect(left.map((e) => e.productId).sort()).toEqual(
+      [basico.id, catalog.extra.id].sort(),
+    )
   })
 })

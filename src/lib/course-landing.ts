@@ -18,7 +18,7 @@ function card(extra: Offer['extras'][number], until: string | null): OfferCard {
   const when = until ? ` hasta el ${until}` : ''
   const discount =
     extra.priceMxn === 0
-      ? `Gratis solo${when}.`
+      ? 'Incluido gratis con tu curso.'
       : extra.normalMxn > extra.priceMxn
         ? `${Math.round((1 - extra.priceMxn / extra.normalMxn) * 100)}% de descuento${when}.`
         : `Precio especial${when}.`

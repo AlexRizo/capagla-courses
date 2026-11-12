@@ -149,7 +149,6 @@ function IncludedCourse({
   desktop?: boolean
 }) {
   const free = course.priceMxn === 0
-  const name = course.name.charAt(0).toLowerCase() + course.name.slice(1)
   const when = until ? ` hasta el ${until}` : ''
   return (
     <div
@@ -167,7 +166,7 @@ function IncludedCourse({
       <div
         className={`flex justify-between gap-2 ${desktop ? 'items-baseline text-15' : 'text-sm'}`}
       >
-        <span className="font-bold">Curso: {name}</span>
+        <span className="font-bold">Curso: {course.name}</span>
         <span
           className={`flex flex-none gap-1.5 ${desktop ? 'items-baseline md:gap-2' : ''}`}
         >
@@ -177,12 +176,11 @@ function IncludedCourse({
           </span>
         </span>
       </div>
-      {until && (
+      {(free || until) && (
         <div
           className={`text-landing-muted ${desktop ? 'text-13' : 'text-xs'}`}
         >
-          {free ? 'Gratis solo' : 'Precio especial'}
-          {when}.
+          {free ? 'Incluido gratis con tu curso.' : `Precio especial${when}.`}
         </div>
       )}
     </div>
@@ -375,6 +373,8 @@ function CheckoutForm({
     : 0
   // Sin descuento (la promoción la vende a su precio normal) no se promete uno ni se presiona.
   const deal = toolDiscount > 0
+  // «Herramienta de costos · Completo» → «Completo» (nombre del nivel, como la maqueta).
+  const toolTier = tool ? (tool.name.split(' · ')[1] ?? '') : ''
   const total =
     course.priceMxn +
     bonuses.reduce((sum, b) => sum + b.priceMxn, 0) +
@@ -786,7 +786,7 @@ function CheckoutForm({
               >
                 <span className="text-15 font-black md:text-base">
                   {withTool || !deal
-                    ? `Agrega la herramienta de costos${deal ? ` con ${toolDiscount}% de descuento` : ''}`
+                    ? `Agrega la herramienta de costos${toolTier ? ` ${toolTier}` : ''}${deal ? ` con ${toolDiscount}% de descuento` : ''}`
                     : '¿Seguro que no la quieres?'}
                 </span>
                 <span className="text-landing-muted">

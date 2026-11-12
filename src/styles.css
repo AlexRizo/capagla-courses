@@ -257,6 +257,17 @@
   --color-landing-grape: #b83bcc;
   --color-landing-grape-dark: #8a2088;
   --color-landing-berry: #a3027f;
+  /* Home: sección oscura «Herramienta de costos» y su carrusel (maqueta última) */
+  --color-landing-plum: #5b1f7a;
+  --color-landing-haze: #f1e3f6;
+  --color-landing-blush: #fbd0e4;
+  --color-landing-slide-ink: #1c1220;
+  --color-landing-slide-end: #ecd3f4;
+  --color-landing-good: #14632f;
+  --color-landing-good-bg: #dff3e4;
+  --color-landing-done: #a596ab;
+  --color-landing-bar: #d9b8e3;
+  --font-system: system-ui, sans-serif;
   /* Curso de costeo: gráfica «¿Cuánto te queda por postre?» y temario */
   --color-costing-ink: #2b1732;
   --color-costing-muted: #674d71;
@@ -280,6 +291,8 @@
   --color-player-moment: #ffd166;
 
   --text-10: 10px;
+  --text-44: 44px;
+  --text-48: 48px;
   --text-11: 11px;
   --text-13: 13px;
   --text-19: 19px;
@@ -332,6 +345,7 @@
   --tracking-landing-title-2xs: -0.6px;
   --tracking-landing-title-3xs: -0.3px;
   --tracking-landing-caps-lg: 0.8px;
+  --tracking-landing-title-6xl: -1.2px;
   --tracking-landing-hero: -2px;
   --tracking-landing-kicker: 0.12em;
   --tracking-landing-tight: -0.04em;
@@ -355,6 +369,8 @@
   --shadow-admin-dialog: 0 24px 64px rgba(0, 0, 0, 0.3);
   --shadow-landing-play: 0 8px 24px rgba(42, 18, 51, 0.3);
   --shadow-landing-card-lg: 0 12px 32px rgba(107, 24, 165, 0.08);
+  --shadow-landing-slide: 0 10px 24px rgba(42, 18, 51, 0.12);
+  --shadow-landing-arrow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 
 @utility bg-stripes-sm {

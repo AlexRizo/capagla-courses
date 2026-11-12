@@ -1,5 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 
+import { HomeTool } from '#/components/home-tool'
 import { MobileMenu } from '#/components/mobile-menu'
 import { getHomeProducts } from '#/lib/home'
 
@@ -15,15 +16,13 @@ const solid =
 const outline =
   'flex items-center justify-center rounded-12 border-1.5 border-landing-primary font-black text-landing-primary no-underline'
 
-type HomeProduct = Awaited<ReturnType<typeof getHomeProducts>>[number]
+type HomeCourse = Awaited<ReturnType<typeof getHomeProducts>>['courses'][number]
 
-// Dónde lleva "Ver el curso" / "Ver detalles": la página de venta si existe; la herramienta
-// va al checkout (como en la maqueta) y el resto de detalles aún no tiene pantalla.
-const link = (p: HomeProduct) =>
-  p.hasPage ? `/cursos/${p.slug}` : p.isTool ? '/checkout' : '#'
+// "Ver el curso" lleva a la página base del curso (si aún no tiene, a ninguna parte).
+const link = (c: HomeCourse) => (c.hasPage ? `/cursos/${c.slug}` : '#')
 
 function Home() {
-  const products = Route.useLoaderData()
+  const { courses, toolFromMxn } = Route.useLoaderData()
   return (
     <div className="min-h-screen bg-landing-page font-sans text-landing-ink">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-landing-line bg-white px-4 py-3 md:px-8 md:py-3.5">
@@ -37,6 +36,11 @@ function Home() {
           <a href="#cursos" className={nav}>
             Cursos
           </a>
+          {toolFromMxn !== null && (
+            <a href="/herramienta-de-costos" className={nav}>
+              Herramienta
+            </a>
+          )}
           <a href="/clase-gratis" className={nav}>
             Clase gratis
           </a>
@@ -53,6 +57,9 @@ function Home() {
         <MobileMenu
           items={[
             { href: '#cursos', label: 'Cursos' },
+            ...(toolFromMxn !== null
+              ? [{ href: '/herramienta-de-costos', label: 'Herramienta' }]
+              : []),
             { href: '/clase-gratis', label: 'Clase gratis' },
             { href: '#gladis', label: 'Quién soy' },
           ]}
@@ -124,8 +131,8 @@ function Home() {
         <h2 className="m-0 text-2xl font-black tracking-landing-logo md:text-32 md:tracking-landing-title-md">
           Cursos
         </h2>
-        <div className="hidden gap-6 md:grid md:grid-cols-2 lg:grid-cols-3">
-          {products.map((c) => (
+        <div className="hidden gap-6 md:grid md:grid-cols-2">
+          {courses.map((c, i) => (
             <div
               key={c.slug}
               className="flex flex-col overflow-hidden rounded-20 border border-landing-line bg-white"
@@ -139,14 +146,9 @@ function Home() {
                   />
                 </div>
               )}
-              {!c.coverUrl && !c.isTool && (
+              {!c.coverUrl && (
                 <div className="flex aspect-video items-center justify-center bg-stripes-lg font-bold text-landing-primary">
                   [Imagen del curso]
-                </div>
-              )}
-              {!c.coverUrl && c.isTool && (
-                <div className="flex aspect-video items-center justify-center bg-landing-ink p-5 text-center text-2xl font-black text-landing-neon">
-                  Herramienta de costos
                 </div>
               )}
               <div className="flex flex-1 flex-col gap-2.5 p-6">
@@ -161,9 +163,9 @@ function Home() {
                   <span className="text-2xl font-black">${c.priceMxn} MXN</span>
                   <a
                     href={link(c)}
-                    className={`${c.hasPage ? solid : outline} min-h-11.5 px-5.5 text-base`}
+                    className={`${i === 0 ? solid : outline} min-h-11.5 px-5.5 text-base`}
                   >
-                    {c.hasPage ? 'Ver el curso' : 'Ver detalles'}
+                    Ver el curso
                   </a>
                 </div>
               </div>
@@ -171,7 +173,7 @@ function Home() {
           ))}
         </div>
         <div className="flex flex-col gap-3 md:hidden">
-          {products.map((c) => (
+          {courses.map((c, i) => (
             <div
               key={c.slug}
               className="flex gap-3 rounded-16 border border-landing-line bg-white p-3"
@@ -185,14 +187,9 @@ function Home() {
                   />
                 </div>
               )}
-              {!c.coverUrl && !c.isTool && (
+              {!c.coverUrl && (
                 <div className="flex size-24 flex-none items-center justify-center overflow-hidden rounded-12 bg-stripes-sm text-center text-11 font-bold text-landing-primary">
                   [Imagen]
-                </div>
-              )}
-              {!c.coverUrl && c.isTool && (
-                <div className="box-border flex size-24 flex-none items-center justify-center rounded-12 bg-landing-ink p-2 text-center text-sm font-black text-landing-neon">
-                  Herramienta de costos
                 </div>
               )}
               <div className="flex flex-1 flex-col gap-1">
@@ -206,7 +203,7 @@ function Home() {
                     href={link(c)}
                     className="text-sm font-black text-landing-primary no-underline"
                   >
-                    {c.hasPage ? 'Ver el curso' : 'Ver detalles'} →
+                    {i === 0 ? 'Ver el curso' : 'Ver detalles'} →
                   </a>
                 </div>
               </div>
@@ -214,6 +211,8 @@ function Home() {
           ))}
         </div>
       </div>
+
+      {toolFromMxn !== null && <HomeTool fromMxn={toolFromMxn} />}
 
       <div id="gladis" className="border-y border-landing-line bg-white">
         <div className="mx-auto flex max-w-280 flex-col items-center gap-3 px-4 py-7 text-center md:flex-row md:flex-wrap md:items-center md:gap-10 md:px-8 md:py-16 md:text-left">

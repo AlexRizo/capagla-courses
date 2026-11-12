@@ -42,8 +42,9 @@ const products = [
     compareAtMxn: null,
     status: 'DRAFT',
     position: 1,
-    description: null,
-    coverUrl: null,
+    description:
+      'Saca lo que de verdad te cuesta cada postre y ponle precio. 8 videos cortos con Gladis.',
+    coverUrl: '/images/aprende-a-costear.jpg',
   },
   {
     slug: 'herramienta-costos',

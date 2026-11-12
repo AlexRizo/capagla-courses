@@ -1,5 +1,5 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { captureAttribution } from '#/lib/attribution'
 import { getConsent, setConsent } from '#/lib/consent'
@@ -11,19 +11,41 @@ export function CookieNotice() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   // Sin elección guardada se muestra; se decide ya montado para no chocar con el HTML del servidor.
   const [visible, setVisible] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     captureAttribution()
     setVisible(getConsent() === null)
   }, [])
 
-  if (
+  const hidden =
     !visible ||
     pathname.startsWith('/admin') ||
     pathname.startsWith('/herramienta') ||
     pathname.startsWith('/lista-de-tienda')
-  )
-    return null
+
+  // Mientras se ve, el aviso (fijo abajo) tapaba el final de la página: en móvil, el botón
+  // «Pagar» del checkout. Se deja abajo un espacio del alto del aviso para poder pasar de él.
+  useEffect(() => {
+    const el = ref.current
+    if (hidden || !el) return
+    const body = document.body
+    const reserve = () => {
+      const gap = window.innerHeight - el.getBoundingClientRect().top
+      body.style.paddingBottom = `${Math.ceil(gap)}px`
+    }
+    reserve()
+    const observer = new ResizeObserver(reserve)
+    observer.observe(el)
+    window.addEventListener('resize', reserve)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', reserve)
+      body.style.paddingBottom = ''
+    }
+  }, [hidden])
+
+  if (hidden) return null
 
   function choose(choice: 'accepted' | 'rejected') {
     setConsent(choice)
@@ -32,6 +54,7 @@ export function CookieNotice() {
 
   return (
     <div
+      ref={ref}
       role="region"
       aria-label="Aviso de cookies"
       className="fixed inset-x-3 bottom-3 z-60 mx-auto flex max-w-160 flex-col gap-3 rounded-16 border border-landing-line bg-white p-4 text-landing-ink shadow-landing-card md:inset-x-auto md:right-6 md:bottom-6 md:mx-0 md:w-100"

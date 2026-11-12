@@ -18,7 +18,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { z } from 'zod'
 
-import { RENEWAL_DISCOUNT_PCT, mxn } from '#/lib/catalog'
+import {
+  RENEWAL_DISCOUNT_PCT,
+  TOOL_RENEWAL_DISCOUNT_PCT,
+  mxn,
+} from '#/lib/catalog'
 import { getCheckoutData, getThanksOrder, startCheckout } from '#/lib/checkout'
 import { track } from '#/lib/track-client'
 
@@ -963,7 +967,7 @@ function CheckoutForm({
           <div className="text-13 leading-normal text-landing-muted">
             {special && `Precio especial${until ? ` hasta el ${until}` : ''}. `}
             {renewal &&
-              `${course.label === 'Herramienta' ? 'Precio de renovación (el mismo del primer año)' : `Precio de renovación (${RENEWAL_DISCOUNT_PCT}% de descuento)`}. Los días que te queden se suman. `}
+              `${`Precio de renovación (${course.label === 'Herramienta' ? TOOL_RENEWAL_DISCOUNT_PCT : RENEWAL_DISCOUNT_PCT}% de descuento)`}. Los días que te queden se suman. `}
             {upgradeUntil &&
               `Pagas solo la diferencia con tu nivel actual y conservas tu vencimiento (${upgradeUntil}). `}
             Acceso inmediato.

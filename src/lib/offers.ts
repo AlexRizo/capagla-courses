@@ -2,7 +2,11 @@ import { createHmac } from 'node:crypto'
 
 import { prisma } from '#/db'
 import { env } from '#/env'
-import { COURSE_SLUG, RENEWAL_DISCOUNT_PCT } from '#/lib/catalog'
+import {
+  COURSE_SLUG,
+  RENEWAL_DISCOUNT_PCT,
+  TOOL_RENEWAL_DISCOUNT_PCT,
+} from '#/lib/catalog'
 import { isAdminRequest } from '#/lib/guards'
 import { GRACE_MS, promotionApplies } from '#/lib/promotions'
 
@@ -80,15 +84,18 @@ const asProduct = (
 // vencido o cuando faltan 30 días o menos.
 const RENEWAL_WINDOW_MS = 30 * 24 * 60 * 60 * 1000
 
-// La herramienta de costos se renueva al mismo precio del primer año (respuesta de la chef,
-// 2026-10-27); los cursos, con el descuento.
+// La herramienta de costos se renueva con `TOOL_RENEWAL_DISCOUNT_PCT` (antes, al mismo precio del
+// primer año; cambió con la maqueta última, 2026-11-11); los cursos, con `RENEWAL_DISCOUNT_PCT`.
 export const renewalPrice = (
   normalMxn: number,
   kind: 'COURSE' | 'TOOL' = 'COURSE',
 ) =>
-  kind === 'TOOL'
-    ? normalMxn
-    : Math.round((normalMxn * (100 - RENEWAL_DISCOUNT_PCT)) / 100)
+  Math.round(
+    (normalMxn *
+      (100 -
+        (kind === 'TOOL' ? TOOL_RENEWAL_DISCOUNT_PCT : RENEWAL_DISCOUNT_PCT))) /
+      100,
+  )
 
 export const canRenew = (expiresAt: Date, now = new Date()) =>
   expiresAt.getTime() - now.getTime() <= RENEWAL_WINDOW_MS

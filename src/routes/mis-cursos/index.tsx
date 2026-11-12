@@ -12,7 +12,11 @@ import {
   textBtn,
 } from '#/components/landing-form-styles'
 import { authClient } from '#/lib/auth-client'
-import { RENEWAL_DISCOUNT_PCT, mxn } from '#/lib/catalog'
+import {
+  RENEWAL_DISCOUNT_PCT,
+  TOOL_RENEWAL_DISCOUNT_PCT,
+  mxn,
+} from '#/lib/catalog'
 import { getMyCourses, sendTicket, setMyPassword } from '#/lib/session'
 import { cn } from '#/lib/utils'
 
@@ -511,17 +515,17 @@ function ToolCard({ tool }: { tool: MyTool }) {
                   Tu acceso vence en {daysLeft}{' '}
                   {daysLeft === 1 ? 'día' : 'días'}.
                 </strong>{' '}
-                Renuévalo por {mxn(renewalMxn)} y suma {accessDays} días a los
-                que te quedan.{' '}
+                Renuévalo con {TOOL_RENEWAL_DISCOUNT_PCT}% de descuento por{' '}
+                {mxn(renewalMxn)} y suma {accessDays} días a los que te quedan.{' '}
                 <Link {...renewLink} className="font-bold text-landing-primary">
                   Renovar
                 </Link>
               </>
             ) : (
               <>
-                <strong>Tu acceso venció.</strong> Renuévalo por{' '}
-                {mxn(renewalMxn)} y tienes {accessDays} días más. Tus datos se
-                conservan.
+                <strong>Tu acceso venció.</strong> Renuévalo con{' '}
+                {TOOL_RENEWAL_DISCOUNT_PCT}% de descuento por {mxn(renewalMxn)}{' '}
+                y tienes {accessDays} días más. Tus datos se conservan.
               </>
             )}
           </div>

@@ -311,9 +311,9 @@ describe('renovación', () => {
     expect(renewalPrice(897)).toBe(135)
   })
 
-  it('la herramienta se renueva al mismo precio del primer año, sin descuento', () => {
-    expect(renewalPrice(299, 'TOOL')).toBe(299)
-    expect(renewalPrice(399, 'TOOL')).toBe(399)
+  it('la herramienta se renueva con 15% de descuento', () => {
+    expect(renewalPrice(429, 'TOOL')).toBe(365)
+    expect(renewalPrice(569, 'TOOL')).toBe(484)
   })
 
   it('se puede renovar con 30 días o menos, o vencido', () => {

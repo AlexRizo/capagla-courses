@@ -141,7 +141,7 @@ export const getMyCourses = createServerFn().handler(async () => {
 
   // La herramienta de costos, con sus niveles (cada uno es un producto): una administradora siempre
   // tiene acceso; una alumna, con el nivel más alto que tenga vigente. Sin acceso se ofrece comprar
-  // (precio normal) o, si lo tuvo y venció o le falta poco, renovar (al mismo precio); con el básico
+  // (precio normal) o, si lo tuvo y venció o le falta poco, renovar (con `TOOL_RENEWAL_DISCOUNT_PCT`); con el básico
   // se ofrece el completo. Sin la herramienta a la venta no se muestra nada.
   const toolProducts = await prisma.product.findMany({
     where: { kind: 'TOOL', status: 'PUBLISHED' },

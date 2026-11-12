@@ -35,6 +35,7 @@ describe('textos legales', () => {
     const text = JSON.stringify(LEGAL_DOCS.privacidad)
     expect(text).toContain(LEGAL.responsable)
     expect(text).toContain(LEGAL.email)
+    expect(text).toContain(`con domicilio en ${LEGAL.domicilio}`)
     expect(text).toContain('ARCO')
   })
 

@@ -4,12 +4,15 @@
 // Son un borrador sin revisión legal; lo que dependa de datos del negocio está en `LEGAL`.
 
 export const LEGAL = {
-  // Quién es el responsable de los datos. Poner el nombre completo o la razón social.
-  responsable: 'Capagla',
+  // Responsable de los datos: la chef, como persona física (dato del cliente, 2026-11-11).
+  responsable: 'Gladis de Jesus Castillo Aparicio',
   // Domicilio del responsable (el aviso de privacidad debe tenerlo). Sin él, no se muestra la línea.
-  domicilio: null as string | null,
-  email: 'contacto@capagla.com',
-  actualizado: '5 de noviembre de 2026',
+  domicilio:
+    'Federico Cárdenas Barajas #234D, Colonia Primaveras, Villa de Álvarez, Colima, México' as
+      string | null,
+  // Correo para dudas y derechos ARCO (el mismo de soporte del checkout).
+  email: 'soporte@capagla.com',
+  actualizado: '11 de noviembre de 2026',
 }
 
 export type LegalSection = {
@@ -145,7 +148,7 @@ const terms: LegalDoc = {
     {
       heading: 'Qué ofrecemos',
       paragraphs: [
-        'Capagla es una escuela en línea de repostería de la chef Gladis. Vendemos cursos en video con recetas y recursos descargables, y una herramienta de costos con niveles (por ejemplo, Básico y Completo) para calcular lo que cuestan tus postres.',
+        `Capagla es una escuela en línea de repostería de la chef Gladis, que opera ${responsable}${domicilio ? `, con domicilio en ${domicilio}` : ''}. Vendemos cursos en video con recetas y recursos descargables, y una herramienta de costos con niveles (por ejemplo, Básico y Completo) para calcular lo que cuestan tus postres.`,
       ],
     },
     {

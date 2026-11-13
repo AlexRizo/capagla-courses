@@ -21,7 +21,10 @@ import { toLocalInput } from '#/lib/promotions'
 import { cn } from '#/lib/utils'
 
 type User = Awaited<ReturnType<typeof getAdminUser>>
-type Result = { error: string } | { ok: true } | { id: string }
+type Result =
+  | { error: string }
+  | { ok: true; includedCourse?: string | null }
+  | { id: string }
 
 const card =
   'flex flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-xs'
@@ -58,7 +61,7 @@ function useAction() {
 
   async function run(
     action: () => Promise<Result>,
-    ok?: string,
+    ok?: string | ((result: Result) => string),
     after?: (result: Result) => void | Promise<void>,
   ) {
     setBusy(true)
@@ -69,7 +72,12 @@ function useAction() {
         setMessage({ text: result.error, error: true })
         return
       }
-      if (ok) setMessage({ text: ok, error: false })
+      if (ok) {
+        setMessage({
+          text: typeof ok === 'function' ? ok(result) : ok,
+          error: false,
+        })
+      }
       await after?.(result)
       await router.invalidate()
     } catch {
@@ -228,7 +236,12 @@ function DataCard({ user }: { user: User }) {
 
 function AccessCard({ user }: { user: User }) {
   const { busy, message, run } = useAction()
-  const [productId, setProductId] = useState(user.available[0]?.id ?? '')
+  const [chosenId, setChosenId] = useState(user.available[0]?.id ?? '')
+  // Al dar un acceso la lista cambia (sale lo otorgado, el curso incluido y los otros niveles):
+  // si lo elegido ya no está, se toma el primero que quede.
+  const chosen =
+    user.available.find((p) => p.id === chosenId) ?? user.available.at(0)
+  const productId = chosen?.id ?? ''
   const [days, setDays] = useState(user.available[0]?.accessDays ?? 365)
   const [confirmRevoke, setConfirmRevoke] = useState<string | null>(null)
 
@@ -256,7 +269,10 @@ function AccessCard({ user }: { user: User }) {
             e.preventDefault()
             void run(
               () => grantAccess({ data: { userId: user.id, productId, days } }),
-              'Acceso otorgado',
+              (result) =>
+                'includedCourse' in result && result.includedCourse
+                  ? `Acceso otorgado. También se dio ${result.includedCourse} (incluido con la herramienta).`
+                  : 'Acceso otorgado',
             )
           }}
           className="flex flex-wrap items-end gap-2 border-t border-border pt-3"
@@ -269,7 +285,7 @@ function AccessCard({ user }: { user: User }) {
               id="grant-product"
               value={productId}
               onChange={(e) => {
-                setProductId(e.target.value)
+                setChosenId(e.target.value)
                 const next = user.available.find((p) => p.id === e.target.value)
                 if (next) setDays(next.accessDays)
               }}

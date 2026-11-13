@@ -46,3 +46,38 @@ export function searchWhere(query: string) {
     ],
   }
 }
+
+// Acceso a mano desde el panel. Como en el checkout, nunca dos niveles de la herramienta:
+// quien ya tiene uno (vigente o vencido) no puede recibir otro; para cambiar de nivel se
+// quita el que tiene y se da el otro.
+export const SECOND_TIER_MESSAGE =
+  'Ya tiene otro nivel de la herramienta. Quítalo primero para dar este.'
+
+type Kind = 'COURSE' | 'TOOL'
+
+export function secondTierError(kind: Kind, ownedKinds: Kind[]) {
+  return kind === 'TOOL' && ownedKinds.includes('TOOL')
+    ? SECOND_TIER_MESSAGE
+    : null
+}
+
+// Productos que se ofrecen en «Dar acceso a»: los que no tiene y, si ya tiene un nivel de la
+// herramienta, ningún otro nivel.
+export function grantableProducts<TProduct extends { id: string; kind: Kind }>(
+  products: TProduct[],
+  owned: { productId: string; kind: Kind }[],
+) {
+  const ownedIds = new Set(owned.map((o) => o.productId))
+  const hasTool = owned.some((o) => o.kind === 'TOOL')
+  return products.filter(
+    (p) => !ownedIds.has(p.id) && !(hasTool && p.kind === 'TOOL'),
+  )
+}
+
+// La herramienta incluye el curso Aprende a Costear (misma regla que la compra): al darla a
+// mano, el curso queda con el vencimiento mayor entre el que ya tenía y el de la herramienta.
+// Devuelve la fecha a guardar, o null si no hay que tocar el curso.
+export function includedCourseExpiry(toolExpiresAt: Date, current?: Date) {
+  if (current && current.getTime() >= toolExpiresAt.getTime()) return null
+  return toolExpiresAt
+}

@@ -7,7 +7,15 @@ import { auth } from '#/lib/auth'
 import { requireAdmin } from '#/lib/guards'
 import { withLinkPurpose } from '#/lib/mailer'
 import { fromLocalInput } from '#/lib/promotions'
-import { filterWhere, forbiddenOnSelf, searchWhere } from '#/lib/user-rules'
+import { TOOL_INCLUDED_COURSE_SLUG } from '#/lib/tool-tiers'
+import {
+  filterWhere,
+  forbiddenOnSelf,
+  grantableProducts,
+  includedCourseExpiry,
+  searchWhere,
+  secondTierError,
+} from '#/lib/user-rules'
 
 // Módulo de usuarios del panel. Toda función lleva `requireAdmin`: el `beforeLoad` de /admin
 // solo protege la pantalla, no los datos. Los errores que la administradora debe leer se
@@ -84,11 +92,13 @@ export const getAdminUser = createServerFn()
       },
     })
     if (!user) throw notFound()
-    const owned = user.enrollments.map((e) => e.productId)
-    const available = await prisma.product.findMany({
-      where: { id: { notIn: owned } },
-      orderBy: { position: 'asc' },
-    })
+    const available = grantableProducts(
+      await prisma.product.findMany({ orderBy: { position: 'asc' } }),
+      user.enrollments.map((e) => ({
+        productId: e.productId,
+        kind: e.product.kind,
+      })),
+    )
     const now = Date.now()
     return {
       id: user.id,
@@ -268,25 +278,62 @@ export const grantAccess = createServerFn({ method: 'POST' })
     }),
   )
   .handler(async ({ data }) => {
-    const [user, product, current] = await Promise.all([
+    const [user, product, owned] = await Promise.all([
       prisma.user.findUnique({ where: { id: data.userId } }),
       prisma.product.findUnique({ where: { id: data.productId } }),
-      prisma.enrollment.findUnique({
-        where: {
-          userId_productId: { userId: data.userId, productId: data.productId },
-        },
+      prisma.enrollment.findMany({
+        where: { userId: data.userId },
+        include: { product: { select: { kind: true, slug: true } } },
       }),
     ])
     if (!user || !product) throw notFound()
-    if (current) return { error: 'Ya tiene acceso a ese producto.' }
-    await prisma.enrollment.create({
-      data: {
-        userId: user.id,
-        productId: product.id,
-        expiresAt: new Date(Date.now() + data.days * DAY_MS),
-      },
-    })
-    return { ok: true as const }
+    if (owned.some((e) => e.productId === product.id))
+      return { error: 'Ya tiene acceso a ese producto.' }
+    const tierError = secondTierError(
+      product.kind,
+      owned.map((e) => e.product.kind),
+    )
+    if (tierError) return { error: tierError }
+
+    const expiresAt = new Date(Date.now() + data.days * DAY_MS)
+    // La herramienta incluye el curso Aprende a Costear, como al comprarla.
+    const course =
+      product.kind === 'TOOL'
+        ? await prisma.product.findUnique({
+            where: { slug: TOOL_INCLUDED_COURSE_SLUG },
+          })
+        : null
+    const courseExpiry = course
+      ? includedCourseExpiry(
+          expiresAt,
+          owned.find((e) => e.productId === course.id)?.expiresAt,
+        )
+      : null
+
+    await prisma.$transaction([
+      prisma.enrollment.create({
+        data: { userId: user.id, productId: product.id, expiresAt },
+      }),
+      ...(course && courseExpiry
+        ? [
+            prisma.enrollment.upsert({
+              where: {
+                userId_productId: { userId: user.id, productId: course.id },
+              },
+              create: {
+                userId: user.id,
+                productId: course.id,
+                expiresAt: courseExpiry,
+              },
+              update: { expiresAt: courseExpiry },
+            }),
+          ]
+        : []),
+    ])
+    return {
+      ok: true as const,
+      includedCourse: course && courseExpiry ? course.name : null,
+    }
   })
 
 // Cambia el vencimiento de un acceso: el último minuto (23:59, hora de México) de esa fecha.

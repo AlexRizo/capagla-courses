@@ -536,8 +536,7 @@ function ToolCard({ tool }: { tool: MyTool }) {
             Costo por porción y precio sugerido de cada receta.
           </span>
           <span className="hidden md:inline">
-            Calcula el costo por porción y el precio sugerido de cada receta,
-            con las recetas del curso ya cargadas.
+            Calcula el costo por porción y el precio sugerido de cada receta.
           </span>
         </div>
         {tool.expiresAt && (

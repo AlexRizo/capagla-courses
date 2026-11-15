@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { prisma } from '#/db'
 import { env } from '#/env'
-import { findFreeLesson } from '#/lib/free-class'
+import { findFreeLesson } from '#/lib/free-lesson'
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')

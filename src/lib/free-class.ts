@@ -3,7 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { getCookie, getRequestHeaders } from '@tanstack/react-start/server'
 import { z } from 'zod'
 
-import { prisma } from '#/db'
+import { findFreeLesson } from '#/lib/free-lesson'
 import { saveLead } from '#/lib/leads'
 import { placeholderName } from '#/lib/account-name'
 import {
@@ -14,25 +14,7 @@ import {
 import { auth } from '#/lib/auth'
 import { CONSENT_COOKIE, parseConsent } from '#/lib/consent'
 import { withLinkPurpose } from '#/lib/mailer'
-import { buildPlayerTree, onlyFreeItems } from '#/lib/player-tree'
 import { tooManyAttempts } from '#/lib/rate-limit'
-
-// La clase gratis es el primer bloque gratis de un curso publicado: su primera lección es donde
-// aterriza quien se registra. Sin bloque gratis (o sin lecciones) no hay clase gratis.
-export async function findFreeLesson() {
-  const courses = await prisma.product.findMany({
-    where: { kind: 'COURSE', status: 'PUBLISHED' },
-    orderBy: { position: 'asc' },
-  })
-  for (const course of courses) {
-    const items = await prisma.courseItem.findMany({
-      where: { productId: course.id },
-    })
-    const { order } = buildPlayerTree(onlyFreeItems(items), new Set())
-    if (order.length) return { slug: course.slug, lessonId: order[0].lesson.id }
-  }
-  return null
-}
 
 // La página /clase-gratis solo existe si hay una clase gratis que entregar.
 export const requireFreeClass = createServerFn().handler(async () => {

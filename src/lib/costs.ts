@@ -62,8 +62,9 @@ const money = (value: number, decimals: number, maxDecimals = decimals) =>
     maximumFractionDigits: maxDecimals,
   })}`
 
-// "$251.00": lo que se paga.
-export const formatPrice = (value: number) => money(value, 2)
+// "$251": costos, precios y ganancias van en pesos enteros (H30). Los centavos solo en el costo
+// de una unidad (`formatUnitCost`).
+export const formatPrice = (value: number) => money(Math.round(value), 0)
 
 // "$6,000" o "$13.85": una cantidad con sus centavos solo si los tiene.
 export const formatAmount = (value: number) => money(value, 0, 2)

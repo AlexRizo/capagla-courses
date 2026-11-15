@@ -107,11 +107,12 @@ export function verdictOf(
   return price > Math.max(target, multiplier) * cost ? 'GREAT' : 'GOOD'
 }
 
+// Los mismos 4 nombres que la página de venta de la herramienta (H30; Cheko confirma).
 export const VERDICT_LABEL: Record<Verdict, string> = {
   NONE: 'Faltan datos',
-  LOSS: 'Vendes a pérdida',
-  LOW: 'Te queda poco',
-  GOOD: 'Buen margen',
+  LOSS: 'Pierdes',
+  LOW: 'Ganas poco',
+  GOOD: 'Buen precio',
   GREAT: 'Excelente',
 }
 
@@ -165,7 +166,10 @@ export function productSummary(i: ProductSummaryInput) {
   const incomplete =
     i.recipes.length === 0 || i.recipes.some((r) => r.empty || r.total === null)
   const recipesCost = i.recipes.reduce((s, r) => s + (r.total ?? 0), 0)
-  const wholeCost = recipesCost + i.packagingWhole
+  // Costos, precios y ganancias van en pesos enteros (H30): el costo se redondea aquí, una sola
+  // vez, y todo lo que sale de él (ganancia, semáforo, producción, cotización) usa ese valor, así
+  // las cuentas cuadran ($187 a $500 deja $313; 3 piezas cuestan $561).
+  const wholeCost = Math.round(recipesCost + i.packagingWhole)
   // El precio ya incluye el impuesto: el margen y el semáforo salen del neto, precio ÷ (1 + tasa).
   const taxFactor = 1 + (i.taxPct ?? 0) / 100
   const net = (price: number | null) =>
@@ -191,7 +195,7 @@ export function productSummary(i: ProductSummaryInput) {
   if (i.sellsSlices && i.slicesPerPiece && i.slicesPerPiece > 0) {
     const n = i.slicesPerPiece
     const portion = wholeCost / n
-    const cost = portion + i.packagingSlice
+    const cost = Math.round(portion + i.packagingSlice)
     slices = {
       count: n,
       portion,

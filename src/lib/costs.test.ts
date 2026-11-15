@@ -89,7 +89,8 @@ describe('formato', () => {
   })
 
   it('precio y cantidad de compra', () => {
-    expect(formatPrice(251)).toBe('$251.00')
+    expect(formatPrice(251)).toBe('$251')
+    expect(formatPrice(187.5)).toBe('$188')
     expect(purchaseLabel(1000, 'G')).toBe('1,000 g')
     expect(purchaseLabel(180, 'PZA')).toBe('180 pza')
   })

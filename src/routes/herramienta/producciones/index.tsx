@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { requireToolPage } from '#/lib/tool-access'
-import { formatAmount } from '#/lib/costs'
+import { formatPrice } from '#/lib/costs'
 import { getProductions } from '#/lib/tool-productions'
 import { HelpButton } from '#/components/tool/tool-help'
 
@@ -105,13 +105,13 @@ function Producciones() {
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  {formatAmount(p.buy)}
+                  {formatPrice(p.buy)}
                 </TableCell>
                 <TableCell className="text-right">
-                  {formatAmount(p.cost)}
+                  {formatPrice(p.cost)}
                 </TableCell>
                 <TableCell className="text-right">
-                  {formatAmount(p.sales)}
+                  {formatPrice(p.sales)}
                 </TableCell>
                 <TableCell className="pr-4">
                   <Badge variant="outline">

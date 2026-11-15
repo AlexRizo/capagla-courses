@@ -63,7 +63,7 @@ import {
 } from '#/lib/cost-product'
 import { ACCOUNTING_NOTE } from '#/lib/cost-settings'
 import type { Margin, Verdict } from '#/lib/cost-product'
-import { formatAmount, formatPrice, parseDecimal } from '#/lib/costs'
+import { formatPrice, parseDecimal } from '#/lib/costs'
 import { saveProduct, setProductArchived } from '#/lib/tool-products'
 import type { getProductForm } from '#/lib/tool-products'
 import { cn } from '#/lib/utils'
@@ -784,9 +784,7 @@ export function ProductForm({ data }: { data: Loaded }) {
                           <strong className="font-semibold">
                             {w.suggested === null
                               ? '—'
-                              : formatAmount(
-                                  Math.round(w.suggested * 100) / 100,
-                                )}
+                              : formatPrice(w.suggested)}
                           </strong>
                         </div>
                       </div>
@@ -799,7 +797,8 @@ export function ProductForm({ data }: { data: Loaded }) {
                             w.suggested !== null &&
                             form.setFieldValue(
                               'price',
-                              (Math.round(w.suggested * 100) / 100).toFixed(2),
+                              // En pesos enteros, como se muestra (H30).
+                              String(Math.round(w.suggested)),
                             )
                           }
                         >

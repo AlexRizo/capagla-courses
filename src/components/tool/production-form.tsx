@@ -35,7 +35,7 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { productionSchema, productionSummary } from '#/lib/cost-shopping'
-import { formatAmount, formatPrice, parseDecimal } from '#/lib/costs'
+import { formatPrice, parseDecimal } from '#/lib/costs'
 import { deleteProduction, saveProduction } from '#/lib/tool-productions'
 import type { getProductionForm } from '#/lib/tool-productions'
 import { HelpButton } from '#/components/tool/tool-help'
@@ -344,14 +344,10 @@ export function ProductionForm({ data }: { data: Loaded }) {
                         {m?.price == null ? '—' : formatPrice(m.price)}
                       </TableCell>
                       <TableCell className="text-right">
-                        {m
-                          ? formatAmount(Math.round(q * m.cost * 100) / 100)
-                          : '—'}
+                        {m ? formatPrice(q * m.cost) : '—'}
                       </TableCell>
                       <TableCell className="text-right">
-                        {m?.price == null
-                          ? '—'
-                          : formatAmount(Math.round(q * m.price * 100) / 100)}
+                        {m?.price == null ? '—' : formatPrice(q * m.price)}
                       </TableCell>
                       <TableCell className="pr-3">
                         <Button

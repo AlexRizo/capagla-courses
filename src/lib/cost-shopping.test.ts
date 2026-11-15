@@ -217,7 +217,7 @@ describe('texto para compartir', () => {
       39,
     )
     expect(text).toBe(
-      'Lista de compra · Pedidos de la semana\n\nHarinero ($39.00)\n• Harina: 3 × 1,000 g\n\nTotal estimado $39.00',
+      'Lista de compra · Pedidos de la semana\n\nHarinero ($39)\n• Harina: 3 × 1,000 g\n\nTotal estimado $39',
     )
   })
 })

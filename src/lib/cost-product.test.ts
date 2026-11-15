@@ -93,22 +93,22 @@ describe('ganancia', () => {
 describe('producto con rebanadas (Pastel Red Velvet)', () => {
   const s = productSummary(redVelvet)
 
-  it('entero: receta + empaque = $423.56, gana $96.44 y queda en amarillo', () => {
-    expect(s.whole.cost).toBeCloseTo(423.56)
-    expect(s.whole.margin?.gain).toBeCloseTo(96.44)
+  it('entero: receta + empaque = $423.56 → $424 (pesos enteros), gana $96 y queda en amarillo', () => {
+    expect(s.whole.cost).toBe(424)
+    expect(s.whole.margin?.gain).toBe(96)
     expect(s.whole.verdict).toBe('LOW')
   })
 
-  it('precio sugerido: 1.43 × $423.56 = $605.69', () => {
-    expect(s.whole.suggested).toBeCloseTo(605.69, 1)
+  it('precio sugerido: 1.43 × $424 = $606.32', () => {
+    expect(s.whole.suggested).toBeCloseTo(606.32, 1)
   })
 
-  it('rebanada: $423.56 ÷ 35 = $12.10, más $2.17 = $14.27; a $25 gana $10.73 (42.9%)', () => {
+  it('rebanada: $424 ÷ 35 = $12.11, más $2.17 = $14; a $25 gana $11 (44%)', () => {
     expect(s.slices?.portion).toBeCloseTo(12.1, 1)
-    expect(s.slices?.cost).toBeCloseTo(14.27, 1)
-    expect(s.slices?.margin?.gain).toBeCloseTo(10.73, 1)
-    expect(s.slices?.margin?.gainPct).toBeCloseTo(42.9, 1)
-    expect(s.slices?.margin?.ratio).toBeCloseTo(1.75, 2)
+    expect(s.slices?.cost).toBe(14)
+    expect(s.slices?.margin?.gain).toBe(11)
+    expect(s.slices?.margin?.gainPct).toBeCloseTo(44, 1)
+    expect(s.slices?.margin?.ratio).toBeCloseTo(1.79, 2)
     expect(s.slices?.verdict).toBe('GOOD')
   })
 
@@ -118,20 +118,20 @@ describe('producto con rebanadas (Pastel Red Velvet)', () => {
 })
 
 describe('otros productos de la maqueta', () => {
-  it('Pastel tradicional: $376.41 + $16.10 = $392.51, a $380 es pérdida', () => {
+  it('Pastel tradicional: $376.41 + $16.10 = $393, a $380 es pérdida', () => {
     const s = productSummary({
       ...redVelvet,
       recipes: [{ total: 376.41, ingredients: 90, empty: false }],
       sellsSlices: false,
       price: 380,
     })
-    expect(s.whole.cost).toBeCloseTo(392.51)
+    expect(s.whole.cost).toBe(393)
     expect(s.whole.verdict).toBe('LOSS')
-    expect(s.whole.suggested).toBeCloseTo(561.29, 1)
+    expect(s.whole.suggested).toBeCloseTo(561.99, 1)
     expect(s.slices).toBeNull()
   })
 
-  it('Brownie: $244.40 + $14 = $258.40, a $420 gana $161.60 (38.5%) y es buen margen', () => {
+  it('Brownie: $244.40 + $14 = $258, a $420 gana $162 (38.6%) y es buen precio', () => {
     const s = productSummary({
       ...redVelvet,
       recipes: [{ total: 244.4, ingredients: 100, empty: false }],
@@ -139,17 +139,17 @@ describe('otros productos de la maqueta', () => {
       sellsSlices: false,
       price: 420,
     })
-    expect(s.whole.margin?.gain).toBeCloseTo(161.6)
-    expect(s.whole.margin?.gainPct).toBeCloseTo(38.5, 1)
+    expect(s.whole.margin?.gain).toBe(162)
+    expect(s.whole.margin?.gainPct).toBeCloseTo(38.57, 1)
     expect(s.whole.verdict).toBe('GOOD')
-    expect(s.whole.suggested).toBeCloseTo(369.51, 1)
+    expect(s.whole.suggested).toBeCloseTo(368.94, 1)
   })
 })
 
 describe('múltiplo e impuesto', () => {
   it('el múltiplo siempre se aplica al costo total, con el mínimo del producto', () => {
     const general = productSummary({ ...redVelvet, multiplier: 2.5 })
-    expect(general.whole.suggested).toBeCloseTo(423.56 * 2.5)
+    expect(general.whole.suggested).toBeCloseTo(424 * 2.5)
     // $520 no llega a ×2.5 del costo total: amarillo
     expect(general.whole.verdict).toBe('LOW')
     const gancho = productSummary({ ...redVelvet, multiplier: 1.2 })
@@ -167,14 +167,14 @@ describe('múltiplo e impuesto', () => {
   })
 
   it('el precio ya incluye el impuesto: margen y semáforo salen de precio ÷ (1 + tasa)', () => {
-    // $580 con 16% son $500 netos: ganas $76.44, no $156.44
+    // $580 con 16% son $500 netos: ganas $76, no $156
     const s = productSummary({ ...redVelvet, price: 580, taxPct: 16 })
     expect(s.whole.netPrice).toBeCloseTo(500)
-    expect(s.whole.margin?.gain).toBeCloseTo(500 - 423.56)
-    expect(s.whole.margin?.ratio).toBeCloseTo(500 / 423.56)
+    expect(s.whole.margin?.gain).toBeCloseTo(500 - 424)
+    expect(s.whole.margin?.ratio).toBeCloseTo(500 / 424)
     // el mismo precio sin impuesto sí llegaría a un margen mayor
     const sin = productSummary({ ...redVelvet, price: 580 })
-    expect(sin.whole.margin?.gain).toBeCloseTo(580 - 423.56)
+    expect(sin.whole.margin?.gain).toBeCloseTo(580 - 424)
   })
 
   it('el impuesto puede bajar el semáforo: $520 con 16% son $448.28 netos', () => {
@@ -218,7 +218,7 @@ describe('producto incompleto', () => {
     const s = productSummary({ ...redVelvet, price: null })
     expect(s.whole.verdict).toBe('NONE')
     expect(s.whole.margin).toBeNull()
-    expect(s.whole.cost).toBeCloseTo(423.56)
+    expect(s.whole.cost).toBe(424)
   })
 })
 

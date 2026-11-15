@@ -15,6 +15,7 @@ import { auth } from '#/lib/auth'
 import { CONSENT_COOKIE, parseConsent } from '#/lib/consent'
 import { withLinkPurpose } from '#/lib/mailer'
 import { tooManyAttempts } from '#/lib/rate-limit'
+import { clientIp } from '#/lib/track-core'
 
 // La página /clase-gratis solo existe si hay una clase gratis que entregar.
 export const requireFreeClass = createServerFn().handler(async () => {
@@ -30,13 +31,22 @@ export const joinFreeClass = createServerFn({ method: 'POST' })
       consent: z.literal(true),
       // Casilla opcional de novedades (H22).
       newsletter: z.boolean().default(false),
+      // Campo trampa invisible: una persona lo deja vacío; un bot que llena todo, no.
+      website: z.string().max(200).optional(),
     }),
   )
   .handler(async ({ data }) => {
     const headers = getRequestHeaders()
     const email = data.email.toLowerCase()
-    const ip = headers.get('x-forwarded-for') ?? ''
-    if (tooManyAttempts(`gratis|${email}|${ip}`)) {
+    const ip = clientIp(headers.get('x-forwarded-for')) ?? ''
+    // Anti-spam en el servidor: el campo trampa lleno se responde igual que un registro normal,
+    // sin crear nada ni mandar correo. Límites: 5 por correo + IP cada 15 min y 20 registros por
+    // IP cada hora (que una misma IP no pueda dar de alta correos ajenos en masa).
+    if (data.website?.trim()) return { next: 'link' as const }
+    if (
+      tooManyAttempts(`gratis|${email}|${ip}`) ||
+      tooManyAttempts(`gratis-ip|${ip}`, 20, 60 * 60 * 1000)
+    ) {
       return { next: 'blocked' as const }
     }
 

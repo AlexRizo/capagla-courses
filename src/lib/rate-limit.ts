@@ -4,13 +4,17 @@ const MAX_ATTEMPTS = 5
 const WINDOW_MS = 15 * 60 * 1000
 const attempts = new Map<string, { count: number; resetAt: number }>()
 
-export function tooManyAttempts(key: string) {
+export function tooManyAttempts(
+  key: string,
+  max = MAX_ATTEMPTS,
+  windowMs = WINDOW_MS,
+) {
   const now = Date.now()
   const entry = attempts.get(key)
   if (!entry || entry.resetAt < now) {
-    attempts.set(key, { count: 1, resetAt: now + WINDOW_MS })
+    attempts.set(key, { count: 1, resetAt: now + windowMs })
     return false
   }
   entry.count += 1
-  return entry.count > MAX_ATTEMPTS
+  return entry.count > max
 }

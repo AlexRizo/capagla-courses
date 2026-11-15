@@ -41,7 +41,12 @@ function ClaseGratis() {
     setLoading(true)
     try {
       const { next } = await joinFreeClass({
-        data: { email, consent: true, newsletter },
+        data: {
+          email,
+          consent: true,
+          newsletter,
+          website: form.website.value,
+        },
       })
       if (next === 'blocked') {
         form.correo.setCustomValidity(
@@ -91,6 +96,17 @@ function ClaseGratis() {
           <h2 className="m-0 text-21 font-black tracking-landing-title-sm md:text-26 md:tracking-landing-logo">
             Recibe la clase en tu correo
           </h2>
+          {/* Campo trampa anti-spam: invisible y fuera del tabulador; solo un bot lo llena. */}
+          <div aria-hidden="true" className="sr-only">
+            <label htmlFor="website">No llenes este campo</label>
+            <input
+              id="website"
+              name="website"
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+            />
+          </div>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="correo" className="text-sm font-bold md:text-15">
               Tu correo

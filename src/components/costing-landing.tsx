@@ -368,7 +368,16 @@ function ExampleChart({ example }: { example: CostingCoursePage['example'] }) {
   const hiddenStart = (base.amount / sale) * 100
   const hiddenWidth = (hidden / sale) * 100
 
-  const Segment = ({ kind, amount }: { kind: CostingKind; amount: number }) => {
+  const Segment = ({
+    kind,
+    amount,
+    label = true,
+  }: {
+    kind: CostingKind
+    amount: number
+    // Sin el monto adentro: los costos ocultos lo llevan debajo de la barra.
+    label?: boolean
+  }) => {
     const { icon, bg, fg } = costStyle[kind]
     return (
       <span
@@ -379,9 +388,13 @@ function ExampleChart({ example }: { example: CostingCoursePage['example'] }) {
           background: `${segmentSheen}, ${bg}`,
         }}
       >
-        <span className="hidden items-center justify-center gap-[5px] text-xs font-bold whitespace-nowrap @min-[24px]:inline-flex">
-          <Svg className="block size-4.5 flex-none">{icon}</Svg>
-          <span className="hidden @min-[86px]:inline">${amount}</span>
+        {/* El monto siempre que quepa (también los tramos chicos de $2 y $1); el ícono, solo si
+            cabe junto a él (la leyenda de abajo ya los muestra). */}
+        <span className="hidden items-center justify-center gap-[5px] text-xs font-bold whitespace-nowrap @min-[20px]:inline-flex">
+          <Svg className="hidden size-4.5 flex-none @min-[64px]:block">
+            {icon}
+          </Svg>
+          {label && <span>${amount}</span>}
         </span>
       </span>
     )
@@ -497,10 +510,33 @@ function ExampleChart({ example }: { example: CostingCoursePage['example'] }) {
             aria-label={`$${sale} de venta, ${costs.map((c) => `${c.label} $${c.amount}`).join(', ')}, $${example.actual.profit} de utilidad`}
             className="relative flex h-11 overflow-hidden rounded-[9px] bg-costing-track md:h-14.5"
           >
-            {costs.map((c) => (
-              <Segment key={c.kind} kind={c.kind} amount={c.amount} />
+            {costs.map((c, i) => (
+              <Segment
+                key={c.kind}
+                kind={c.kind}
+                amount={c.amount}
+                label={i === 0}
+              />
             ))}
             <Profit amount={example.actual.profit} />
+          </div>
+          {/* Los costos ocultos son tramos angostos ($2, $6, $1): su monto va debajo, centrado en su
+              tramo, para que se lea también en el celular. */}
+          <div aria-hidden="true" className="relative mt-1 h-4">
+            {costs.slice(1).map((c, i) => {
+              const start = costs
+                .slice(0, i + 1)
+                .reduce((sum, x) => sum + x.amount, 0)
+              return (
+                <span
+                  key={c.kind}
+                  className="absolute top-0 -translate-x-1/2 text-xs font-bold whitespace-nowrap"
+                  style={{ left: `${((start + c.amount / 2) / sale) * 100}%` }}
+                >
+                  ${c.amount}
+                </span>
+              )
+            })}
           </div>
         </div>
       </div>

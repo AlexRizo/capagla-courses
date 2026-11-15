@@ -69,10 +69,15 @@ export const getMyCourses = createServerFn().handler(async () => {
       where: { productId: { in: ids }, kind: 'LESSON' },
       _count: true,
     }),
-    // "11 recetas": cada capítulo es una receta.
+    // "11 recetas": los capítulos con su lección «Receta» (H26: «Utensilios básicos» es un
+    // capítulo y no es receta).
     prisma.courseItem.groupBy({
       by: ['productId'],
-      where: { productId: { in: ids }, kind: 'CHAPTER' },
+      where: {
+        productId: { in: ids },
+        kind: 'CHAPTER',
+        children: { some: { kind: 'LESSON', title: 'Receta' } },
+      },
       _count: true,
     }),
     prisma.lessonProgress.findMany({

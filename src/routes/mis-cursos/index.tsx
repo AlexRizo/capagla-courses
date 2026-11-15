@@ -420,12 +420,21 @@ function FreeCourseCard({ course }: { course: FreeCourse }) {
   return (
     <div className="relative flex flex-col overflow-hidden rounded-2xl border border-landing-line bg-white md:flex-row md:flex-wrap md:rounded-20">
       <div className="aspect-video overflow-hidden bg-landing-cover md:relative md:aspect-auto md:min-h-55 md:grow md:basis-70">
+        {/* La portada se ve completa (H26): lo que sobra lo llena la misma imagen, borrosa. */}
         {course.coverUrl && (
-          <img
-            src={course.coverUrl}
-            alt={course.name}
-            className="block size-full object-cover md:absolute md:inset-0"
-          />
+          <div className="relative size-full md:absolute md:inset-0">
+            <img
+              src={course.coverUrl}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 size-full scale-110 object-cover blur-xl"
+            />
+            <img
+              src={course.coverUrl}
+              alt={course.name}
+              className="relative block size-full object-contain"
+            />
+          </div>
         )}
       </div>
       <div className="flex flex-col gap-3 p-4 md:grow-2 md:basis-100 md:justify-center md:gap-4 md:px-8 md:py-7">
@@ -472,6 +481,18 @@ function FreeCourseCard({ course }: { course: FreeCourse }) {
 // Herramienta de costos. Con acceso la abre; sin él ofrece comprarla a precio normal; vencida o
 // por vencer, renovarla con descuento (misma regla que los cursos). Ninguno de los tres botones
 // ni los avisos están en la maqueta (decisión del cliente, 2026-10-26).
+// «Completo» de «Herramienta de costos · Completo» (o «Herramienta de costos Completo»).
+const tierLabel = (name: string) =>
+  name.replace(/^Herramienta de costos\s*(·\s*)?/, '') || name
+
+const longDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('es-MX', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'America/Mexico_City',
+  })
+
 function ToolCard({ tool }: { tool: MyTool }) {
   const { active, renewalMxn, accessDays, options } = tool
   const daysLeft = tool.expiresAt
@@ -489,11 +510,12 @@ function ToolCard({ tool }: { tool: MyTool }) {
 
   return (
     <div className="flex items-center gap-3 overflow-hidden rounded-2xl border border-landing-line bg-white p-3 md:flex-wrap md:items-stretch md:gap-0 md:rounded-20 md:p-0">
-      <div className="flex size-21 shrink-0 items-center justify-center rounded-12 bg-landing-ink p-1.5 text-center text-13 font-black text-landing-neon md:size-auto md:min-h-35 md:grow md:basis-70 md:rounded-none md:p-5 md:text-2xl">
+      <div className="flex size-21 shrink-0 flex-col items-center justify-center rounded-12 bg-landing-ink p-1.5 text-center text-13 font-black text-landing-neon md:size-auto md:min-h-35 md:grow md:basis-70 md:rounded-none md:p-5 md:text-2xl">
         Herramienta de costos
         {active && (
           <span className="mt-1 block text-xs font-bold md:text-sm">
-            {tool.name.replace('Herramienta de costos · ', '')}
+            {' '}
+            {tierLabel(tool.name)}
           </span>
         )}
       </div>
@@ -507,6 +529,12 @@ function ToolCard({ tool }: { tool: MyTool }) {
             con las recetas del curso ya cargadas.
           </span>
         </div>
+        {tool.expiresAt && (
+          <div className="text-sm text-landing-muted md:text-15">
+            Tu acceso {active ? 'vence' : 'venció'} el{' '}
+            {longDate(tool.expiresAt)}
+          </div>
+        )}
         {renewalMxn !== null && (
           <div className="rounded-xl border-1.5 border-landing-warn-line bg-landing-warn p-3 text-13 leading-normal md:text-15">
             {active ? (
@@ -566,13 +594,7 @@ function ToolCard({ tool }: { tool: MyTool }) {
 }
 
 function CourseCard({ course }: { course: MyCourse }) {
-  const expires =
-    course.expiresAt &&
-    new Date(course.expiresAt).toLocaleDateString('es-MX', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
+  const expires = course.expiresAt && longDate(course.expiresAt)
   const { active, lessons, seen, renewalMxn } = course
   const pct = lessons ? Math.round((seen / lessons) * 100) : 0
   const daysLeft = course.expiresAt
@@ -589,12 +611,21 @@ function CourseCard({ course }: { course: MyCourse }) {
   return (
     <div className="relative flex flex-col overflow-hidden rounded-2xl border border-landing-line bg-white md:flex-row md:flex-wrap md:rounded-20">
       <div className="aspect-video overflow-hidden bg-landing-cover md:relative md:aspect-auto md:min-h-55 md:grow md:basis-70">
+        {/* La portada se ve completa (H26): lo que sobra lo llena la misma imagen, borrosa. */}
         {course.coverUrl && (
-          <img
-            src={course.coverUrl}
-            alt={course.name}
-            className="block size-full object-cover md:absolute md:inset-0"
-          />
+          <div className="relative size-full md:absolute md:inset-0">
+            <img
+              src={course.coverUrl}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 size-full scale-110 object-cover blur-xl"
+            />
+            <img
+              src={course.coverUrl}
+              alt={course.name}
+              className="relative block size-full object-contain"
+            />
+          </div>
         )}
       </div>
       <div className="flex flex-col gap-3 p-4 md:grow-2 md:basis-100 md:justify-center md:gap-4 md:px-8 md:py-7">

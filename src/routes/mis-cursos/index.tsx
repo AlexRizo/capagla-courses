@@ -29,6 +29,8 @@ export const Route = createFileRoute('/mis-cursos/')({
   component: MisCursos,
 })
 
+const sectionTitle =
+  'm-0 mt-2 text-xl font-black tracking-landing-title-sm md:mt-0 md:-mb-3 md:text-2xl'
 const menuItem =
   'cursor-pointer rounded-md border-none bg-transparent px-3 py-2.75 text-left text-15 text-landing-ink no-underline'
 
@@ -87,7 +89,7 @@ function MisCursos() {
             to="/mis-cursos"
             className="hidden px-1 py-2.5 text-15 font-bold text-landing-primary no-underline md:block"
           >
-            Mis cursos
+            Mis accesos
           </Link>
           <div className="relative">
             <button
@@ -145,10 +147,10 @@ function MisCursos() {
       <div className="mx-auto flex max-w-260 flex-col gap-4 px-4 pt-5 md:gap-8 md:px-8 md:pt-12 md:pb-16">
         <div className="flex flex-col gap-1 md:gap-2">
           <h1 className="m-0 text-28 font-black tracking-landing-title-md md:text-36 md:tracking-landing-title-xl">
-            Mis cursos
+            Mis accesos
           </h1>
           <p className="m-0 text-15 text-landing-muted md:text-17">
-            Aquí están tus cursos y tu avance.
+            Tus cursos con tu avance y la herramienta de costos.
           </p>
         </div>
 
@@ -343,6 +345,10 @@ function MisCursos() {
             </div>
           )}
 
+          {/* «Mis accesos» (H37): dos secciones, Cursos y Herramienta. */}
+          {(data.courses.length > 0 || data.freeCourses.length > 0) && (
+            <h2 className={sectionTitle}>Cursos</h2>
+          )}
           {data.courses.map((course) => (
             <CourseCard key={course.slug} course={course} />
           ))}
@@ -350,7 +356,12 @@ function MisCursos() {
             <FreeCourseCard key={course.slug} course={course} />
           ))}
 
-          {data.tool && <ToolCard tool={data.tool} />}
+          {data.tool && (
+            <>
+              <h2 className={sectionTitle}>Herramienta</h2>
+              <ToolCard tool={data.tool} />
+            </>
+          )}
         </div>
       </div>
 

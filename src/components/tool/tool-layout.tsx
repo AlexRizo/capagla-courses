@@ -243,7 +243,7 @@ export function ToolLayout({
                     asChild
                     className="text-13 text-sidebar-muted"
                   >
-                    <Link to="/mis-cursos">← Volver a mis cursos</Link>
+                    <Link to="/mis-cursos">← Volver a mis accesos</Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

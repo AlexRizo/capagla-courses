@@ -119,7 +119,7 @@ export function accessLinkMail(
         p('Tu pago se confirmó. Esto es lo que incluye tu compra:'),
         quote('TU COMPRA', list),
         p(
-          'Entra a tu curso con este botón. No necesitas contraseña; si quieres, puedes crear una desde Mis cursos.',
+          'Entra a tu curso con este botón. No necesitas contraseña; si quieres, puedes crear una desde Mis accesos.',
         ),
         button(url, 'Entrar a mi curso'),
         expiryNote(url),

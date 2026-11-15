@@ -224,7 +224,7 @@ function AccountMenu({
             </Link>
           )}
           <Link to="/mis-cursos" className={cn(item, 'font-bold')}>
-            Mis cursos
+            Mis accesos
           </Link>
           <div className="my-1.5 border-t border-player-border" />
           <div className="px-3 pt-1.5 pb-1 text-11 font-black tracking-player-caps text-player-accent">

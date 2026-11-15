@@ -10,6 +10,7 @@ import {
 import {
   MAX_ANSWER_LENGTH,
   answerQuestion,
+  deleteQuestion,
   generateDraft,
   getLessonTranscript,
   hideQuestion,
@@ -163,6 +164,56 @@ function AnswerForm({
           ' Solo se guardan las respuestas de la chef; las del asistente no se publican.'}
       </div>
     </>
+  )
+}
+
+// "Eliminar pregunta": para las de prueba (H28). Se borra para siempre, con su respuesta.
+function DeleteQuestion({
+  id,
+  onDeleted,
+}: {
+  id: string
+  onDeleted: () => void
+}) {
+  const router = useRouter()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function remove() {
+    if (
+      !window.confirm(
+        'Se borrará la pregunta y su respuesta para siempre. ¿Continuar?',
+      )
+    ) {
+      return
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      await deleteQuestion({ data: { id } })
+      await router.invalidate()
+      onDeleted()
+    } catch {
+      setError('No se pudo eliminar. Inténtalo de nuevo.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5 border-t border-border pt-3.5">
+      <div>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={remove}
+          className="inline-flex h-9 cursor-pointer items-center rounded-md border border-border bg-card px-3.5 font-medium text-destructive disabled:opacity-60"
+        >
+          Eliminar pregunta
+        </button>
+      </div>
+      {error && <div className="text-13 text-destructive">{error}</div>}
+    </div>
   )
 }
 
@@ -337,6 +388,7 @@ export function QuestionDialog({
                   onHidden={onClose}
                 />
               )}
+              <DeleteQuestion id={question.id} onDeleted={onClose} />
             </>
           )}
           {tab === 'leccion' && (

@@ -124,6 +124,16 @@ export const hideQuestion = createServerFn({ method: 'POST' })
     return {}
   })
 
+// "Eliminar pregunta" (H28): borra la pregunta para siempre, con su respuesta, esté como esté.
+// Es para las de prueba; para sacar una pregunta real sin respuesta está "Ocultar".
+export const deleteQuestion = createServerFn({ method: 'POST' })
+  .middleware([requireAdmin])
+  .validator(z.object({ id: z.string() }))
+  .handler(async ({ data }) => {
+    await prisma.lessonQuestion.deleteMany({ where: { id: data.id } })
+    return {}
+  })
+
 // ¿Hay asistente de IA? Cambia el texto de la pantalla y muestra el borrador y "Regenerar con IA".
 export const getAssistantInfo = createServerFn()
   .middleware([requireAdmin])

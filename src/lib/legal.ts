@@ -174,7 +174,7 @@ const terms: LegalDoc = {
         'Cada compra da acceso por 365 días a partir de que se activa. Cuando vence, dejas de ver el contenido, pero tu cuenta y tu avance se conservan.',
       ],
       items: [
-        'Puedes renovar desde Mis accesos; el precio de la renovación se muestra ahí.',
+        'La renovación es opcional y sin cobro automático. Una semana antes del vencimiento te avisamos por correo con una oferta para renovar.',
         'Si pasas de un nivel de la herramienta a uno más alto, pagas solo la diferencia.',
         'Los cursos o productos gratis que vienen con una promoción tienen su propio acceso, que se activa junto con tu compra.',
       ],

@@ -205,7 +205,9 @@ function Home() {
                   {c.description}
                 </div>
                 <div className="mt-auto flex items-center justify-between">
-                  <span className="text-lg font-black">${c.priceMxn}</span>
+                  <span className="text-lg font-black">
+                    ${c.priceMxn} <span className="text-13">MXN</span>
+                  </span>
                   <a
                     href={link(c)}
                     className="text-sm font-black text-landing-primary no-underline"

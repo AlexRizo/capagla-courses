@@ -96,12 +96,15 @@ function ListRow({
         drop.setNodeRef(node)
       }}
       className={cn(
+        // Debajo de 1,280 px el renglón es una tarjeta (H12): arriba asa, casilla, nombre, costo y
+        // quitar; abajo cuánto necesitas, qué comprar y el lugar u origen.
+        'max-xl:grid max-xl:grid-cols-[1.5rem_1.75rem_minmax(0,1fr)_auto_2.25rem] max-xl:items-center max-xl:gap-x-1 max-xl:px-2 max-xl:py-2',
         row.haveIt && 'opacity-50',
         drag.isDragging && 'opacity-40',
         drop.isOver && !drag.isDragging && 'bg-accent',
       )}
     >
-      <TableCell className="w-8 pl-3">
+      <TableCell className="w-8 pl-3 max-xl:col-start-1 max-xl:row-start-1 max-xl:p-0">
         <button
           type="button"
           aria-label={`Arrastrar ${row.name}`}
@@ -113,22 +116,30 @@ function ListRow({
           <GripVertical className="size-4" />
         </button>
       </TableCell>
-      <TableCell className="w-24">
+      <TableCell className="w-24 max-xl:col-start-2 max-xl:row-start-1 max-xl:w-auto max-xl:p-0">
         <Checkbox
           aria-label={`Ya lo tengo: ${row.name}`}
           checked={row.haveIt}
           onCheckedChange={(v) => onHaveIt(v === true)}
         />
       </TableCell>
-      <TableCell className="font-medium">{row.name}</TableCell>
-      <TableCell>
+      <TableCell className="font-medium max-xl:col-start-3 max-xl:row-start-1 max-xl:whitespace-normal">
+        {row.name}
+      </TableCell>
+      <TableCell className="max-xl:hidden">
         <Badge variant="secondary">
           {row.kind === 'PACKAGING' ? 'Empaque' : 'Ingrediente'}
         </Badge>
       </TableCell>
-      <TableCell>{row.needLabel}</TableCell>
-      <TableCell>{row.buyLabel}</TableCell>
-      <TableCell>
+      <TableCell className="max-xl:col-span-3 max-xl:col-start-3 max-xl:row-start-2 max-xl:py-0 max-xl:text-sm max-xl:whitespace-normal">
+        <span className="text-muted-foreground xl:hidden">Necesitas </span>
+        {row.needLabel}
+      </TableCell>
+      <TableCell className="max-xl:col-span-3 max-xl:col-start-3 max-xl:row-start-3 max-xl:py-0 max-xl:text-sm max-xl:whitespace-normal">
+        <span className="text-muted-foreground xl:hidden">Comprar </span>
+        {row.buyLabel}
+      </TableCell>
+      <TableCell className="max-xl:col-span-3 max-xl:col-start-3 max-xl:row-start-4 max-xl:pt-1">
         {view === 'store' ? (
           <Origin row={row} />
         ) : (
@@ -150,10 +161,10 @@ function ListRow({
           </Select>
         )}
       </TableCell>
-      <TableCell className="text-right">
+      <TableCell className="text-right max-xl:col-start-4 max-xl:row-start-1 max-xl:font-medium">
         {row.haveIt ? '—' : formatPrice(row.cost)}
       </TableCell>
-      <TableCell className="w-12 pr-3">
+      <TableCell className="w-12 pr-3 max-xl:col-start-5 max-xl:row-start-1 max-xl:w-auto max-xl:p-0">
         {row.origin.manual && (
           <Button
             type="button"
@@ -173,7 +184,7 @@ function ListRow({
 
 // Encabezado con anchos fijos: así las columnas de todas las tiendas quedan alineadas.
 const HEAD = (last: string) => (
-  <TableHeader>
+  <TableHeader className="max-xl:hidden">
     <TableRow>
       <TableHead className="w-8" />
       <TableHead className="w-24">Ya lo tengo</TableHead>
@@ -474,9 +485,9 @@ export function ShoppingList({ data }: { data: Loaded }) {
             </p>
             {groups.map((g) => (
               <Group key={g.key} placeKey={g.key} name={g.name} rows={g.rows}>
-                <Table className="min-w-200 table-fixed tabular-nums">
+                <Table className="tabular-nums max-xl:block xl:min-w-200 xl:table-fixed">
                   {HEAD('Origen')}
-                  <TableBody>
+                  <TableBody className="max-xl:block">
                     {g.rows.map((r) => (
                       <ListRow key={r.ingredientId} {...rowProps(r)} />
                     ))}
@@ -503,9 +514,9 @@ export function ShoppingList({ data }: { data: Loaded }) {
             </p>
             <Card className="py-0">
               <CardContent className="p-0">
-                <Table className="min-w-200 table-fixed tabular-nums">
+                <Table className="tabular-nums max-xl:block xl:min-w-200 xl:table-fixed">
                   {HEAD('Lugar de compra')}
-                  <TableBody>
+                  <TableBody className="max-xl:block">
                     {rows.map((r) => (
                       <ListRow key={r.ingredientId} {...rowProps(r)} />
                     ))}

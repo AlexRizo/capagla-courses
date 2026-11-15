@@ -622,8 +622,50 @@ function Traffic() {
               Ejemplo
             </span>
           </div>
-          <div className="overflow-x-auto">
-            <div className="min-w-125">
+          {/* En el celular, una tarjeta por producto, sin deslizar (H13). */}
+          <ul className="m-0 list-none p-0 md:hidden">
+            {PRODUCTS.map(([name, cost, price, left, light]) => (
+              <li
+                key={name}
+                className="flex flex-col gap-2.5 border-t border-tool-row px-4.5 py-3.5 first:border-t-0"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-bold">{name}</span>
+                  <span
+                    className={`flex-none rounded-full px-2.5 py-0.75 text-13 font-bold ${LIGHTS[light].pill}`}
+                  >
+                    {LIGHTS[light].label}
+                  </span>
+                </div>
+                <dl className="m-0 grid grid-cols-3 gap-2 text-15 tabular-nums">
+                  {(
+                    [
+                      ['Te cuesta', cost],
+                      ['Lo vendes', price],
+                      ['Te queda', left],
+                    ] as const
+                  ).map(([label, value]) => (
+                    <div key={label} className="flex flex-col gap-0.5">
+                      <dt className="text-xs font-bold tracking-[0.5px] text-landing-strike uppercase">
+                        {label}
+                      </dt>
+                      <dd
+                        className={
+                          label === 'Te queda' && light === 0
+                            ? 'm-0 font-bold text-tool-loss-ink'
+                            : 'm-0'
+                        }
+                      >
+                        {value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden md:block">
+            <div>
               <div
                 className={`${cols} px-4.5 py-2.5 text-xs font-bold tracking-[0.5px] text-landing-strike uppercase`}
               >

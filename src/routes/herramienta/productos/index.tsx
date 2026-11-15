@@ -56,6 +56,58 @@ function Productos() {
       (!query.trim() || fold(p.name).includes(fold(query.trim()))) &&
       (filter === 'all' || p.verdict === 'LOSS' || p.verdict === 'LOW'),
   )
+  // Lo que muestra cada producto, igual en la tabla (escritorio) y en las tarjetas (celular).
+  const rows = shown.map((p) => {
+    const pill = PILL[p.verdict]
+    const Icon = pill.icon
+    const tone =
+      p.verdict === 'LOSS'
+        ? 'text-danger'
+        : p.verdict === 'LOW'
+          ? 'text-warning'
+          : p.verdict === 'GOOD' || p.verdict === 'GREAT'
+            ? 'text-success'
+            : 'text-muted-foreground'
+    return {
+      p,
+      tone,
+      recipesText:
+        p.recipes.length > 0
+          ? `${p.recipes.length === 1 ? 'Receta' : 'Recetas'}: ${p.recipes.join(', ')}`
+          : 'Sin recetas',
+      soldAs: p.slices
+        ? `Entero y por rebanada · ${p.slices} rebanadas por pieza`
+        : 'Entero',
+      cost: p.cost === null ? '—' : formatPrice(p.cost),
+      price: p.price === null ? '—' : formatPrice(p.price),
+      gain: p.gain
+        ? `${p.gain.amount < 0 ? '−' : ''}${formatPrice(Math.abs(p.gain.amount))} · ${p.gain.pct < 0 ? '−' : ''}${Math.abs(p.gain.pct).toFixed(1)}%`
+        : '—',
+      status: (
+        <span
+          className={cn(
+            'inline-flex flex-none items-center gap-1.5 rounded-full py-0.5 pr-2.5 pl-2 text-xs font-medium',
+            pill.style,
+          )}
+        >
+          <Icon className="size-3.5" />
+          {p.verdict === 'NONE' && p.incomplete
+            ? p.recipes.length === 0
+              ? 'Sin recetas'
+              : 'Sin ingredientes'
+            : p.verdict === 'NONE'
+              ? 'Sin precio'
+              : VERDICT_LABEL[p.verdict]}
+        </span>
+      ),
+    }
+  })
+  const empty =
+    products.length === 0
+      ? 'Aún no tienes productos. Agrega el primero con “+ Nuevo producto”.'
+      : filter === 'alert'
+        ? 'Ningún producto tiene alerta.'
+        : 'Ningún producto coincide con tu búsqueda.'
 
   return (
     <>
@@ -106,8 +158,62 @@ function Productos() {
         </Badge>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
-        <Table className="min-w-205 tabular-nums">
+      {/* En el celular, una tarjeta por producto (precio y semáforo a la vista, sin deslizar; H31). */}
+      <ul className="m-0 flex list-none flex-col gap-2.5 p-0 md:hidden">
+        {rows.map((r) => (
+          <li
+            key={r.p.id}
+            className={cn(
+              'flex flex-col gap-2.5 rounded-xl border bg-card p-4 shadow-xs tabular-nums',
+              r.p.archived && 'opacity-60',
+            )}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <Link
+                  to="/herramienta/productos/$id"
+                  params={{ id: r.p.id }}
+                  className="font-medium"
+                >
+                  {r.p.name}
+                </Link>
+                {r.p.archived && (
+                  <Badge variant="outline" className="ml-2">
+                    Archivado
+                  </Badge>
+                )}
+                <div className="text-sm text-muted-foreground">
+                  {r.recipesText}
+                </div>
+              </div>
+              {r.status}
+            </div>
+            <dl className="m-0 grid grid-cols-3 gap-2 text-sm">
+              <div>
+                <dt className="text-xs text-muted-foreground">Costo</dt>
+                <dd className="m-0">{r.cost}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Precio</dt>
+                <dd className="m-0">{r.price}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Ganancia</dt>
+                <dd className={cn('m-0 font-medium', r.tone)}>{r.gain}</dd>
+              </div>
+            </dl>
+            <div className="text-sm text-muted-foreground">{r.soldAs}</div>
+          </li>
+        ))}
+        {rows.length === 0 && (
+          <li className="rounded-xl border bg-card px-4 py-8 text-center text-muted-foreground">
+            {empty}
+          </li>
+        )}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-xl border bg-card shadow-xs md:block">
+        <Table className="tabular-nums">
           <TableHeader>
             <TableRow>
               <TableHead className="pl-4">Producto</TableHead>
@@ -119,88 +225,51 @@ function Productos() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {shown.map((p) => {
-              const pill = PILL[p.verdict]
-              const Icon = pill.icon
-              const tone =
-                p.verdict === 'LOSS'
-                  ? 'text-danger'
-                  : p.verdict === 'LOW'
-                    ? 'text-warning'
-                    : p.verdict === 'GOOD' || p.verdict === 'GREAT'
-                      ? 'text-success'
-                      : 'text-muted-foreground'
-              return (
-                <TableRow key={p.id} className={p.archived ? 'opacity-60' : ''}>
-                  <TableCell className="py-3.5 pl-4">
-                    <Link
-                      to="/herramienta/productos/$id"
-                      params={{ id: p.id }}
-                      className="font-medium"
-                    >
-                      {p.name}
-                    </Link>
-                    {p.archived && (
-                      <Badge variant="outline" className="ml-2">
-                        Archivado
-                      </Badge>
-                    )}
+            {rows.map((r) => (
+              <TableRow
+                key={r.p.id}
+                className={r.p.archived ? 'opacity-60' : ''}
+              >
+                <TableCell className="py-3.5 pl-4">
+                  <Link
+                    to="/herramienta/productos/$id"
+                    params={{ id: r.p.id }}
+                    className="font-medium"
+                  >
+                    {r.p.name}
+                  </Link>
+                  {r.p.archived && (
+                    <Badge variant="outline" className="ml-2">
+                      Archivado
+                    </Badge>
+                  )}
+                  <div className="text-sm text-muted-foreground">
+                    {r.recipesText}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {r.p.slices ? 'Entero y por rebanada' : 'Entero'}
+                  {r.p.slices && (
                     <div className="text-sm text-muted-foreground">
-                      {p.recipes.length > 0
-                        ? `${p.recipes.length === 1 ? 'Receta' : 'Recetas'}: ${p.recipes.join(', ')}`
-                        : 'Sin recetas'}
+                      {r.p.slices} rebanadas por pieza
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    {p.slices ? 'Entero y por rebanada' : 'Entero'}
-                    {p.slices && (
-                      <div className="text-sm text-muted-foreground">
-                        {p.slices} rebanadas por pieza
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {p.cost === null ? '—' : formatPrice(p.cost)}
-                  </TableCell>
-                  <TableCell>
-                    {p.price === null ? '—' : formatPrice(p.price)}
-                  </TableCell>
-                  <TableCell className={cn('font-medium', tone)}>
-                    {p.gain
-                      ? `${p.gain.amount < 0 ? '−' : ''}${formatPrice(Math.abs(p.gain.amount))} · ${p.gain.pct < 0 ? '−' : ''}${Math.abs(p.gain.pct).toFixed(1)}%`
-                      : '—'}
-                  </TableCell>
-                  <TableCell className="pr-4">
-                    <span
-                      className={cn(
-                        'inline-flex items-center gap-1.5 rounded-full py-0.5 pr-2.5 pl-2 text-xs font-medium',
-                        pill.style,
-                      )}
-                    >
-                      <Icon className="size-3.5" />
-                      {p.verdict === 'NONE' && p.incomplete
-                        ? p.recipes.length === 0
-                          ? 'Sin recetas'
-                          : 'Sin ingredientes'
-                        : p.verdict === 'NONE'
-                          ? 'Sin precio'
-                          : VERDICT_LABEL[p.verdict]}
-                    </span>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-            {shown.length === 0 && (
+                  )}
+                </TableCell>
+                <TableCell>{r.cost}</TableCell>
+                <TableCell>{r.price}</TableCell>
+                <TableCell className={cn('font-medium', r.tone)}>
+                  {r.gain}
+                </TableCell>
+                <TableCell className="pr-4">{r.status}</TableCell>
+              </TableRow>
+            ))}
+            {rows.length === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={6}
                   className="px-4 py-8 text-center text-muted-foreground"
                 >
-                  {products.length === 0
-                    ? 'Aún no tienes productos. Agrega el primero con “+ Nuevo producto”.'
-                    : filter === 'alert'
-                      ? 'Ningún producto tiene alerta.'
-                      : 'Ningún producto coincide con tu búsqueda.'}
+                  {empty}
                 </TableCell>
               </TableRow>
             )}

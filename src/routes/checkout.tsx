@@ -25,6 +25,7 @@ import {
 } from '#/lib/catalog'
 import { getCheckoutData, getThanksOrder, startCheckout } from '#/lib/checkout'
 import { track } from '#/lib/track-client'
+import { CONTACT_EMAIL } from '#/lib/contact'
 
 export const Route = createFileRoute('/checkout')({
   validateSearch: z.object({
@@ -54,7 +55,7 @@ const payBtn =
   'cursor-pointer items-center justify-center gap-2.5 rounded-12 border-none bg-landing-primary font-black text-white no-underline disabled:cursor-wait'
 const strike = 'text-landing-strike line-through'
 // Contacto para dudas del pago (pedido del cliente; no está en la maqueta).
-const SUPPORT_EMAIL = 'soporte@capagla.com'
+const SUPPORT_EMAIL = CONTACT_EMAIL
 
 // Campos de Stripe con los colores de la maqueta (los dibuja Stripe en un iframe).
 const stripeFonts = [

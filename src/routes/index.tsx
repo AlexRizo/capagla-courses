@@ -4,6 +4,7 @@ import { HomeTool } from '#/components/home-tool'
 import { MobileMenu } from '#/components/mobile-menu'
 import { getHomeProducts } from '#/lib/home'
 import { ABOUT_URL, SOCIAL_LINKS } from '#/lib/social'
+import { CONTACT_EMAIL } from '#/lib/contact'
 
 export const Route = createFileRoute('/')({
   loader: () => getHomeProducts(),
@@ -295,9 +296,9 @@ function Home() {
           <Link to="/terminos" className="text-landing-muted">
             Términos y condiciones
           </Link>
-          <a href="mailto:contacto@capagla.com" className="text-landing-muted">
+          <a href={`mailto:${CONTACT_EMAIL}`} className="text-landing-muted">
             <span className="md:hidden">Contacto</span>
-            <span className="hidden md:inline">contacto@capagla.com</span>
+            <span className="hidden md:inline">{CONTACT_EMAIL}</span>
           </a>
         </div>
       </div>

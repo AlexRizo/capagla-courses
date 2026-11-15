@@ -1,3 +1,5 @@
+import { CONTACT_EMAIL } from '#/lib/contact'
+
 // Textos legales del sitio (aviso de privacidad, términos y condiciones, política de devoluciones
 // y política de cookies). La maqueta solo trae los enlaces, sin textos: estos se redactaron a
 // partir de lo que hace la app (datos que guarda, servicios que usa, reglas de acceso y reembolso).
@@ -11,7 +13,7 @@ export const LEGAL = {
     'Federico Cárdenas Barajas #234D, Colonia Primaveras, Villa de Álvarez, Colima, México' as
       string | null,
   // Correo para dudas y derechos ARCO (el mismo de soporte del checkout).
-  email: 'soporte@capagla.com',
+  email: CONTACT_EMAIL,
   actualizado: '15 de noviembre de 2026',
 }
 

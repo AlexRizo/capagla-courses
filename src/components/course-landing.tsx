@@ -9,6 +9,7 @@ import {
 } from '#/components/landing-parts'
 import { MobileMenu } from '#/components/mobile-menu'
 import type { CoursePage, RecipesCoursePage } from '#/lib/course-pages'
+import { CONTACT_EMAIL } from '#/lib/contact'
 
 const solid =
   'flex items-center justify-center rounded-12 bg-landing-primary font-black text-white no-underline'
@@ -272,7 +273,7 @@ function Desktop({
         <Link to="/devoluciones" className={footerLink}>
           Política de devoluciones
         </Link>
-        <a href="mailto:contacto@capagla.com" className={footerLink}>
+        <a href={`mailto:${CONTACT_EMAIL}`} className={footerLink}>
           Contacto
         </a>
       </div>
@@ -482,7 +483,7 @@ function Mobile({
           <Link to="/terminos" className={footerLink}>
             Términos y condiciones
           </Link>
-          <a href="mailto:contacto@capagla.com" className={footerLink}>
+          <a href={`mailto:${CONTACT_EMAIL}`} className={footerLink}>
             Contacto
           </a>
         </div>

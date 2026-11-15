@@ -6,6 +6,7 @@ import { IntroVideo, Play } from '#/components/landing-parts'
 import { MobileMenu } from '#/components/mobile-menu'
 import type { ToolPage, ToolPlan } from '#/lib/tool-page'
 import { track } from '#/lib/track-client'
+import { CONTACT_EMAIL } from '#/lib/contact'
 
 // Página pública de la herramienta de costos (maqueta última, 2026-11-11; solo hay diseño de
 // escritorio: en móvil las columnas se apilan). Los textos y ejemplos son los de la maqueta; los
@@ -886,8 +887,8 @@ function Footer() {
         <Link to="/terminos" className="text-landing-muted">
           Términos y condiciones
         </Link>
-        <a href="mailto:contacto@capagla.com" className="text-landing-muted">
-          contacto@capagla.com
+        <a href={`mailto:${CONTACT_EMAIL}`} className="text-landing-muted">
+          {CONTACT_EMAIL}
         </a>
       </div>
     </div>

@@ -13,6 +13,7 @@ import type {
   CostingKind,
   CostingTopicIcon,
 } from '#/lib/course-pages'
+import { CONTACT_EMAIL } from '#/lib/contact'
 
 const h2 = 'm-0 text-28 font-black tracking-landing-title-md md:text-34'
 const footerLink = 'text-landing-muted underline'
@@ -260,7 +261,7 @@ export function CostingLanding({ page }: { page: CostingCoursePage }) {
         <Link to="/devoluciones" className={footerLink}>
           Política de devoluciones
         </Link>
-        <a href="mailto:contacto@capagla.com" className={footerLink}>
+        <a href={`mailto:${CONTACT_EMAIL}`} className={footerLink}>
           Contacto
         </a>
       </div>

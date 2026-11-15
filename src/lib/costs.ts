@@ -56,8 +56,10 @@ export function ingredientCosts(i: Priced) {
   }
 }
 
+// Se limpia el error de punto flotante antes de redondear (0.09 / 0.8 da 0.11249999, que es
+// $0.1125 y debe mostrarse $0.113).
 const money = (value: number, decimals: number, maxDecimals = decimals) =>
-  `$${value.toLocaleString('es-MX', {
+  `$${Number(value.toFixed(10)).toLocaleString('es-MX', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: maxDecimals,
   })}`
@@ -69,10 +71,10 @@ export const formatPrice = (value: number) => money(Math.round(value), 0)
 // "$6,000" o "$13.85": una cantidad con sus centavos solo si los tiene.
 export const formatAmount = (value: number) => money(value, 0, 2)
 
-// Costo de una unidad: tres decimales (un gramo cuesta centavos) y dos si ya es de varios pesos
-// ($0.013, $1.394, $8.80).
+// Costo de una unidad: tres decimales debajo de $1 (un gramo cuesta centavos) y dos desde $1, para
+// que convivan en un solo formato ($0.013/g, $2.00/pza, $8.80/pza; H39).
 export const formatUnitCost = (value: number) =>
-  money(value, value >= 5 ? 2 : 3)
+  money(value, value >= 1 ? 2 : 3)
 
 export const formatQuantity = (value: number) =>
   value.toLocaleString('es-MX', { maximumFractionDigits: 3 })
@@ -81,12 +83,29 @@ export const formatQuantity = (value: number) =>
 export const purchaseLabel = (quantity: number, unit: CostUnit) =>
   `${formatQuantity(quantity)} ${UNITS[unit].label}`
 
-// "$0.013/g" o, con uso flexible, "$1.394/pza · $0.024/g".
-export function costLine(i: Priced) {
+// "$0.013/g" o, con uso flexible, "$1.39/pza · $0.024/g". Con desperdicio es lo que cuesta lo
+// que se aprovecha (lo que cobran las recetas; H39): fresa a $0.090/g con 80 % → $0.113/g.
+export function costLine(i: Priced & Waste) {
   const c = ingredientCosts(i)
-  const main = `${formatUnitCost(c.perBase)}/${c.base}`
-  return c.perGram === null ? main : `${main} · ${formatUnitCost(c.perGram)}/g`
+  const k = usableFactor(i)
+  const main = `${formatUnitCost(c.perBase * k)}/${c.base}`
+  return c.perGram === null
+    ? main
+    : `${main} · ${formatUnitCost(c.perGram * k)}/g`
 }
+
+// El costo de compra, para mostrarlo junto al aprovechable cuando hay desperdicio; null si no hay.
+export function purchaseCostLine(i: Priced & Waste) {
+  if (usableFactor(i) === 1) return null
+  const c = ingredientCosts(i)
+  return `${formatUnitCost(c.perBase)}/${c.base} de compra · ${i.yieldPct}% aprovechable`
+}
+
+type Waste = { wasteEnabled?: boolean; yieldPct?: number | null }
+
+// Lo que se paga de más por lo que no se aprovecha (igual que `cost-engine`): 1 ÷ rendimiento.
+const usableFactor = (i: Waste) =>
+  i.wasteEnabled && i.yieldPct ? 100 / i.yieldPct : 1
 
 // Número que escribe la persona: "1,710" o "251.00" (coma de miles, punto decimal). Vacío o
 // ilegible → null.

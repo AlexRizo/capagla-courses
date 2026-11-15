@@ -22,7 +22,13 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
-import { KINDS, costLine, formatPrice, purchaseLabel } from '#/lib/costs'
+import {
+  KINDS,
+  costLine,
+  formatPrice,
+  purchaseCostLine,
+  purchaseLabel,
+} from '#/lib/costs'
 import { getIngredients } from '#/lib/tool-ingredients'
 import { getPlaces } from '#/lib/tool-places'
 import { HelpButton } from '#/components/tool/tool-help'
@@ -171,7 +177,14 @@ function Ingredientes() {
                 <TableCell className="text-right">
                   {formatPrice(i.price)}
                 </TableCell>
-                <TableCell className="pr-4 text-right">{costLine(i)}</TableCell>
+                <TableCell className="pr-4 text-right">
+                  {costLine(i)}
+                  {purchaseCostLine(i) && (
+                    <div className="text-xs text-muted-foreground">
+                      {purchaseCostLine(i)}
+                    </div>
+                  )}
+                </TableCell>
               </TableRow>
             ))}
             {shown.length === 0 && (

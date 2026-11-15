@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   avgPieceGrams,
   costLine,
+  purchaseCostLine,
   costPerBase,
   formatPrice,
   formatUnitCost,
@@ -59,7 +60,7 @@ describe('uso flexible', () => {
     const c = ingredientCosts(huevo)
     expect(c.avgGrams).toBe(57)
     expect(c.perGram).toBeCloseTo(0.0245, 3)
-    expect(costLine(huevo)).toBe('$1.394/pza · $0.024/g')
+    expect(costLine(huevo)).toBe('$1.39/pza · $0.024/g')
   })
 
   it('sin activarlo, o si no se compra por pieza, no hay costo por gramo', () => {
@@ -73,7 +74,8 @@ describe('formato', () => {
   it('el costo de una unidad lleva tres decimales y dos si es de varios pesos', () => {
     expect(formatUnitCost(0.013)).toBe('$0.013')
     expect(formatUnitCost(0.19)).toBe('$0.190')
-    expect(formatUnitCost(1.3944)).toBe('$1.394')
+    expect(formatUnitCost(1.3944)).toBe('$1.39')
+    expect(formatUnitCost(2)).toBe('$2.00')
     expect(formatUnitCost(8.8)).toBe('$8.80')
     expect(formatUnitCost(7.3)).toBe('$7.30')
   })
@@ -185,5 +187,30 @@ describe('ingredientSchema', () => {
     expect(parsed.sampleCount).toBeNull()
     expect(parsed.sampleGrams).toBeNull()
     expect(parsed.yieldPct).toBeNull()
+  })
+})
+
+describe('costo por unidad con desperdicio (H39)', () => {
+  const fresa = {
+    price: 90,
+    quantity: 1000,
+    unit: 'G' as const,
+    flexible: false,
+    sampleCount: null,
+    sampleGrams: null,
+  }
+
+  it('muestra lo aprovechable (lo que cobran las recetas) y aparte el de compra', () => {
+    const con = { ...fresa, wasteEnabled: true, yieldPct: 80 }
+    expect(costLine(con)).toBe('$0.113/g')
+    expect(purchaseCostLine(con)).toBe('$0.090/g de compra · 80% aprovechable')
+  })
+
+  it('sin desperdicio no hay segunda línea', () => {
+    expect(costLine(fresa)).toBe('$0.090/g')
+    expect(purchaseCostLine(fresa)).toBeNull()
+    expect(
+      purchaseCostLine({ ...fresa, wasteEnabled: false, yieldPct: 80 }),
+    ).toBeNull()
   })
 })

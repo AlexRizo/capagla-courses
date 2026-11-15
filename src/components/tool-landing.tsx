@@ -7,6 +7,7 @@ import { MobileMenu } from '#/components/mobile-menu'
 import type { ToolPage, ToolPlan } from '#/lib/tool-page'
 import { track } from '#/lib/track-client'
 import { TOOL_TIER_LINE } from '#/lib/tool-tiers'
+import { PAYMENT_FAQ } from '#/lib/catalog'
 import { CONTACT_EMAIL } from '#/lib/contact'
 import { EnterLink } from '#/components/enter-link'
 
@@ -858,10 +859,7 @@ const FAQ = [
     q: 'Ya compré Aprende a Costear, ¿lo pago otra vez?',
     a: 'Escríbenos y te descontamos lo que pagaste por el curso.',
   },
-  {
-    q: '¿Qué métodos de pago hay?',
-    a: 'Tarjeta, Apple Pay o Google Pay, procesados con Stripe.',
-  },
+  ...PAYMENT_FAQ,
 ]
 
 function Faq() {

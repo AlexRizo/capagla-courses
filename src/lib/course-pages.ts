@@ -1,3 +1,5 @@
+import { PAYMENT_FAQ } from '#/lib/catalog'
+
 // Contenido de la landing de venta de cada curso (/cursos/$slug y las promociones).
 // Datos en duro por ahora; más adelante saldrán del panel.
 // Los precios y el recuadro de promoción no están aquí: salen de `lib/offers.ts`.
@@ -285,16 +287,7 @@ export const courseContents: Partial<Record<string, CourseContent>> = {
         aShort:
           '365 días desde tu compra. La renovación es opcional y sin cobro automático: antes de que venza te avisamos.',
       },
-      {
-        q: '¿Qué métodos de pago hay?',
-        a: 'Tarjeta de crédito o débito, procesada de forma segura con Stripe.',
-        aShort: 'Tarjeta, Apple Pay o Google Pay, procesados con Stripe.',
-      },
-      {
-        q: '¿Puedo pagar desde otro país?',
-        a: 'Sí. Stripe cobra en tu moneda.',
-        aShort: 'Sí. Stripe cobra en tu moneda.',
-      },
+      ...PAYMENT_FAQ.map((f) => ({ ...f, aShort: f.a })),
     ],
   },
   'calcular-costos': {

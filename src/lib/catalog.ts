@@ -1,3 +1,17 @@
+// Preguntas de pago, iguales en /navidad, /cursos/postres-navidad y /herramienta-de-costos (H17).
+// Los métodos son los que de verdad muestra el checkout: tarjeta (Elements) y, si el aparato los
+// tiene, Apple Pay o Google Pay (Express Checkout; Link, PayPal y Amazon Pay apagados).
+export const PAYMENT_FAQ = [
+  {
+    q: '¿Qué métodos de pago hay?',
+    a: 'Tarjeta de crédito o débito, y Apple Pay o Google Pay si tu celular o navegador los tiene. El pago lo procesa Stripe de forma segura.',
+  },
+  {
+    q: '¿Puedo pagar desde otro país?',
+    a: 'Sí. Se cobra en pesos mexicanos; si tu tarjeta es de otro país, tu banco hace la conversión.',
+  },
+]
+
 // Curso que vende el checkout cuando se entra por un enlace simple (sin promoción).
 export const COURSE_SLUG = 'postres-navidad'
 

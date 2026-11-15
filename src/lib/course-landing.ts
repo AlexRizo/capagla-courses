@@ -127,7 +127,10 @@ export const getCourseLanding = createServerFn()
       extras: [],
     })
     if (!page) throw notFound()
-    return page
+    const introVideo = course.introVideoId
+      ? signedPlaybackUrl(course.introVideoId)
+      : null
+    return { ...page, introVideo }
   })
 
 // /<url de la promoción>: la landing del anuncio. Los precios especiales se ven solo
@@ -152,8 +155,15 @@ export const getPromotionLanding = createServerFn()
     const page = buildCoursePage(offer)
     if (!page) throw notFound()
     await recordPromotionEvent(exists.id, 'VISIT')
-    const introVideo = exists.introVideoId
-      ? signedPlaybackUrl(exists.introVideoId)
-      : null
+    // El video de la promoción; sin él, el de la página del curso (H15).
+    const videoId =
+      exists.introVideoId ??
+      (
+        await prisma.product.findUnique({
+          where: { id: offer.main.productId },
+          select: { introVideoId: true },
+        })
+      )?.introVideoId
+    const introVideo = videoId ? signedPlaybackUrl(videoId) : null
     return { ...page, introVideo }
   })

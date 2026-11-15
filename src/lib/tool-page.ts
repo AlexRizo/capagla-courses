@@ -31,6 +31,8 @@ export type ToolPage = {
   // Página del curso incluido (si está publicado).
   courseHref: string | null
   promoSlug?: string
+  // Video de la página (URL firmada de Bunny); sin video no se muestra el recuadro.
+  introVideo?: string | null
 }
 
 const TITLE = '¿Cuánto te queda de verdad por cada postre?'

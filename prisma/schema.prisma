@@ -169,6 +169,8 @@ model Product {
   status       ContentStatus      @default(DRAFT)
   // Orden en que se muestran los productos en la Home (de menor a mayor).
   position     Int                @default(0)
+  // Video de intro de su página de venta (/cursos/<slug>): id en la biblioteca de Bunny (H15).
+  introVideoId String?
   orderItems   OrderItem[]
   enrollments  Enrollment[]
   items        CourseItem[]
@@ -344,6 +346,13 @@ model Lead {
 
 // Datos de conexión de Marketing (una sola fila, id "main"). Solo se guardan: ningún píxel ni
 // evento se envía todavía a Meta, TikTok o Google Analytics.
+// Ajustes de páginas que no son de un producto (una sola fila, id 1).
+model SiteSettings {
+  id              Int     @id @default(1)
+  // Video de la página pública de la herramienta (/herramienta-de-costos), id en Bunny (H15).
+  toolPageVideoId String?
+}
+
 model MarketingSettings {
   id               String   @id @default("main")
   updatedAt        DateTime @updatedAt

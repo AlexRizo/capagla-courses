@@ -1,7 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
-import { prisma } from '#/db'
 import {
   MAX_UPLOAD_BYTES,
   createBunnyUpload,
@@ -77,15 +76,11 @@ export const deleteUnusedVideo = createServerFn({ method: 'POST' })
   })
 
 // Subida cancelada o fallida: quita el video vacío para que no quede en la biblioteca.
-// Solo borra uno sin archivo y que ninguna lección ni promoción use.
+// Solo borra uno sin archivo y que nada use (lecciones, promociones, páginas).
 export const cancelVideoUpload = createServerFn({ method: 'POST' })
   .middleware([requireAdmin])
   .validator(z.object({ id: z.string().refine(isBunnyId) }))
   .handler(async ({ data }) => {
-    const [lesson, promotion] = await Promise.all([
-      prisma.courseItem.findFirst({ where: { bunnyVideoId: data.id } }),
-      prisma.promotion.findFirst({ where: { introVideoId: data.id } }),
-    ])
-    if (lesson || promotion) return { deleted: false }
+    if (await bunnyVideoUsedBy(data.id)) return { deleted: false }
     return { deleted: await deleteEmptyBunnyVideo(data.id).catch(() => false) }
   })

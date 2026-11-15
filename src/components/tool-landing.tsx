@@ -1,8 +1,8 @@
 import { Link } from '@tanstack/react-router'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { Play } from '#/components/landing-parts'
+import { IntroVideo, Play } from '#/components/landing-parts'
 import { MobileMenu } from '#/components/mobile-menu'
 import type { ToolPage, ToolPlan } from '#/lib/tool-page'
 import { track } from '#/lib/track-client'
@@ -167,7 +167,7 @@ function Header() {
 
 // ---------- Hero ----------
 
-function Hero({ page }: { page: ToolPage }) {
+function Hero({ page, onPlay }: { page: ToolPage; onPlay?: () => void }) {
   return (
     <div
       className={`${wrap} flex flex-wrap items-center gap-8 pt-8 pb-10 md:gap-12 md:pt-16 md:pb-14`}
@@ -200,10 +200,12 @@ function Hero({ page }: { page: ToolPage }) {
           Desde ${page.fromMxn} al año · incluye el curso Aprende a Costear
         </div>
       </div>
-      {/* Aún no hay video de la herramienta: el recuadro queda como en la maqueta, sin acción. */}
-      <div className="relative flex aspect-video min-w-0 flex-1 basis-115 items-center justify-center overflow-hidden rounded-20 bg-landing-ink shadow-tool-video">
-        <Play />
-      </div>
+      {/* El recuadro es solo para el video: sin video no se muestra (H15). */}
+      {onPlay && (
+        <div className="relative flex aspect-video min-w-0 flex-1 basis-115 items-center justify-center overflow-hidden rounded-20 bg-landing-ink shadow-tool-video">
+          <Play onPlay={onPlay} />
+        </div>
+      )}
     </div>
   )
 }
@@ -904,11 +906,18 @@ export function ToolLanding({ page }: { page: ToolPage }) {
       },
     })
   }, [page.promoSlug, page.fromMxn, page.plans])
+  const [playing, setPlaying] = useState(false)
 
   return (
     <div className="min-h-screen bg-landing-page font-sans text-landing-ink">
       <Header />
-      <Hero page={page} />
+      <Hero
+        page={page}
+        onPlay={page.introVideo ? () => setPlaying(true) : undefined}
+      />
+      {playing && page.introVideo && (
+        <IntroVideo src={page.introVideo} onClose={() => setPlaying(false)} />
+      )}
       <Kitchen />
       <HowItWorks />
       <Daily />

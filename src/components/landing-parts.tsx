@@ -6,7 +6,7 @@ import { track } from '#/lib/track-client'
 // Piezas que comparten las landings de venta (recetas y curso de costeo).
 
 // Marketing: ver el curso o la promoción (solo el navegador). Devuelve lo que necesita el botón
-// de reproducir: sin video de intro el botón queda como en la maqueta (sin acción).
+// de reproducir: sin video de intro no hay botón.
 export function useLandingIntro(page: CoursePage) {
   const [playing, setPlaying] = useState(false)
   useEffect(() => {
@@ -39,7 +39,8 @@ export function Play({
       className={`size-0 border-y-transparent border-l-white ${mobile ? 'ml-1.25 border-y-12 border-l-19' : 'ml-1.5 border-y-15 border-l-25'}`}
     />
   )
-  if (!onPlay) return <div className={className}>{triangle}</div>
+  // Sin video no hay botón: un play que no hace nada confunde (H15).
+  if (!onPlay) return null
   return (
     <button
       type="button"

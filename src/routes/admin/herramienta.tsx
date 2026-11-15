@@ -8,8 +8,10 @@ import {
   note,
   primaryButton,
 } from '#/components/admin/form-styles'
+import { BunnyVideoField } from '#/components/admin/bunny-video-field'
 import { ProGate } from '#/components/admin/pro-gate'
-import { getAdminTool, saveToolTier } from '#/lib/admin-tool'
+import { getAdminTool, saveToolPageVideo, saveToolTier } from '#/lib/admin-tool'
+import { TOOL_RENEWAL_DISCOUNT_PCT } from '#/lib/catalog'
 import { MODULE_LABEL, TOOL_MODULES } from '#/lib/tool-tiers'
 import type { ToolModuleKey } from '#/lib/tool-tiers'
 
@@ -142,8 +144,60 @@ function TierCard({ tier }: { tier: Tier }) {
   )
 }
 
+// Video de /herramienta-de-costos (H15): lo abre el recuadro del inicio; sin video no se muestra.
+function PageVideo({ videoId }: { videoId: string | null }) {
+  const router = useRouter()
+  const [value, setValue] = useState(videoId)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+
+  async function save() {
+    setSaving(true)
+    setMessage(null)
+    try {
+      const result = await saveToolPageVideo({ data: { videoId: value ?? '' } })
+      if (result.error) return setMessage(result.error)
+      await router.invalidate()
+      setMessage('Guardado')
+    } catch {
+      setMessage('No se pudo guardar.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className={card}>
+      <div className="text-base font-semibold">Página de la herramienta</div>
+      <BunnyVideoField
+        label="Video de la página (/herramienta-de-costos)"
+        value={value}
+        onChange={setValue}
+      />
+      <div className={note}>
+        Sale en el recuadro del inicio de la página. Sin video, el recuadro no
+        se muestra. Una promoción de la herramienta con su propio video usa el
+        suyo.
+      </div>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          disabled={saving}
+          onClick={save}
+          className={primaryButton}
+        >
+          Guardar
+        </button>
+        {message && (
+          <span className="text-13 text-muted-foreground">{message}</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function Herramienta() {
-  const { tiers, usage } = Route.useLoaderData()
+  const { tiers, usage, pageVideoId } = Route.useLoaderData()
   return (
     <ProGate>
       <div className="flex max-w-240 flex-col gap-6 p-6">
@@ -170,9 +224,12 @@ function Herramienta() {
         ))}
 
         <div className={note}>
-          Los precios incluyen IVA y la renovación cuesta lo mismo que el primer
-          año. El precio de lista solo se muestra tachado; se cobra el precio.
+          Los precios incluyen IVA y la renovación tiene{' '}
+          {TOOL_RENEWAL_DISCOUNT_PCT}% de descuento. El precio de lista solo se
+          muestra tachado; se cobra el precio.
         </div>
+
+        <PageVideo videoId={pageVideoId} />
 
         <div className="rounded-lg border border-border bg-card shadow-xs">
           <div className="px-5 pt-5 pb-3">

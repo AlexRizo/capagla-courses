@@ -184,6 +184,7 @@ export const getAdminCourse = createServerFn()
         name: course.name,
         description: course.description ?? '',
         coverUrl: course.coverUrl,
+        introVideoId: course.introVideoId,
         priceMxn: course.priceMxn,
         accessDays: course.accessDays,
         published: course.status === 'PUBLISHED',
@@ -204,18 +205,28 @@ export const updateCourseSettings = createServerFn({ method: 'POST' })
       priceMxn: z.coerce.number().int().min(0).max(1_000_000),
       accessDays: z.coerce.number().int().min(1).max(3650),
       published: z.boolean(),
+      // Video de intro de la página de venta (H15); vacío = sin video.
+      introVideoId: z.string().trim(),
     }),
   )
   .handler(async ({ data }) => {
-    const { slug, published, description, ...rest } = data
+    const { slug, published, description, introVideoId, ...rest } = data
+    if (
+      introVideoId &&
+      !(await getBunnyVideo(introVideoId).catch(() => null))
+    ) {
+      return { error: 'Ese video no está en la biblioteca de Bunny.' }
+    }
     await prisma.product.update({
       where: { slug, kind: 'COURSE' },
       data: {
         ...rest,
         description: description || null,
+        introVideoId: introVideoId || null,
         status: published ? 'PUBLISHED' : 'DRAFT',
       },
     })
+    return {}
   })
 
 export const removeCourseCover = createServerFn({ method: 'POST' })

@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
 import { prisma } from '#/db'
+import { getBunnyVideo } from '#/lib/bunny'
 import { requireAdmin } from '#/lib/guards'
 import { TOOL_MODULES, priceOrderError } from '#/lib/tool-tiers'
 
@@ -56,7 +57,9 @@ export const getAdminTool = createServerFn()
       take: USAGE_LIMIT,
     })
     const used = await usageByUser(enrollments.map((e) => e.userId))
+    const site = await prisma.siteSettings.findUnique({ where: { id: 1 } })
     return {
+      pageVideoId: site?.toolPageVideoId ?? null,
       tiers: products.map((p) => ({
         productId: p.id,
         name: p.name,
@@ -125,4 +128,24 @@ export const saveToolTier = createServerFn({ method: 'POST' })
       }),
     ])
     return { ok: true as const }
+  })
+
+// Video de la página pública de la herramienta (/herramienta-de-costos; H15). Vacío = sin video.
+export const saveToolPageVideo = createServerFn({ method: 'POST' })
+  .middleware([requireAdmin])
+  .validator(z.object({ videoId: z.string().trim() }))
+  .handler(async ({ data }) => {
+    if (
+      data.videoId &&
+      !(await getBunnyVideo(data.videoId).catch(() => null))
+    ) {
+      return { error: 'Ese video no está en la biblioteca de Bunny.' }
+    }
+    const toolPageVideoId = data.videoId || null
+    await prisma.siteSettings.upsert({
+      where: { id: 1 },
+      update: { toolPageVideoId },
+      create: { id: 1, toolPageVideoId },
+    })
+    return {}
   })

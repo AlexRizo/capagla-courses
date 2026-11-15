@@ -8,6 +8,7 @@ import {
   note,
   primaryButton,
 } from '#/components/admin/form-styles'
+import { BunnyVideoField } from '#/components/admin/bunny-video-field'
 import { UploadBox } from '#/components/admin/upload-field'
 import { removeCourseCover, updateCourseSettings } from '#/lib/admin-courses'
 import { cn } from '#/lib/utils'
@@ -16,6 +17,7 @@ type Settings = {
   name: string
   description: string
   coverUrl: string | null
+  introVideoId: string | null
   priceMxn: number
   accessDays: number
   published: boolean
@@ -33,6 +35,7 @@ export function CourseSettings({
 }) {
   const router = useRouter()
   const [published, setPublished] = useState(settings.published)
+  const [introVideoId, setIntroVideoId] = useState(settings.introVideoId)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
@@ -42,7 +45,7 @@ export function CourseSettings({
     setSaving(true)
     setMessage(null)
     try {
-      await updateCourseSettings({
+      const result = await updateCourseSettings({
         data: {
           slug,
           name: String(form.get('name')),
@@ -50,8 +53,10 @@ export function CourseSettings({
           priceMxn: Number(form.get('priceMxn')),
           accessDays: Number(form.get('accessDays')),
           published,
+          introVideoId: introVideoId ?? '',
         },
       })
+      if (result.error) return setMessage(result.error)
       await router.invalidate()
       setMessage('Guardado')
     } catch {
@@ -123,6 +128,16 @@ export function CourseSettings({
         <UploadBox target="cover" id={slug} accept=".jpg,.jpeg,.png,.webp">
           Arrastra una imagen o haz clic para subirla
         </UploadBox>
+      </div>
+
+      <BunnyVideoField
+        label="Video de intro de la página de venta"
+        value={introVideoId}
+        onChange={setIntroVideoId}
+      />
+      <div className={note}>
+        Lo abre el botón de reproducir de la imagen principal. Sin video, la
+        imagen queda sin botón. Una promoción con su propio video usa el suyo.
       </div>
 
       <div className="flex flex-wrap gap-3">

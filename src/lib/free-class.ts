@@ -73,6 +73,8 @@ export const joinFreeClass = createServerFn({ method: 'POST' })
         email,
         userId: user.id,
         consentAt: new Date(),
+        // La casilla de hoy junta el aviso con «recibir correos» (H22 las separa).
+        newsletterAt: new Date(),
         attribution: attributionJson(attribution),
         marketingConsent: consent === null ? undefined : consent === 'accepted',
       },

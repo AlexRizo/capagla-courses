@@ -336,7 +336,10 @@ model Lead {
   id               String   @id @default(cuid())
   createdAt        DateTime @default(now())
   email            String   @unique
+  // Cuándo aceptó el aviso de privacidad (obligatorio para registrarse).
   consentAt        DateTime
+  // Cuándo pidió recibir novedades por correo (casilla opcional; H22). null = no las pidió.
+  newsletterAt     DateTime?
   userId           String   @unique
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   // Atribución con la que llegó y si aceptó las cookies de medición (ver `Order`).

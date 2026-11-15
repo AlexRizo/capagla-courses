@@ -10,8 +10,8 @@ type NavItem = { label: string; href?: string; badge?: number }
 const management: NavItem[] = [
   { label: 'Preguntas', href: '/admin/preguntas' },
   { label: 'Usuarios', href: '/admin/usuarios' },
-  { label: 'Ventas' },
-  { label: 'Leads' },
+  { label: 'Ventas', href: '/admin/ventas' },
+  { label: 'Leads', href: '/admin/leads' },
 ]
 
 const pro: NavItem[] = [

@@ -26,8 +26,11 @@ import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as RevisaTuCorreoRouteImport } from './routes/revisa-tu-correo'
 import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as AdminHerramientaRouteImport } from './routes/admin/herramienta'
+import { Route as AdminLeadsRouteImport } from './routes/admin/leads'
 import { Route as AdminMarketingRouteImport } from './routes/admin/marketing'
 import { Route as AdminPreguntasRouteImport } from './routes/admin/preguntas'
+import { Route as AdminVentasRouteImport } from './routes/admin/ventas'
+import { Route as ApiAdminLeadsRouteImport } from './routes/api/admin-leads'
 import { Route as ApiUploadsRouteImport } from './routes/api/uploads'
 import { Route as CursosSlugRouteImport } from './routes/cursos/$slug'
 import { Route as HerramientaIndexRouteImport } from './routes/herramienta/index'
@@ -155,6 +158,11 @@ const AdminHerramientaRoute = AdminHerramientaRouteImport.update({
   path: '/herramienta',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminLeadsRoute = AdminLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMarketingRoute = AdminMarketingRouteImport.update({
   id: '/marketing',
   path: '/marketing',
@@ -164,6 +172,16 @@ const AdminPreguntasRoute = AdminPreguntasRouteImport.update({
   id: '/preguntas',
   path: '/preguntas',
   getParentRoute: () => AdminRoute,
+} as any)
+const AdminVentasRoute = AdminVentasRouteImport.update({
+  id: '/ventas',
+  path: '/ventas',
+  getParentRoute: () => AdminRoute,
+} as any)
+const ApiAdminLeadsRoute = ApiAdminLeadsRouteImport.update({
+  id: '/api/admin-leads',
+  path: '/api/admin-leads',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiUploadsRoute = ApiUploadsRouteImport.update({
   id: '/api/uploads',
@@ -400,8 +418,11 @@ export interface FileRoutesByFullPath {
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
   '/terminos': typeof TerminosRoute
   '/admin/herramienta': typeof AdminHerramientaRoute
+  '/admin/leads': typeof AdminLeadsRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
+  '/admin/ventas': typeof AdminVentasRoute
+  '/api/admin-leads': typeof ApiAdminLeadsRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
   '/herramienta/ajustes': typeof HerramientaAjustesRoute
@@ -460,8 +481,11 @@ export interface FileRoutesByTo {
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
   '/terminos': typeof TerminosRoute
   '/admin/herramienta': typeof AdminHerramientaRoute
+  '/admin/leads': typeof AdminLeadsRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
+  '/admin/ventas': typeof AdminVentasRoute
+  '/api/admin-leads': typeof ApiAdminLeadsRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
   '/herramienta/ajustes': typeof HerramientaAjustesRoute
@@ -523,8 +547,11 @@ export interface FileRoutesById {
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
   '/terminos': typeof TerminosRoute
   '/admin/herramienta': typeof AdminHerramientaRoute
+  '/admin/leads': typeof AdminLeadsRoute
   '/admin/marketing': typeof AdminMarketingRoute
   '/admin/preguntas': typeof AdminPreguntasRoute
+  '/admin/ventas': typeof AdminVentasRoute
+  '/api/admin-leads': typeof ApiAdminLeadsRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
   '/herramienta/ajustes': typeof HerramientaAjustesRoute
@@ -587,8 +614,11 @@ export interface FileRouteTypes {
     | '/revisa-tu-correo'
     | '/terminos'
     | '/admin/herramienta'
+    | '/admin/leads'
     | '/admin/marketing'
     | '/admin/preguntas'
+    | '/admin/ventas'
+    | '/api/admin-leads'
     | '/api/uploads'
     | '/cursos/$slug'
     | '/herramienta/ajustes'
@@ -647,8 +677,11 @@ export interface FileRouteTypes {
     | '/revisa-tu-correo'
     | '/terminos'
     | '/admin/herramienta'
+    | '/admin/leads'
     | '/admin/marketing'
     | '/admin/preguntas'
+    | '/admin/ventas'
+    | '/api/admin-leads'
     | '/api/uploads'
     | '/cursos/$slug'
     | '/herramienta/ajustes'
@@ -709,8 +742,11 @@ export interface FileRouteTypes {
     | '/revisa-tu-correo'
     | '/terminos'
     | '/admin/herramienta'
+    | '/admin/leads'
     | '/admin/marketing'
     | '/admin/preguntas'
+    | '/admin/ventas'
+    | '/api/admin-leads'
     | '/api/uploads'
     | '/cursos/$slug'
     | '/herramienta/ajustes'
@@ -771,6 +807,7 @@ export interface RootRouteChildren {
   PrivacidadRoute: typeof PrivacidadRoute
   RevisaTuCorreoRoute: typeof RevisaTuCorreoRoute
   TerminosRoute: typeof TerminosRoute
+  ApiAdminLeadsRoute: typeof ApiAdminLeadsRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
   CursosSlugRoute: typeof CursosSlugRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -901,6 +938,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminHerramientaRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/leads': {
+      id: '/admin/leads'
+      path: '/leads'
+      fullPath: '/admin/leads'
+      preLoaderRoute: typeof AdminLeadsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/marketing': {
       id: '/admin/marketing'
       path: '/marketing'
@@ -914,6 +958,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/preguntas'
       preLoaderRoute: typeof AdminPreguntasRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/admin/ventas': {
+      id: '/admin/ventas'
+      path: '/ventas'
+      fullPath: '/admin/ventas'
+      preLoaderRoute: typeof AdminVentasRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/api/admin-leads': {
+      id: '/api/admin-leads'
+      path: '/api/admin-leads'
+      fullPath: '/api/admin-leads'
+      preLoaderRoute: typeof ApiAdminLeadsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/uploads': {
       id: '/api/uploads'
@@ -1207,8 +1265,10 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminHerramientaRoute: typeof AdminHerramientaRoute
+  AdminLeadsRoute: typeof AdminLeadsRoute
   AdminMarketingRoute: typeof AdminMarketingRoute
   AdminPreguntasRoute: typeof AdminPreguntasRoute
+  AdminVentasRoute: typeof AdminVentasRoute
   AdminCursosSlugRoute: typeof AdminCursosSlugRoute
   AdminPromocionesIdRoute: typeof AdminPromocionesIdRoute
   AdminUsuariosIdRoute: typeof AdminUsuariosIdRoute
@@ -1219,8 +1279,10 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminHerramientaRoute: AdminHerramientaRoute,
+  AdminLeadsRoute: AdminLeadsRoute,
   AdminMarketingRoute: AdminMarketingRoute,
   AdminPreguntasRoute: AdminPreguntasRoute,
+  AdminVentasRoute: AdminVentasRoute,
   AdminCursosSlugRoute: AdminCursosSlugRoute,
   AdminPromocionesIdRoute: AdminPromocionesIdRoute,
   AdminUsuariosIdRoute: AdminUsuariosIdRoute,
@@ -1324,6 +1386,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacidadRoute: PrivacidadRoute,
   RevisaTuCorreoRoute: RevisaTuCorreoRoute,
   TerminosRoute: TerminosRoute,
+  ApiAdminLeadsRoute: ApiAdminLeadsRoute,
   ApiUploadsRoute: ApiUploadsRoute,
   CursosSlugRoute: CursosSlugRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

@@ -34,8 +34,12 @@ export type CostSettingsValues = {
   defaultWastePct: number | null
 }
 
+// Valor inicial de una alumna nueva (aún sin ajustes guardados).
+export const DEFAULT_HOURS_PER_WEEK = 15
+
 export const EMPTY_SETTINGS: CostSettingsValues = {
-  hoursPerWeek: null,
+  // Un número redondo para empezar, el del ejemplo de la maqueta: 15 h ≈ 65 h al mes (H41).
+  hoursPerWeek: DEFAULT_HOURS_PER_WEEK,
   electricityMonthly: null,
   gasMonthly: null,
   rentMonthly: null,

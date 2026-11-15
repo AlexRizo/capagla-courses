@@ -34,8 +34,13 @@ describe('horas al mes', () => {
   })
 
   it('sin horas no hay horas al mes', () => {
-    expect(monthlyHours(EMPTY_SETTINGS)).toBeNull()
+    expect(monthlyHours({ hoursPerWeek: null })).toBeNull()
     expect(monthlyHours({ hoursPerWeek: 0 })).toBeNull()
+  })
+
+  it('una alumna nueva empieza con 15 h a la semana, ≈ 65 al mes (H41)', () => {
+    expect(EMPTY_SETTINGS.hoursPerWeek).toBe(15)
+    expect(monthlyHours(EMPTY_SETTINGS)).toBe(65)
   })
 })
 

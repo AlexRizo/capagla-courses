@@ -224,12 +224,18 @@ async function completeOrderLocked(orderId: string) {
   ])
 
   // Correo de compra (o de renovación, con la nueva fecha): lo que incluye y el enlace.
-  const renewedUntil = order.renewal
-    ? new Intl.DateTimeFormat('es-MX', {
-        timeZone: TIME_ZONE,
-        dateStyle: 'long',
-      }).format(newExpiry.get(order.items[0].productId))
-    : undefined
+  const longDate = (d: Date | undefined) =>
+    new Intl.DateTimeFormat('es-MX', {
+      timeZone: TIME_ZONE,
+      dateStyle: 'long',
+    }).format(d)
+  const main = order.items[0]
+  const mainUntil = longDate(newExpiry.get(main.productId))
+  const renewedUntil = order.renewal ? mainUntil : undefined
+  // Una mejora de nivel conserva el vencimiento que tenía: solo se dice la fecha.
+  const access = order.upgradeFromProductId
+    ? `Tu acceso vence el ${mainUntil}.`
+    : `Tu acceso es de ${main.product.accessDays} días: vence el ${mainUntil}.`
   await withLinkPurpose(
     {
       kind: 'purchase',
@@ -240,6 +246,7 @@ async function completeOrderLocked(orderId: string) {
           : []),
       ],
       renewedUntil,
+      access,
     },
     () =>
       auth.api.signInMagicLink({

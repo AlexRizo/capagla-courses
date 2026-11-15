@@ -118,13 +118,14 @@ export function accessLinkMail(
       html: layout(title, [
         p('Tu pago se confirmó. Esto es lo que incluye tu compra:'),
         quote('TU COMPRA', list),
+        ...(purpose.access ? [p(esc(purpose.access))] : []),
         p(
           'Entra a tu curso con este botón. No necesitas contraseña; si quieres, puedes crear una desde Mis accesos.',
         ),
         button(url, 'Entrar a mi curso'),
         expiryNote(url),
       ]),
-      text: `${title}\n\nTu pago se confirmó. Tu compra incluye:\n${list}\n\nEntra a tu curso con este enlace (no necesitas contraseña).${textTail}`,
+      text: `${title}\n\nTu pago se confirmó. Tu compra incluye:\n${list}${purpose.access ? `\n\n${purpose.access}` : ''}\n\nEntra a tu curso con este enlace (no necesitas contraseña).${textTail}`,
     }
   }
   const title = 'Tu enlace para entrar'

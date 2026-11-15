@@ -69,7 +69,13 @@ export type LinkPurpose =
   // Cuenta creada desde el panel de usuarios.
   | { kind: 'invite'; admin: boolean }
   // `renewedUntil`: fecha en que vence el acceso renovado (solo en una renovación).
-  | { kind: 'purchase'; items: string[]; renewedUntil?: string }
+  // `access`: «Tu acceso es de 365 días: vence el …» (compra; nunca «de por vida»).
+  | {
+      kind: 'purchase'
+      items: string[]
+      renewedUntil?: string
+      access?: string
+    }
   // No se manda correo: el enlace se entrega a `onLink` (para abrir la sesión en el servidor).
   | { kind: 'capture'; onLink: (url: string) => void }
 

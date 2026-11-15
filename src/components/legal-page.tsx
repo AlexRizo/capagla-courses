@@ -14,7 +14,14 @@ const LINKS = [
 
 // Página de texto legal (aviso de privacidad, términos, devoluciones y cookies). La maqueta no
 // trae diseño para estas páginas: usa el marco de Entrar y los colores de la landing.
-export function LegalPage({ doc }: { doc: LegalDoc }) {
+export function LegalPage({
+  doc,
+  children,
+}: {
+  doc: LegalDoc
+  // Algo propio de la página bajo la introducción (p. ej. el botón de la política de cookies).
+  children?: React.ReactNode
+}) {
   return (
     <AuthShell>
       <main className="mx-auto box-border w-full max-w-190 flex-1 px-4 py-8 md:px-8 md:py-12">
@@ -27,6 +34,7 @@ export function LegalPage({ doc }: { doc: LegalDoc }) {
         <p className="mt-5 mb-0 text-15 leading-normal md:text-base md:leading-155">
           {doc.intro}
         </p>
+        {children}
 
         {doc.sections.map((section) => (
           <section key={section.heading} className="mt-8">

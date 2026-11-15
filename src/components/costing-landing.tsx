@@ -251,6 +251,9 @@ export function CostingLanding({ page }: { page: CostingCoursePage }) {
         <Link to="/terminos" className={footerLink}>
           Términos y condiciones
         </Link>
+        <Link to="/cookies" className={footerLink}>
+          Cookies
+        </Link>
         <Link to="/privacidad" className={footerLink}>
           Aviso de privacidad
         </Link>

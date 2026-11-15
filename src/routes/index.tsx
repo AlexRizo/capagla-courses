@@ -300,6 +300,9 @@ function Home() {
           <Link to="/terminos" className="text-landing-muted">
             Términos y condiciones
           </Link>
+          <Link to="/cookies" className="text-landing-muted">
+            Cookies
+          </Link>
           <a href={`mailto:${CONTACT_EMAIL}`} className="text-landing-muted">
             <span className="md:hidden">Contacto</span>
             <span className="hidden md:inline">{CONTACT_EMAIL}</span>

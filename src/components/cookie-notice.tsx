@@ -7,6 +7,11 @@ import { getConsent, setConsent } from '#/lib/consent'
 // Aviso de cookies. La maqueta del panel solo dice que los píxeles se cargan si la persona los
 // acepta; no trae diseño del aviso, así que este es mínimo, con los colores de la landing.
 // Tampoco guarda ni manda nada hasta que elige. No sale en el panel (`/admin`) ni en la herramienta de costos (`/herramienta` y su vista de tienda).
+// Vuelve a abrir el aviso para cambiar la elección (H21; botón de la página /cookies).
+const REOPEN_EVENT = 'capagla:cookies'
+export const openCookieNotice = () =>
+  window.dispatchEvent(new Event(REOPEN_EVENT))
+
 export function CookieNotice() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   // Sin elección guardada se muestra; se decide ya montado para no chocar con el HTML del servidor.
@@ -16,6 +21,9 @@ export function CookieNotice() {
   useEffect(() => {
     captureAttribution()
     setVisible(getConsent() === null)
+    const reopen = () => setVisible(true)
+    window.addEventListener(REOPEN_EVENT, reopen)
+    return () => window.removeEventListener(REOPEN_EVENT, reopen)
   }, [])
 
   const hidden =

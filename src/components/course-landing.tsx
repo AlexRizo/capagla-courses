@@ -263,6 +263,9 @@ function Desktop({
         <Link to="/terminos" className={footerLink}>
           Términos y condiciones
         </Link>
+        <Link to="/cookies" className={footerLink}>
+          Cookies
+        </Link>
         <Link to="/privacidad" className={footerLink}>
           Aviso de privacidad
         </Link>
@@ -478,6 +481,9 @@ function Mobile({
           </Link>
           <Link to="/terminos" className={footerLink}>
             Términos y condiciones
+          </Link>
+          <Link to="/cookies" className={footerLink}>
+            Cookies
           </Link>
           <a href={`mailto:${CONTACT_EMAIL}`} className={footerLink}>
             Contacto

@@ -33,7 +33,13 @@ export function CostingLanding({ page }: { page: CostingCoursePage }) {
   const buy = (className: string, label = cta) => (
     <Link
       to="/checkout"
-      search={{ promo: page.promoSlug, prueba: page.promoTest }}
+      // Sin promoción, el curso solo a precio normal (sin `producto`, el checkout vendería
+      // el curso de Navidad; H23).
+      search={
+        page.promoSlug
+          ? { promo: page.promoSlug, prueba: page.promoTest }
+          : { producto: page.slug }
+      }
       className={className}
     >
       {label}

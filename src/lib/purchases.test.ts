@@ -161,9 +161,26 @@ describe('createOrder', () => {
     )
   })
 
-  it('la compra suelta no vende cursos ni herramientas en borrador', async () => {
+  it('la compra suelta vende un curso solo a su precio normal (H23)', async () => {
+    const order = await createOrder({
+      ...buyer,
+      withTool: false,
+      product: 'calcular-costos',
+    })
+    expect(order.amountMxn).toBe(catalog.extra.priceMxn)
+    const items = await prisma.orderItem.findMany({
+      where: { orderId: order.id },
+    })
+    expect(items.map((i) => i.productId)).toEqual([catalog.extra.id])
+  })
+
+  it('la compra suelta no vende productos en borrador ni inexistentes', async () => {
+    await prisma.product.update({
+      where: { id: catalog.extra.id },
+      data: { status: 'DRAFT' },
+    })
     await expect(
-      createOrder({ ...buyer, withTool: false, product: 'postres-navidad' }),
+      createOrder({ ...buyer, withTool: false, product: 'calcular-costos' }),
     ).rejects.toThrow('No está a la venta')
     await expect(
       createOrder({ ...buyer, withTool: false, product: 'no-existe' }),

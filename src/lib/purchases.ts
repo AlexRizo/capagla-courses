@@ -55,7 +55,7 @@ export async function createOrder(input: {
   toolSlug?: string
   promo?: string
   prueba?: string
-  // Herramienta sola a precio normal (desde Mis cursos); la promoción sigue vendiéndola como casilla.
+  // Producto solo a precio normal (herramienta o curso; ver resolveStandalone).
   product?: string
   renew?: string
   // Atribución de la visita y si aceptó las cookies de medición (ver lib/attribution.ts).

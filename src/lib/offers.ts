@@ -124,9 +124,9 @@ export async function resolveRenewal(
   }
 }
 
-// Compra de la herramienta sola, a precio normal (desde Mis cursos, sin promoción de por medio).
-// Solo vende productos de tipo herramienta: los cursos se venden por su página o su promoción.
-// null si no existe, no es una herramienta o no está publicada.
+// Compra de un producto solo, a precio normal (sin promoción de por medio): la herramienta desde
+// Mis cursos o su página, y un curso desde su página de venta (`/cursos/calcular-costos`; H23).
+// null si no existe o no está publicado.
 //
 // Con el correo de quien compra: si ya tiene vigente un nivel más bajo de la herramienta, es una
 // mejora: paga la diferencia de precios y la inscripción nueva conserva el vencimiento del nivel
@@ -139,23 +139,22 @@ export async function resolveStandalone(
     where: { slug },
     include: { tier: true },
   })
-  if (!product || product.kind !== 'TOOL' || product.status !== 'PUBLISHED') {
-    return null
-  }
-  const lower = email
-    ? await prisma.enrollment.findMany({
-        where: {
-          user: { email: email.trim().toLowerCase() },
-          expiresAt: { gt: new Date() },
-          product: {
-            kind: 'TOOL',
-            tier: { rank: { lt: product.tier?.rank ?? 2 } },
+  if (!product || product.status !== 'PUBLISHED') return null
+  const lower =
+    email && product.kind === 'TOOL'
+      ? await prisma.enrollment.findMany({
+          where: {
+            user: { email: email.trim().toLowerCase() },
+            expiresAt: { gt: new Date() },
+            product: {
+              kind: 'TOOL',
+              tier: { rank: { lt: product.tier?.rank ?? 2 } },
+            },
           },
-        },
-        include: { product: true },
-        orderBy: { product: { priceMxn: 'desc' } },
-      })
-    : []
+          include: { product: true },
+          orderBy: { product: { priceMxn: 'desc' } },
+        })
+      : []
   if (lower.length > 0) {
     const [from] = lower
     return {

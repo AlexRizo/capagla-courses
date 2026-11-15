@@ -304,9 +304,9 @@ export const courseContents: Partial<Record<string, CourseContent>> = {
       'En una tarde aprendes a costear tus postres y a definir el precio justo.',
     question:
       '¿Te ha pasado que vendes todos tus postres pero al final no te queda la utilidad que tenías planeada?',
-    // La maqueta usa la foto del curso de Navidad mientras no haya una propia.
-    heroImage: '/images/postres-navidad.jpg',
-    heroAlt: 'Gladis presenta el curso de costeo',
+    // Imagen propia del curso (la de su tarjeta del Home; antes, la foto de Navidad).
+    heroImage: '/images/aprende-a-costear.jpg',
+    heroAlt: 'Aprende a Costear: el costo real de un postre, ingrediente por ingrediente',
     problemsTitle: 'Si no sabes cuánto cuesta, estás perdiendo dinero.',
     problems: [
       'Pones el precio al ojo.',

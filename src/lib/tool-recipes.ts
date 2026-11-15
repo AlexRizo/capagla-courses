@@ -416,6 +416,8 @@ export const loadRecipeCosts = createServerOnlyFn(
         yieldPieces: r.yieldPieces,
         empty,
         total: empty ? null : b.total,
+        // Ya incluye tu tiempo, gastos fijos y merma: el semáforo no recuerda «gastos aparte» (H38).
+        allExpenses: r.includeLabor && r.includeFixed && r.includeWaste,
         // Solo lo que lleva de ingredientes y premezclas (sin merma, mano de obra ni gasto fijo).
         ingredients: b.ingredients,
         // Lo que suman la mano de obra y el gasto fijo, y las horas de cada uno (para Producción).

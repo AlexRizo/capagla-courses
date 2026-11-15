@@ -68,6 +68,20 @@ describe('semáforo', () => {
     )
     expect(verdictText('LOW', { ...ctx, ratio: null })).toMatch(/muy barato/)
   })
+
+  it('«gastos aparte» solo si alguna receta no incluye tiempo, gastos fijos o merma (H38)', () => {
+    const ctx = { multiplier: 2.5, target: 3.5, ratio: null }
+    expect(verdictText('LOW', ctx)).toMatch(/gastos aparte/)
+    expect(verdictText('LOSS', { ...ctx, allExpenses: false })).toMatch(
+      /gastos aparte/,
+    )
+    expect(verdictText('LOW', { ...ctx, allExpenses: true })).not.toMatch(
+      /gastos aparte/,
+    )
+    expect(verdictText('LOSS', { ...ctx, allExpenses: true })).toBe(
+      'Lo vendes por debajo de lo que te cuesta producirlo.',
+    )
+  })
 })
 
 describe('ganancia', () => {

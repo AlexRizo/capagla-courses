@@ -109,11 +109,13 @@ function VerdictBox({
   multiplier,
   target,
   ratio,
+  allExpenses,
 }: {
   verdict: Verdict
   multiplier: number
   target: number
   ratio: number | null
+  allExpenses: boolean
 }) {
   const tone = TONE[verdict]
   const Icon = tone.icon
@@ -126,7 +128,7 @@ function VerdictBox({
       <div className="flex flex-col gap-0.5">
         <div className="font-medium">{VERDICT_LABEL[verdict]}</div>
         <div className="text-sm opacity-90">
-          {verdictText(verdict, { multiplier, target, ratio })}
+          {verdictText(verdict, { multiplier, target, ratio, allExpenses })}
         </div>
       </div>
     </div>
@@ -642,6 +644,12 @@ export function ProductForm({ data }: { data: Loaded }) {
                 return m && m >= 1 ? m : settings.multiplier
               })()
               const target = settings.target
+              // Todas sus recetas ya incluyen tiempo, gastos fijos y merma (H38).
+              const allExpenses =
+                recipeRows.length > 0 &&
+                recipeRows.every(
+                  (r) => recipeById.get(r.recipeId)?.allExpenses === true,
+                )
               const summary = productSummary({
                 recipes: recipeRows.map((r) => {
                   const c = recipeById.get(r.recipeId)
@@ -748,6 +756,7 @@ export function ProductForm({ data }: { data: Loaded }) {
                         multiplier={multiplier}
                         target={target}
                         ratio={w.margin?.ratio ?? null}
+                        allExpenses={allExpenses}
                       />
 
                       <div className="flex flex-wrap items-end gap-3">
@@ -906,6 +915,7 @@ export function ProductForm({ data }: { data: Loaded }) {
                           multiplier={multiplier}
                           target={target}
                           ratio={sl.margin?.ratio ?? null}
+                          allExpenses={allExpenses}
                         />
                         {sl.allSold !== null && (
                           <p className="m-0 text-sm text-muted-foreground">

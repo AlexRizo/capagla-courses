@@ -120,16 +120,25 @@ const EXPENSES =
   'Recuerda que hay gastos aparte de los ingredientes: tu tiempo, el gas, la luz y el desperdicio.'
 
 // Texto del aviso del semáforo, con la razón.
+// El recordatorio de «gastos aparte» solo sale si alguna receta no tiene activados tu tiempo, los
+// gastos fijos o la merma (H38): si ya los incluye, el costo ya los cuenta.
 export function verdictText(
   verdict: Verdict,
-  ctx: { multiplier: number; target: number; ratio: number | null },
+  ctx: {
+    multiplier: number
+    target: number
+    ratio: number | null
+    // Todas sus recetas incluyen tiempo, gastos fijos y merma.
+    allExpenses?: boolean
+  },
 ) {
   const ratio = ctx.ratio?.toFixed(2)
+  const expenses = ctx.allExpenses ? '' : ` ${EXPENSES}`
   switch (verdict) {
     case 'LOSS':
-      return `Lo vendes por debajo de lo que te cuesta producirlo. ${EXPENSES}`
+      return `Lo vendes por debajo de lo que te cuesta producirlo.${expenses}`
     case 'LOW':
-      return `Quizás lo estés vendiendo muy barato: no llegas a tu mínimo de ${ctx.multiplier}×. ${EXPENSES}`
+      return `Quizás lo estés vendiendo muy barato: no llegas a tu mínimo de ${ctx.multiplier}×.${expenses}`
     case 'GOOD':
       return `Cubre tus costos y pasa de tu mínimo de ${ctx.multiplier}× (aquí vendes a ${ratio}× tu costo).`
     case 'GREAT':

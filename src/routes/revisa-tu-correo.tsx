@@ -6,12 +6,17 @@ import { redirectIfSignedIn } from '#/lib/session'
 
 export const Route = createFileRoute('/revisa-tu-correo')({
   beforeLoad: () => redirectIfSignedIn(),
-  validateSearch: z.object({ correo: z.string().optional() }),
+  validateSearch: z.object({
+    correo: z.string().optional(),
+    // Desde Entrar con un correo sin contraseña o sin cuenta (no se distingue; H25).
+    desde: z.enum(['entrar']).optional().catch(undefined),
+  }),
   component: RevisaTuCorreo,
 })
 
 function RevisaTuCorreo() {
-  const { correo } = Route.useSearch()
+  const { correo, desde } = Route.useSearch()
+  const fromLogin = desde === 'entrar'
 
   return (
     <AuthShell logoLink={false}>
@@ -35,11 +40,13 @@ function RevisaTuCorreo() {
             Revisa tu correo
           </h1>
           <p className="m-0 text-15 leading-normal text-landing-muted md:text-base md:leading-155">
-            Te enviamos un enlace a{' '}
+            {fromLogin ? 'Si hay una cuenta con ' : 'Te enviamos un enlace a '}
             <strong className="text-landing-ink">
               {correo ?? 'tucorreo@ejemplo.com'}
             </strong>
-            . Puede tardar un minuto.
+            {fromLogin
+              ? ', te enviamos un enlace para entrar. Puede tardar un minuto.'
+              : '. Puede tardar un minuto.'}
           </p>
           <div className="text-13 leading-normal text-landing-muted md:text-sm">
             Si no lo ves, revisa tu carpeta de spam. El enlace caduca en 15
@@ -51,6 +58,23 @@ function RevisaTuCorreo() {
           >
             Usar otro correo
           </Link>
+          {/* Sin revelar si el correo existe (H25): la misma salida para todos. */}
+          {fromLogin && (
+            <div className="flex w-full flex-col gap-2.5 rounded-14 bg-landing-tint px-4 py-3.5 text-left text-sm leading-normal md:text-15">
+              <span>
+                <strong>¿Aún no tienes cuenta?</strong> Se crea al comprar un
+                curso o al registrarte en la clase gratis.
+              </span>
+              <div className="flex flex-wrap gap-x-5 gap-y-1.5 font-bold">
+                <Link to="/clase-gratis" className="text-landing-primary">
+                  Ver la clase gratis
+                </Link>
+                <Link to="/" hash="cursos" className="text-landing-primary">
+                  Ver los cursos
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </AuthShell>

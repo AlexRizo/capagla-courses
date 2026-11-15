@@ -45,7 +45,11 @@ function Entrar() {
         )
         return form.correo.reportValidity()
       }
-      return navigate({ to: '/revisa-tu-correo', search: { correo: email } })
+      // Puede ser un correo sin cuenta: la pantalla lo dice sin revelar si existe (H25).
+      return navigate({
+        to: '/revisa-tu-correo',
+        search: { correo: email, desde: 'entrar' },
+      })
     }
 
     const { error } = await authClient.signIn.email({

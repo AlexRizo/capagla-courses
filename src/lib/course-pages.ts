@@ -279,9 +279,9 @@ export const courseContents: Partial<Record<string, CourseContent>> = {
       },
       {
         q: '¿Cuánto tiempo tengo acceso?',
-        a: 'Tienes acceso durante 365 días desde tu compra. Al terminar ese periodo puedes renovar con hasta 85% de descuento sobre el precio de ese momento.',
+        a: 'Tienes acceso durante 365 días desde tu compra. La renovación es opcional. Al cumplir 365 días el acceso vence, sin cobro automático. Antes del vencimiento te avisamos y puedes renovar con descuento sobre el precio original.',
         aShort:
-          '365 días desde tu compra. Después puedes renovar con hasta 85% de descuento.',
+          '365 días desde tu compra. La renovación es opcional y sin cobro automático: antes de que venza te avisamos.',
       },
       {
         q: '¿Qué métodos de pago hay?',
@@ -306,7 +306,8 @@ export const courseContents: Partial<Record<string, CourseContent>> = {
       '¿Te ha pasado que vendes todos tus postres pero al final no te queda la utilidad que tenías planeada?',
     // Imagen propia del curso (la de su tarjeta del Home; antes, la foto de Navidad).
     heroImage: '/images/aprende-a-costear.jpg',
-    heroAlt: 'Aprende a Costear: el costo real de un postre, ingrediente por ingrediente',
+    heroAlt:
+      'Aprende a Costear: el costo real de un postre, ingrediente por ingrediente',
     problemsTitle: 'Si no sabes cuánto cuesta, estás perdiendo dinero.',
     problems: [
       'Pones el precio al ojo.',

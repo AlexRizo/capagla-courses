@@ -1,5 +1,6 @@
 import { notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { getCookie } from '@tanstack/react-start/server'
 import { z } from 'zod'
 
 import { prisma } from '#/db'
@@ -15,6 +16,7 @@ import { MAX_GLOBAL_LIMIT, MIN_GLOBAL_LIMIT } from '#/lib/assistant-limits'
 import { loadAssistantLimits, usageSummary } from '#/lib/assistant-usage'
 import { answerMail } from '#/lib/emails'
 import { requireAdmin } from '#/lib/guards'
+import { PRO_MODE_COOKIE } from '#/lib/pro-mode'
 import { sendMail } from '#/lib/mailer'
 import type { TranscriptLine } from '#/lib/transcript'
 
@@ -24,6 +26,12 @@ export const MAX_ANSWER_LENGTH = 2000
 export const getPendingQuestions = createServerFn()
   .middleware([requireAdmin])
   .handler(() => prisma.lessonQuestion.count({ where: { status: 'PENDING' } }))
+
+// «Modo pro» del panel (H35): se recuerda en una cookie del navegador (solo comodidad, no es un
+// permiso: toda función del panel exige ser admin igual).
+export const getProMode = createServerFn()
+  .middleware([requireAdmin])
+  .handler(() => getCookie(PRO_MODE_COOKIE) === '1')
 
 // Todas las preguntas de las alumnas, las más recientes primero; los filtros los hace la pantalla.
 export const getAdminQuestions = createServerFn()

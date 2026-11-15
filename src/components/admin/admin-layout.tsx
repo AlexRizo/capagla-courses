@@ -3,6 +3,7 @@ import { createContext, useContext, useState } from 'react'
 
 import type { FileRouteTypes } from '#/routeTree.gen'
 import { Switch } from '#/components/admin/switch'
+import { PRO_MODE_COOKIE } from '#/lib/pro-mode'
 import { cn } from '#/lib/utils'
 
 type NavItem = { label: string; href?: string; badge?: number }
@@ -31,14 +32,22 @@ export const useAdmin = () => useContext(AdminContext)
 export function AdminLayout({
   userName,
   pendingQuestions = 0,
+  initialProMode = false,
   children,
 }: {
   userName?: string | null
   pendingQuestions?: number
+  // Si el modo pro estaba encendido (cookie; H35).
+  initialProMode?: boolean
   children: React.ReactNode
 }) {
   const [dark, setDark] = useState(false)
-  const [proMode, setProMode] = useState(false)
+  const [proMode, setProModeState] = useState(initialProMode)
+  // Se recuerda un año en este navegador, también al recargar o abrir una URL del panel directo.
+  const setProMode = (on: boolean) => {
+    setProModeState(on)
+    document.cookie = `${PRO_MODE_COOKIE}=${on ? '1' : '0'}; max-age=${365 * 86400}; path=/; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`
+  }
   const pathname = useRouterState({ select: (s) => s.location.pathname })
 
   const current =

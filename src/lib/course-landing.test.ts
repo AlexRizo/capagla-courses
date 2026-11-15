@@ -55,20 +55,26 @@ describe('buildCoursePage: curso de costeo', () => {
       applied: true,
       main: product('calcular-costos', 'Aprende a Costear', 149, 0),
       extras: [
-        product(
-          'herramienta-costos-basico',
-          'Herramienta de costos · Básico',
-          429,
-          299,
-          false,
-        ),
-        product(
-          'herramienta-costos',
-          'Herramienta de costos · Completo',
-          569,
-          399,
-          false,
-        ),
+        {
+          ...product(
+            'herramienta-costos-basico',
+            'Herramienta de costos · Básico',
+            429,
+            299,
+            false,
+          ),
+          tierRank: 1,
+        },
+        {
+          ...product(
+            'herramienta-costos',
+            'Herramienta de costos · Completo',
+            569,
+            399,
+            false,
+          ),
+          tierRank: 2,
+        },
       ],
     }
     const page = buildCoursePage(offer)
@@ -84,6 +90,7 @@ describe('buildCoursePage: curso de costeo', () => {
       {
         tag: 'HERRAMIENTA',
         title: 'Herramienta de costos Básico',
+        line: 'Para saber cuánto te cuesta cada postre y en cuánto venderlo.',
         old: '$429 MXN',
         now: '$299 MXN',
         note: 'Precio especial por venir de nuestras redes. Al año, incluye el curso.',
@@ -91,6 +98,7 @@ describe('buildCoursePage: curso de costeo', () => {
       {
         tag: 'HERRAMIENTA',
         title: 'Herramienta de costos Completo',
+        line: 'Todo lo del Básico, más producción, lista de compra, registro de compras y cotizador.',
         old: '$569 MXN',
         now: '$399 MXN',
         note: 'Precio especial por venir de nuestras redes. Al año, incluye el curso.',

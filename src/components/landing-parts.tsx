@@ -163,6 +163,11 @@ export function PromoOffers({
               {o.tag}
             </div>
             <div className="text-base font-black">{o.title}</div>
+            {o.line && (
+              <div className="text-13 leading-snug text-landing-muted">
+                {o.line}
+              </div>
+            )}
             <div className="flex items-baseline gap-2">
               <span className="text-sm text-landing-strike line-through">
                 {o.old}
@@ -196,6 +201,11 @@ export function PromoOffers({
               <div className="text-22 font-black tracking-landing-title-sm">
                 {o.title}
               </div>
+              {o.line && (
+                <div className="text-15 leading-normal text-landing-muted">
+                  {o.line}
+                </div>
+              )}
               <div className="flex flex-wrap items-baseline gap-2.5">
                 <span className="text-lg text-landing-strike line-through">
                   {o.old}

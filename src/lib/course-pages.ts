@@ -84,6 +84,8 @@ export type CourseContent = RecipesContent | CostingContent
 export type Offer = {
   tag: string
   title: string
+  // Lo que incluye ese nivel de la herramienta (una línea bajo el título).
+  line?: string
   old: string
   now: string
   note: string

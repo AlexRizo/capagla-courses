@@ -6,6 +6,7 @@ import { IntroVideo, Play } from '#/components/landing-parts'
 import { MobileMenu } from '#/components/mobile-menu'
 import type { ToolPage, ToolPlan } from '#/lib/tool-page'
 import { track } from '#/lib/track-client'
+import { TOOL_TIER_LINE } from '#/lib/tool-tiers'
 import { CONTACT_EMAIL } from '#/lib/contact'
 import { EnterLink } from '#/components/enter-link'
 
@@ -726,11 +727,6 @@ function features(plan: ToolPlan) {
   ]
 }
 
-const PLAN_TEXT: Record<number, string> = {
-  1: 'Para saber cuánto te cuesta cada postre y a cuánto venderlo.',
-  2: 'Para cuando ya tienes pedidos: producción, compras y cotizaciones.',
-}
-
 function Plans({ plans }: { plans: ToolPlan[] }) {
   const top = Math.max(...plans.map((p) => p.rank))
   return (
@@ -755,9 +751,9 @@ function Plans({ plans }: { plans: ToolPlan[] }) {
                 </div>
               )}
               <div className="text-2xl font-black">{p.name}</div>
-              {PLAN_TEXT[p.rank] && (
+              {TOOL_TIER_LINE[p.rank] && (
                 <div className="text-15 text-landing-muted">
-                  {PLAN_TEXT[p.rank]}
+                  {TOOL_TIER_LINE[p.rank]}
                 </div>
               )}
               <div className="flex flex-wrap items-baseline gap-2">

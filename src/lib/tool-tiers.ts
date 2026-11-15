@@ -2,6 +2,13 @@
 // uno y cuántos elementos se pueden guardar. Solo reglas, sin base de datos: las usan el servidor,
 // el menú y el panel.
 
+// Una línea bajo el nombre de cada nivel (por `rank`: 1 Básico, 2 Completo), igual en la tabla de
+// planes de /herramienta-de-costos y en el recuadro de la promoción de /costear (catálogo; doc 04).
+export const TOOL_TIER_LINE: Record<number, string> = {
+  1: 'Para saber cuánto te cuesta cada postre y en cuánto venderlo.',
+  2: 'Todo lo del Básico, más producción, lista de compra, registro de compras y cotizador.',
+}
+
 // Curso que incluye la herramienta, en cualquier nivel (maqueta última, 2026-11-11).
 export const TOOL_INCLUDED_COURSE_SLUG = 'calcular-costos'
 

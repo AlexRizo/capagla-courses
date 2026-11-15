@@ -21,6 +21,8 @@ type OfferProduct = {
   accessDays: number
   normalMxn: number
   priceMxn: number
+  // Nivel de la herramienta (1 Básico, 2 Completo), si es la herramienta y se cargó su nivel.
+  tierRank?: number | null
 }
 
 // Qué se vende y a qué precio. Es la única fuente de precios de la landing, el checkout y la
@@ -66,6 +68,7 @@ const asProduct = (
     coverUrl: string | null
     accessDays: number
     priceMxn: number
+    tier?: { rank: number } | null
   },
   priceMxn: number,
 ): OfferProduct => ({
@@ -78,6 +81,7 @@ const asProduct = (
   accessDays: p.accessDays,
   normalMxn: p.priceMxn,
   priceMxn,
+  tierRank: p.tier?.rank ?? null,
 })
 
 // Renovación: `RENEWAL_DISCOUNT_PCT` sobre el precio normal. Se puede renovar con el acceso
@@ -242,7 +246,7 @@ export async function resolveOffer(
         include: {
           products: {
             orderBy: { position: 'asc' },
-            include: { product: true },
+            include: { product: { include: { tier: true } } },
           },
         },
       })

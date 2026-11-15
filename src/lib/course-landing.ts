@@ -13,6 +13,7 @@ import type { Offer } from '#/lib/offers'
 import { recordPromotionEvent } from '#/lib/promo-stats'
 import { longDate } from '#/lib/promotions'
 import { loadToolPage } from '#/lib/tool-page-data'
+import { TOOL_TIER_LINE } from '#/lib/tool-tiers'
 
 // Textos del recuadro de un adicional, a partir de su precio especial.
 // `fromSocial`: la promoción que regala el curso de costeo (entraron desde las redes); sus
@@ -34,6 +35,7 @@ function card(
     tag: extra.isCourse ? 'CURSO ADICIONAL' : 'HERRAMIENTA',
     // «Herramienta de costos · Completo» → «Herramienta de costos Completo» (como la maqueta).
     title: extra.name.replace(' · ', ' '),
+    line: (extra.tierRank && TOOL_TIER_LINE[extra.tierRank]) || undefined,
     old: extra.normalMxn > 0 ? mxn(extra.normalMxn) : '[valor real]',
     now: extra.priceMxn === 0 ? 'Gratis' : mxn(extra.priceMxn),
     note: discount,

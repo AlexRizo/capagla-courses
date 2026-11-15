@@ -14,6 +14,7 @@ import type {
   CostingTopicIcon,
 } from '#/lib/course-pages'
 import { CONTACT_EMAIL } from '#/lib/contact'
+import { EnterLink } from '#/components/enter-link'
 
 const h2 = 'm-0 text-28 font-black tracking-landing-title-md md:text-34'
 const footerLink = 'text-landing-muted underline'
@@ -75,12 +76,7 @@ export function CostingLanding({ page }: { page: CostingCoursePage }) {
           >
             Preguntas
           </a>
-          <Link
-            to="/entrar"
-            className="px-1 py-2.5 text-15 font-bold text-landing-primary no-underline"
-          >
-            Entrar
-          </Link>
+          <EnterLink className="px-1 py-2.5 text-15 font-bold text-landing-primary no-underline" />
         </div>
         <MobileMenu
           items={[

@@ -5,6 +5,7 @@ import { MobileMenu } from '#/components/mobile-menu'
 import { getHomeProducts } from '#/lib/home'
 import { ABOUT_URL, SOCIAL_LINKS } from '#/lib/social'
 import { CONTACT_EMAIL } from '#/lib/contact'
+import { EnterLink } from '#/components/enter-link'
 
 export const Route = createFileRoute('/')({
   loader: () => getHomeProducts(),
@@ -50,12 +51,7 @@ function Home() {
           <a href="#gladis" className={nav}>
             Quién soy
           </a>
-          <Link
-            to="/entrar"
-            className="inline-flex min-h-10 items-center rounded-full bg-landing-primary px-5.5 text-15 font-bold text-white no-underline"
-          >
-            Entrar
-          </Link>
+          <EnterLink className="inline-flex min-h-10 items-center rounded-full bg-landing-primary px-5.5 text-15 font-bold text-white no-underline" />
         </div>
         <MobileMenu
           items={[

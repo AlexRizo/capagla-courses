@@ -10,6 +10,7 @@ import {
 import { MobileMenu } from '#/components/mobile-menu'
 import type { CoursePage, RecipesCoursePage } from '#/lib/course-pages'
 import { CONTACT_EMAIL } from '#/lib/contact'
+import { EnterLink } from '#/components/enter-link'
 
 const solid =
   'flex items-center justify-center rounded-12 bg-landing-primary font-black text-white no-underline'
@@ -65,12 +66,7 @@ function Desktop({
           <a href="#preguntas" className={link}>
             Preguntas
           </a>
-          <Link
-            to="/entrar"
-            className="px-1 py-2.5 text-15 font-bold text-landing-primary no-underline"
-          >
-            Entrar
-          </Link>
+          <EnterLink className="px-1 py-2.5 text-15 font-bold text-landing-primary no-underline" />
         </div>
       </div>
 

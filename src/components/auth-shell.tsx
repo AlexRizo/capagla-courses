@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { EnterLink } from '#/components/enter-link'
 
 // Marco común de "Entrar" y "Revisa tu correo" (maqueta landing, escritorio y móvil).
 export function AuthShell({
@@ -25,12 +26,7 @@ export function AuthShell({
           <div className={logo}>Capagla</div>
         )}
         {enterLink && (
-          <Link
-            to="/entrar"
-            className="px-1 py-2 text-sm font-bold text-landing-primary no-underline md:py-2.5 md:text-15"
-          >
-            Entrar
-          </Link>
+          <EnterLink className="px-1 py-2 text-sm font-bold text-landing-primary no-underline md:py-2.5 md:text-15" />
         )}
       </div>
       {children}

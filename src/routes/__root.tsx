@@ -8,6 +8,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import { CookieNotice } from '#/components/cookie-notice'
 import { Tracking } from '#/components/tracking'
+import { getSession } from '#/lib/session'
 import { getTrackingConfig } from '#/lib/track'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
@@ -20,8 +21,12 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-  // IDs públicos de los píxeles (Marketing); sin ellos el sitio no mide nada.
-  loader: () => getTrackingConfig(),
+  // IDs públicos de los píxeles (Marketing; sin ellos el sitio no mide nada) y si hay sesión
+  // (los encabezados públicos dicen «Mis accesos» en vez de «Entrar»; H19).
+  loader: async () => ({
+    tracking: await getTrackingConfig(),
+    signedIn: !!(await getSession()),
+  }),
   staleTime: 5 * 60_000,
   head: () => ({
     meta: [
@@ -52,7 +57,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const config = Route.useLoaderData()
+  const { tracking: config } = Route.useLoaderData()
   return (
     <html lang="es">
       <head>

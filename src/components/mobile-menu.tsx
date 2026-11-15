@@ -1,5 +1,5 @@
-import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
+import { EnterLink } from '#/components/enter-link'
 
 const menuItem = 'rounded-md px-3 py-2.75 text-15 text-landing-ink no-underline'
 
@@ -13,12 +13,7 @@ export function MobileMenu({
 
   return (
     <div className="relative flex items-center gap-2 md:hidden">
-      <Link
-        to="/entrar"
-        className="inline-flex min-h-9.5 items-center rounded-full bg-landing-primary px-4.5 text-sm font-bold text-white no-underline"
-      >
-        Entrar
-      </Link>
+      <EnterLink className="inline-flex min-h-9.5 items-center rounded-full bg-landing-primary px-4.5 text-sm font-bold text-white no-underline" />
       <button
         type="button"
         aria-label="Menú"

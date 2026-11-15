@@ -7,6 +7,7 @@ import { MobileMenu } from '#/components/mobile-menu'
 import type { ToolPage, ToolPlan } from '#/lib/tool-page'
 import { track } from '#/lib/track-client'
 import { CONTACT_EMAIL } from '#/lib/contact'
+import { EnterLink } from '#/components/enter-link'
 
 // Página pública de la herramienta de costos (maqueta última, 2026-11-11; solo hay diseño de
 // escritorio: en móvil las columnas se apilan). Los textos y ejemplos son los de la maqueta; los
@@ -148,12 +149,7 @@ function Header() {
         <a href="#planes" className={nav}>
           Planes
         </a>
-        <Link
-          to="/entrar"
-          className="inline-flex min-h-10 items-center rounded-full bg-landing-primary px-5.5 text-15 font-bold text-white no-underline"
-        >
-          Entrar
-        </Link>
+        <EnterLink className="inline-flex min-h-10 items-center rounded-full bg-landing-primary px-5.5 text-15 font-bold text-white no-underline" />
       </div>
       <MobileMenu
         items={[

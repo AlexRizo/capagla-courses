@@ -107,29 +107,47 @@ const productionNeeds = createServerOnlyFn(
 const familyFactor = (unit: IngredientRow['unit']) =>
   unit === 'KG' || unit === 'L' ? 1000 : 1
 
+// Producciones vigentes, la más reciente primero: para elegir de cuál es la lista (H40).
+const liveProductions = (userId: string) =>
+  prisma.costProduction.findMany({
+    where: { userId, expiresAt: { gt: new Date() } },
+    orderBy: { updatedAt: 'desc' },
+    select: { id: true, name: true },
+  })
+
+// Desde el menú (sin producción elegida) se abre la producción más reciente, si hay (H40).
+export const getLatestProductionId = createServerFn()
+  .middleware([requireModule('SHOPPING_LIST')])
+  .handler(
+    async ({ context }) =>
+      (await liveProductions(context.userId))[0]?.id ?? null,
+  )
+
 export const getList = createServerFn()
   .middleware([requireModule('SHOPPING_LIST')])
   .validator(z.object({ productionId: z.string().nullable() }))
   .handler(async ({ data, context }) => {
     const userId = context.userId
-    const [list, ingredients, places, produced] = await Promise.all([
-      prisma.costList.findFirst({
-        where: { userId, productionId: data.productionId },
-        include: { entries: true },
-      }),
-      prisma.costIngredient.findMany({
-        where: { userId },
-        include: { place: true },
-        orderBy: { name: 'asc' },
-      }),
-      prisma.costPlace.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'asc' },
-      }),
-      data.productionId
-        ? productionNeeds(userId, data.productionId)
-        : Promise.resolve(null),
-    ])
+    const [list, ingredients, places, produced, productions] =
+      await Promise.all([
+        prisma.costList.findFirst({
+          where: { userId, productionId: data.productionId },
+          include: { entries: true },
+        }),
+        prisma.costIngredient.findMany({
+          where: { userId },
+          include: { place: true },
+          orderBy: { name: 'asc' },
+        }),
+        prisma.costPlace.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'asc' },
+        }),
+        data.productionId
+          ? productionNeeds(userId, data.productionId)
+          : Promise.resolve(null),
+        liveProductions(userId),
+      ])
     const entries = new Map(list?.entries.map((e) => [e.ingredientId, e]))
     const placeIds = new Set(places.map((p) => p.id))
     const needs = produced?.needs ?? new Map<string, number>()
@@ -175,6 +193,8 @@ export const getList = createServerFn()
         summary: produced.summary,
       },
       rows,
+      // Para el selector «Lista de»: producciones vigentes y la lista directa.
+      productions,
       places: places.map((p) => ({ id: p.id, name: p.name })),
       // Lo que se puede agregar a mano.
       choices: ingredients

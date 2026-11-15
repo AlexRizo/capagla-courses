@@ -145,7 +145,7 @@ export function ProductionForm({ data }: { data: Loaded }) {
                 to: '/herramienta/lista',
                 search: { produccion: result.id },
               }
-            : { to: '/herramienta/lista', search: {} },
+            : { to: '/herramienta/lista', search: { directa: true } },
         )
       } catch {
         setError('No se pudo guardar. Revisa los datos e inténtalo de nuevo.')

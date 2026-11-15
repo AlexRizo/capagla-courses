@@ -115,7 +115,7 @@ function ListaDeTienda() {
       <div className="flex items-center gap-1 border-b py-2 pr-2 pl-1">
         <Link
           to="/herramienta/lista"
-          search={produccion ? { produccion } : {}}
+          search={produccion ? { produccion } : { directa: true }}
           aria-label="Volver a la lista de compra"
           className="flex size-11 items-center justify-center text-foreground"
         >

@@ -1,19 +1,38 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { z } from 'zod'
 
 import { ShoppingList } from '#/components/tool/shopping-list'
 import { requireToolPage } from '#/lib/tool-access'
-import { getList } from '#/lib/tool-list'
+import { getLatestProductionId, getList } from '#/lib/tool-list'
 
-// Lista de compra: con `?produccion=` es la de esa producción; sin él, la lista directa.
+// Lista de compra: con `?produccion=` es la de esa producción y con `?directa` la lista directa
+// (solo lo agregado a mano). Sin ninguno (desde el menú) abre la producción más reciente; sin
+// producciones, la lista directa (H40).
 export const Route = createFileRoute('/herramienta/lista')({
   beforeLoad: () => requireToolPage('SHOPPING_LIST'),
-  validateSearch: z.object({ produccion: z.string().optional() }),
-  loaderDeps: ({ search }) => ({ produccion: search.produccion }),
+  validateSearch: z.object({
+    produccion: z.string().optional(),
+    directa: z.boolean().optional().catch(undefined),
+  }),
+  loaderDeps: ({ search }) => ({
+    produccion: search.produccion,
+    directa: search.directa,
+  }),
   gcTime: 0,
   staleTime: 0,
-  loader: ({ deps }) =>
-    getList({ data: { productionId: deps.produccion ?? null } }),
+  loader: async ({ deps }) => {
+    if (!deps.produccion && !deps.directa) {
+      const latest = await getLatestProductionId()
+      if (latest) {
+        throw redirect({
+          to: '/herramienta/lista',
+          search: { produccion: latest },
+          replace: true,
+        })
+      }
+    }
+    return getList({ data: { productionId: deps.produccion ?? null } })
+  },
   component: Lista,
 })
 

@@ -9,7 +9,7 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core'
-import { Link, useRouter } from '@tanstack/react-router'
+import { Link, useNavigate, useRouter } from '@tanstack/react-router'
 import { GripVertical, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -234,8 +234,12 @@ function Group({
   )
 }
 
+// Valor del selector «Lista de» para la lista directa.
+const DIRECT = '__directa'
+
 export function ShoppingList({ data }: { data: Loaded }) {
   const router = useRouter()
+  const navigate = useNavigate()
   const productionId = data.production?.id ?? null
   const [rows, setRows] = useState<Row[]>(data.rows)
   const [view, setView] = useState<'store' | 'ingredient'>('store')
@@ -380,15 +384,43 @@ export function ShoppingList({ data }: { data: Loaded }) {
         </p>
       </div>
 
-      {data.production && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs">
-          <div>
-            <div className="text-sm text-muted-foreground">Producción</div>
-            <div className="font-medium">
-              {[data.production.name, ...data.production.summary].join(' · ')}
-            </div>
-          </div>
-          <Button variant="outline" asChild className="print:hidden">
+      {/* De qué es la lista (H40): una producción vigente o la lista directa. */}
+      <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs print:hidden">
+        <div className="flex min-w-0 flex-1 basis-72 flex-col gap-1.5">
+          <Label htmlFor="lista-de">Lista de</Label>
+          <Select
+            value={data.production?.id ?? DIRECT}
+            onValueChange={(v) =>
+              void navigate({
+                to: '/herramienta/lista',
+                search: v === DIRECT ? { directa: true } : { produccion: v },
+              })
+            }
+          >
+            <SelectTrigger id="lista-de" className="w-full max-w-md">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {data.productions.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  Producción: {p.name}
+                </SelectItem>
+              ))}
+              <SelectItem value={DIRECT}>
+                Lista directa (solo lo que agregas a mano)
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="m-0 text-sm text-muted-foreground">
+            {data.production
+              ? `${data.production.summary.length > 0 ? `${data.production.summary.join(' · ')}. ` : ''}Desde el menú se abre tu producción más reciente; elige otra o la lista directa.`
+              : data.productions.length > 0
+                ? 'Aquí solo está lo que agregas a mano. Para la lista de una producción, elígela arriba.'
+                : 'Aún no tienes producciones: agrega a mano lo que necesites, o crea una producción y su lista se arma sola.'}
+          </p>
+        </div>
+        {data.production ? (
+          <Button variant="outline" asChild>
             <Link
               to="/herramienta/producciones/$id"
               params={{ id: data.production.id }}
@@ -396,6 +428,17 @@ export function ShoppingList({ data }: { data: Loaded }) {
               Ver producción
             </Link>
           </Button>
+        ) : (
+          data.productions.length === 0 && (
+            <Button variant="outline" asChild>
+              <Link to="/herramienta/producciones">Ir a Producción</Link>
+            </Button>
+          )
+        )}
+      </div>
+      {data.production && (
+        <div className="hidden font-medium print:block">
+          {[data.production.name, ...data.production.summary].join(' · ')}
         </div>
       )}
 

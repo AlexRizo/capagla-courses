@@ -158,7 +158,8 @@ const money = (usd: number) =>
   usd < 0.01 ? 'menos de $0.01 USD' : `$${usd.toFixed(2)} USD`
 
 function AssistantCard({ assistant }: { assistant: AssistantInfo }) {
-  const { maxChars, studentsEnabled, dailyLimit, usage } = assistant
+  const { maxChars, studentsEnabled, dailyLimit, usage, transcripts } =
+    assistant
   const router = useRouter()
   const [value, setValue] = useState(String(maxChars))
   const [limit, setLimit] = useState(String(dailyLimit))
@@ -272,6 +273,22 @@ function AssistantCard({ assistant }: { assistant: AssistantInfo }) {
           Es una estimación con los tokens que informa el modelo; la cifra real
           es la de tu cuenta de Anthropic.
         </div>
+      </div>
+      <div className="flex flex-col gap-1 rounded-md bg-muted px-3 py-2 text-13 leading-normal">
+        <span className="font-medium">Transcripciones de los videos</span>
+        {transcripts.map((t) => (
+          <span
+            key={t.name}
+            className={t.done < t.total ? 'text-destructive' : undefined}
+          >
+            {t.name}: <strong>{t.done}</strong> de {t.total} lecciones de video
+          </span>
+        ))}
+        {transcripts.length === 0 && <span>No hay lecciones de video.</span>}
+        <span className="text-xs text-muted-foreground">
+          El asistente responde con la transcripción de cada video; sin ella
+          dice que no tiene el detalle del contenido.
+        </span>
       </div>
       <div className="text-13 leading-normal text-muted-foreground">
         Los votos de la alumna (me sirvió / no me sirvió) se guardan para un

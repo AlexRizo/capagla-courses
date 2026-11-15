@@ -58,7 +58,8 @@ export function LessonTabs({
     ...(resources.length ? [{ id: 'recursos', label: 'Recursos' }] : []),
     {
       id: 'preguntas',
-      label: `Preguntas · ${questions.length + history.length}`,
+      // Un solo conteo (H28): el de «Preguntas de esta lección», igual que «Ver todas (N)».
+      label: `Preguntas · ${questions.length}`,
     },
   ]
   const [selected, setSelected] = useState(tabs[0].id)

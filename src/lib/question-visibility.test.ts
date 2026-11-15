@@ -54,8 +54,8 @@ const seen = async (userId: string, preview = false) => {
 }
 
 describe('preguntas públicas de una lección', () => {
-  it('otra alumna ve lo respondido y lo que contestó el asistente, no lo pendiente', async () => {
-    expect(await seen('beto')).toEqual(['ana-ia', 'ana-respondida'])
+  it('otra alumna solo ve lo que respondió la chef (H28)', async () => {
+    expect(await seen('beto')).toEqual(['ana-respondida'])
   })
 
   it('quien preguntó ve además lo suyo sin responder, pero no lo oculto', async () => {
@@ -74,7 +74,6 @@ describe('preguntas públicas de una lección', () => {
   it('lo propio que solo contestó el asistente va al historial, no a la lista pública', () => {
     const own = { status: 'ASSISTANT' as const, userId: 'ana' }
     expect(inPublicList(own, 'ana')).toBe(false)
-    expect(inPublicList(own, 'beto')).toBe(true)
     expect(inPublicList({ status: 'PENDING', userId: 'ana' }, 'ana')).toBe(true)
     expect(inPublicList({ status: 'ANSWERED', userId: 'ana' }, 'ana')).toBe(
       true,

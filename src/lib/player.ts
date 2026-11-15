@@ -236,8 +236,9 @@ export const getPlayer = createServerFn()
             ago: ago(q.createdAt, now),
             text: q.text,
             answer: q.status === 'ANSWERED' ? q.answer : null,
-            // Lo que contestó el asistente también es público.
-            assistantAnswer: q.assistantAnswer,
+            // Lo que contestó el asistente solo lo ve quien preguntó (H28).
+            assistantAnswer:
+              q.userId === session.user.id ? q.assistantAnswer : null,
           })),
         // Sus preguntas que solo contestó el asistente (aún no las manda a la chef).
         assistantQuestions: questions

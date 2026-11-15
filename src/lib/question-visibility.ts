@@ -1,10 +1,10 @@
 import type { Prisma, QuestionStatus } from '@prisma/client'
 
-// Las preguntas de una lección son públicas (decisión del cliente, 2026-10-31): las ven todas las
-// alumnas con acceso, con la pregunta, el primer nombre de quien preguntó y la respuesta (de la
-// chef y/o del asistente). Lo que aún no tiene respuesta (esperando a la chef) y lo que el
-// asistente no pudo contestar solo lo ve quien lo hizo. Las ocultas no las ve nadie. La vista
-// previa (clase gratis) solo muestra lo que respondió la chef.
+// Las preguntas de una lección (H28, 2026-11-15; antes, desde el 2026-10-31, también eran públicas
+// las que solo contestó el asistente): las demás alumnas con acceso ven solo las que **respondió la
+// chef**, con el primer nombre de quien preguntó, como dice el aviso de privacidad. Lo que espera a
+// la chef y lo que solo contestó el asistente lo ve únicamente quien lo hizo. Las ocultas no las ve
+// nadie. La vista previa (clase gratis) solo muestra lo que respondió la chef.
 export function visibleQuestionsWhere(
   itemId: string,
   userId: string,
@@ -19,8 +19,6 @@ export function visibleQuestionsWhere(
         : [
             { status: 'PENDING' as const, userId },
             { status: 'ASSISTANT' as const, userId },
-            // La respuesta del asistente a la pregunta de otra alumna.
-            { status: 'ASSISTANT' as const, assistantAnswer: { not: null } },
           ]),
     ],
   }

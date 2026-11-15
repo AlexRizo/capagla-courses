@@ -146,8 +146,39 @@ export const getAssistantInfo = createServerFn()
       studentsEnabled: limits.enabled,
       dailyLimit: limits.dailyLimit,
       usage: await usageSummary(),
+      transcripts: await transcriptCoverage(),
     }
   })
+
+// Cuántas lecciones de video de cada curso tienen transcripción (H28): sin ella el asistente
+// responde «no tengo el detalle del contenido». Se cargan con `pnpm db:seed-transcripts`.
+async function transcriptCoverage() {
+  const lessons = await prisma.courseItem.findMany({
+    where: { kind: 'LESSON', bunnyVideoId: { not: null } },
+    select: {
+      transcript: { select: { itemId: true } },
+      product: { select: { name: true, position: true } },
+    },
+  })
+  const byCourse = new Map<
+    string,
+    { name: string; position: number; total: number; done: number }
+  >()
+  for (const l of lessons) {
+    const row = byCourse.get(l.product.name) ?? {
+      name: l.product.name,
+      position: l.product.position,
+      total: 0,
+      done: 0,
+    }
+    row.total += 1
+    if (l.transcript) row.done += 1
+    byCourse.set(l.product.name, row)
+  }
+  return [...byCourse.values()]
+    .sort((a, b) => a.position - b.position)
+    .map(({ name, total, done }) => ({ name, total, done }))
+}
 
 // Interruptor del asistente para las alumnas y su tope global de preguntas en 24 horas. Apagado o
 // en el tope, "Preguntar" va directo a la chef. El borrador para la chef no depende de esto.

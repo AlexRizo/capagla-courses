@@ -20,6 +20,7 @@ import type { Verdict } from '#/lib/cost-product'
 import { formatPrice } from '#/lib/costs'
 import { getProducts } from '#/lib/tool-products'
 import { cn } from '#/lib/utils'
+import { HelpButton } from '#/components/tool/tool-help'
 
 export const Route = createFileRoute('/herramienta/productos/')({
   gcTime: 0,
@@ -60,8 +61,9 @@ function Productos() {
     <>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="m-0 text-2xl font-semibold tracking-tight">
+          <h1 className="m-0 flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
             Productos
+            <HelpButton />
           </h1>
           <p className="mt-1 max-w-2xl text-muted-foreground">
             Lo que vendes. Un producto lleva una o varias recetas más su

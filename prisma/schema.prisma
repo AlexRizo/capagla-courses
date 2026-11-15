@@ -18,38 +18,40 @@ enum Role {
 }
 
 model User {
-  id              String           @id
-  name            String
-  email           String
-  emailVerified   Boolean          @default(false)
-  image           String?
-  role            Role             @default(STUDENT)
+  id                String           @id
+  name              String
+  email             String
+  emailVerified     Boolean          @default(false)
+  image             String?
+  role              Role             @default(STUDENT)
   // Cuenta suspendida desde el panel: no puede entrar ni conserva sesiones.
-  suspendedAt     DateTime?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  sessions        Session[]
-  accounts        Account[]
-  orders          Order[]
-  enrollments     Enrollment[]
-  lessonProgress  LessonProgress[]
-  lessonMoments   LessonMoment[]
-  lessonFavorites LessonFavorite[]
-  questions       LessonQuestion[]
-  lead            Lead?
-  costPlaces      CostPlace[]
-  costIngredients CostIngredient[]
-  costSettings    CostSettings?
-  costTags        CostTag[]
-  costTaxTypes    CostTaxType[]
-  costPremixes    CostPremix[]
-  costRecipes     CostRecipe[]
-  costProducts    CostProduct[]
-  costProductions CostProduction[]
-  costLists       CostList[]
-  costPurchases   CostPurchase[]
-  costQuotes      CostQuote[]
-  assistantUsage  AssistantUsage[]
+  suspendedAt       DateTime?
+  // Ya vio (o cerró) la bienvenida A00 de la herramienta: no se vuelve a abrir sola.
+  toolWelcomeSeenAt DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  sessions          Session[]
+  accounts          Account[]
+  orders            Order[]
+  enrollments       Enrollment[]
+  lessonProgress    LessonProgress[]
+  lessonMoments     LessonMoment[]
+  lessonFavorites   LessonFavorite[]
+  questions         LessonQuestion[]
+  lead              Lead?
+  costPlaces        CostPlace[]
+  costIngredients   CostIngredient[]
+  costSettings      CostSettings?
+  costTags          CostTag[]
+  costTaxTypes      CostTaxType[]
+  costPremixes      CostPremix[]
+  costRecipes       CostRecipe[]
+  costProducts      CostProduct[]
+  costProductions   CostProduction[]
+  costLists         CostList[]
+  costPurchases     CostPurchase[]
+  costQuotes        CostQuote[]
+  assistantUsage    AssistantUsage[]
 
   @@unique([email])
   @@map("user")
@@ -333,15 +335,15 @@ model LessonMoment {
 // Quien se registró con su correo en "Clase gratis": ve los bloques gratis de los cursos sin comprar.
 // Guarda cuándo aceptó el aviso de privacidad y recibir correos (el permiso no se pierde si luego compra).
 model Lead {
-  id               String   @id @default(cuid())
-  createdAt        DateTime @default(now())
-  email            String   @unique
+  id               String    @id @default(cuid())
+  createdAt        DateTime  @default(now())
+  email            String    @unique
   // Cuándo aceptó el aviso de privacidad (obligatorio para registrarse).
   consentAt        DateTime
   // Cuándo pidió recibir novedades por correo (casilla opcional; H22). null = no las pidió.
   newsletterAt     DateTime?
-  userId           String   @unique
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   // Atribución con la que llegó y si aceptó las cookies de medición (ver `Order`).
   attribution      Json?
   marketingConsent Boolean?
@@ -349,6 +351,16 @@ model Lead {
 
 // Datos de conexión de Marketing (una sola fila, id "main"). Solo se guardan: ningún píxel ni
 // evento se envía todavía a Meta, TikTok o Google Analytics.
+// Videos de ayuda de la herramienta (A00 bienvenida … A11 cotizador; catálogo en lib/tool-help.ts).
+// Sin fila, ese video no existe todavía y su «?» no aparece.
+model ToolHelpVideo {
+  key       String   @id
+  videoId   String
+  // Duración en segundos (de Bunny, al asignarlo).
+  seconds   Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
 // Ajustes de páginas que no son de un producto (una sola fila, id 1).
 model SiteSettings {
   id              Int     @id @default(1)

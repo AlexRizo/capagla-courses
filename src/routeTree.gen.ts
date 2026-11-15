@@ -35,6 +35,7 @@ import { Route as ApiUploadsRouteImport } from './routes/api/uploads'
 import { Route as CursosSlugRouteImport } from './routes/cursos/$slug'
 import { Route as HerramientaIndexRouteImport } from './routes/herramienta/index'
 import { Route as HerramientaAjustesRouteImport } from './routes/herramienta/ajustes'
+import { Route as HerramientaAyudaRouteImport } from './routes/herramienta/ayuda'
 import { Route as HerramientaEtiquetasRouteImport } from './routes/herramienta/etiquetas'
 import { Route as HerramientaListaRouteImport } from './routes/herramienta/lista'
 import { Route as HerramientaLugaresRouteImport } from './routes/herramienta/lugares'
@@ -201,6 +202,11 @@ const HerramientaIndexRoute = HerramientaIndexRouteImport.update({
 const HerramientaAjustesRoute = HerramientaAjustesRouteImport.update({
   id: '/ajustes',
   path: '/ajustes',
+  getParentRoute: () => HerramientaRoute,
+} as any)
+const HerramientaAyudaRoute = HerramientaAyudaRouteImport.update({
+  id: '/ayuda',
+  path: '/ayuda',
   getParentRoute: () => HerramientaRoute,
 } as any)
 const HerramientaEtiquetasRoute = HerramientaEtiquetasRouteImport.update({
@@ -426,6 +432,7 @@ export interface FileRoutesByFullPath {
   '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
   '/herramienta/ajustes': typeof HerramientaAjustesRoute
+  '/herramienta/ayuda': typeof HerramientaAyudaRoute
   '/herramienta/etiquetas': typeof HerramientaEtiquetasRoute
   '/herramienta/lista': typeof HerramientaListaRoute
   '/herramienta/lugares': typeof HerramientaLugaresRoute
@@ -489,6 +496,7 @@ export interface FileRoutesByTo {
   '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
   '/herramienta/ajustes': typeof HerramientaAjustesRoute
+  '/herramienta/ayuda': typeof HerramientaAyudaRoute
   '/herramienta/etiquetas': typeof HerramientaEtiquetasRoute
   '/herramienta/lista': typeof HerramientaListaRoute
   '/herramienta/lugares': typeof HerramientaLugaresRoute
@@ -555,6 +563,7 @@ export interface FileRoutesById {
   '/api/uploads': typeof ApiUploadsRoute
   '/cursos/$slug': typeof CursosSlugRoute
   '/herramienta/ajustes': typeof HerramientaAjustesRoute
+  '/herramienta/ayuda': typeof HerramientaAyudaRoute
   '/herramienta/etiquetas': typeof HerramientaEtiquetasRoute
   '/herramienta/lista': typeof HerramientaListaRoute
   '/herramienta/lugares': typeof HerramientaLugaresRoute
@@ -622,6 +631,7 @@ export interface FileRouteTypes {
     | '/api/uploads'
     | '/cursos/$slug'
     | '/herramienta/ajustes'
+    | '/herramienta/ayuda'
     | '/herramienta/etiquetas'
     | '/herramienta/lista'
     | '/herramienta/lugares'
@@ -685,6 +695,7 @@ export interface FileRouteTypes {
     | '/api/uploads'
     | '/cursos/$slug'
     | '/herramienta/ajustes'
+    | '/herramienta/ayuda'
     | '/herramienta/etiquetas'
     | '/herramienta/lista'
     | '/herramienta/lugares'
@@ -750,6 +761,7 @@ export interface FileRouteTypes {
     | '/api/uploads'
     | '/cursos/$slug'
     | '/herramienta/ajustes'
+    | '/herramienta/ayuda'
     | '/herramienta/etiquetas'
     | '/herramienta/lista'
     | '/herramienta/lugares'
@@ -999,6 +1011,13 @@ declare module '@tanstack/react-router' {
       path: '/ajustes'
       fullPath: '/herramienta/ajustes'
       preLoaderRoute: typeof HerramientaAjustesRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
+    '/herramienta/ayuda': {
+      id: '/herramienta/ayuda'
+      path: '/ayuda'
+      fullPath: '/herramienta/ayuda'
+      preLoaderRoute: typeof HerramientaAyudaRouteImport
       parentRoute: typeof HerramientaRoute
     }
     '/herramienta/etiquetas': {
@@ -1295,6 +1314,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface HerramientaRouteChildren {
   HerramientaAjustesRoute: typeof HerramientaAjustesRoute
+  HerramientaAyudaRoute: typeof HerramientaAyudaRoute
   HerramientaEtiquetasRoute: typeof HerramientaEtiquetasRoute
   HerramientaListaRoute: typeof HerramientaListaRoute
   HerramientaLugaresRoute: typeof HerramientaLugaresRoute
@@ -1323,6 +1343,7 @@ interface HerramientaRouteChildren {
 
 const HerramientaRouteChildren: HerramientaRouteChildren = {
   HerramientaAjustesRoute: HerramientaAjustesRoute,
+  HerramientaAyudaRoute: HerramientaAyudaRoute,
   HerramientaEtiquetasRoute: HerramientaEtiquetasRoute,
   HerramientaListaRoute: HerramientaListaRoute,
   HerramientaLugaresRoute: HerramientaLugaresRoute,

@@ -24,6 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from '#/components/ui/alert'
 import { Info } from 'lucide-react'
 import { formatPrice } from '#/lib/costs'
 import { getRecipes } from '#/lib/tool-recipes'
+import { HelpButton } from '#/components/tool/tool-help'
 
 export const Route = createFileRoute('/herramienta/recetas/')({
   gcTime: 0,
@@ -58,7 +59,10 @@ function Recetas() {
     <>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="m-0 text-2xl font-semibold tracking-tight">Recetas</h1>
+          <h1 className="m-0 flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
+            Recetas
+            <HelpButton />
+          </h1>
           <p className="mt-1 max-w-2xl text-muted-foreground">
             Cada receta es una tanda: un pastel, una charola, una docena. Aquí
             defines qué lleva, cuántas piezas rinde y cuánto cuesta hacerla, sin

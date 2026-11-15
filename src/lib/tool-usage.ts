@@ -2,6 +2,7 @@ import { createServerFn, createServerOnlyFn } from '@tanstack/react-start'
 
 import { prisma } from '#/db'
 import { requireTool } from '#/lib/tool-access'
+import { loadToolHelp } from '#/lib/tool-help-server'
 import { atLimit, limitMessage } from '#/lib/tool-tiers'
 import type { ToolTierInfo } from '#/lib/tool-tiers'
 
@@ -31,4 +32,6 @@ export const getToolUsage = createServerFn()
   .handler(async ({ context }) => ({
     tier: context.tier,
     used: await countItems(context.userId),
+    // Videos de ayuda y si la bienvenida se abre sola (tema 11).
+    help: await loadToolHelp(context.userId, context.tier),
   }))

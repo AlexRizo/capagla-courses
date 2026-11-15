@@ -38,6 +38,7 @@ import { productionSchema, productionSummary } from '#/lib/cost-shopping'
 import { formatAmount, formatPrice, parseDecimal } from '#/lib/costs'
 import { deleteProduction, saveProduction } from '#/lib/tool-productions'
 import type { getProductionForm } from '#/lib/tool-productions'
+import { HelpButton } from '#/components/tool/tool-help'
 
 type Loaded = Awaited<ReturnType<typeof getProductionForm>>
 type Row = { key: string; productId: string; quantity: string }
@@ -186,10 +187,11 @@ export function ProductionForm({ data }: { data: Loaded }) {
         className="flex flex-col gap-6"
       >
         <div>
-          <h1 className="m-0 text-2xl font-semibold tracking-tight">
+          <h1 className="m-0 flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
             <form.Subscribe selector={(s) => s.values.name}>
               {(name) => name || 'Nueva producción'}
             </form.Subscribe>
+            <HelpButton />
           </h1>
           <p className="mt-1 max-w-2xl text-muted-foreground">
             Elige qué vas a hornear y cuántos. Después proyectas la producción y

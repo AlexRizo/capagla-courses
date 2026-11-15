@@ -12,11 +12,16 @@ import { BunnyVideoField } from '#/components/admin/bunny-video-field'
 import { ProGate } from '#/components/admin/pro-gate'
 import { getAdminTool, saveToolPageVideo, saveToolTier } from '#/lib/admin-tool'
 import { TOOL_RENEWAL_DISCOUNT_PCT } from '#/lib/catalog'
+import { getAdminToolHelp, saveToolHelpVideo } from '#/lib/tool-help-server'
+import type { HelpKey } from '#/lib/tool-help'
 import { MODULE_LABEL, TOOL_MODULES } from '#/lib/tool-tiers'
 import type { ToolModuleKey } from '#/lib/tool-tiers'
 
 export const Route = createFileRoute('/admin/herramienta')({
-  loader: () => getAdminTool(),
+  loader: async () => ({
+    ...(await getAdminTool()),
+    help: await getAdminToolHelp(),
+  }),
   component: Herramienta,
 })
 
@@ -196,8 +201,84 @@ function PageVideo({ videoId }: { videoId: string | null }) {
   )
 }
 
+// Videos de ayuda de la herramienta (tema 11): uno por sección. Se guarda al elegirlo; mientras
+// una sección no tenga video, su «?» no aparece. A00 es la bienvenida (se abre sola la 1.ª vez).
+function HelpVideoRow({
+  helpKey,
+  title,
+  videoId,
+}: {
+  helpKey: HelpKey
+  title: string
+  videoId: string | null
+}) {
+  const router = useRouter()
+  const [value, setValue] = useState(videoId)
+  const [message, setMessage] = useState<string | null>(null)
+
+  async function change(next: string | null) {
+    setValue(next)
+    setMessage(null)
+    try {
+      const result = await saveToolHelpVideo({
+        data: { key: helpKey, videoId: next ?? '' },
+      })
+      if (result.error) {
+        setValue(videoId)
+        return setMessage(result.error)
+      }
+      await router.invalidate()
+      setMessage(next ? 'Guardado' : 'Quitado')
+    } catch {
+      setValue(videoId)
+      setMessage('No se pudo guardar.')
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <BunnyVideoField
+        label={`${helpKey} · ${title}`}
+        value={value}
+        onChange={(next) => void change(next)}
+      />
+      {message && (
+        <span className="text-13 text-muted-foreground">{message}</span>
+      )}
+    </div>
+  )
+}
+
+function HelpVideos({
+  help,
+}: {
+  help: Awaited<ReturnType<typeof getAdminToolHelp>>
+}) {
+  return (
+    <div className={card}>
+      <div className="flex flex-col gap-1">
+        <div className="text-base font-semibold">Videos de ayuda</div>
+        <div className={note}>
+          Uno por sección: la alumna lo abre con el «?» junto al título. Se
+          guarda al elegirlo. Mientras una sección no tenga video, su «?» no
+          aparece. A00 es la bienvenida: se abre sola la primera vez que entra a
+          la herramienta. A08 a A11 solo los ve el nivel Completo.
+        </div>
+      </div>
+      {help.map((h) => (
+        <HelpVideoRow
+          key={h.key}
+          helpKey={h.key}
+          title={h.title}
+          videoId={h.videoId}
+        />
+      ))}
+    </div>
+  )
+}
+
 function Herramienta() {
-  const { tiers, usage, pageVideoId } = Route.useLoaderData()
+  const { tiers, usage, pageVideoId, help } = Route.useLoaderData()
   return (
     <ProGate>
       <div className="flex max-w-240 flex-col gap-6 p-6">
@@ -230,6 +311,8 @@ function Herramienta() {
         </div>
 
         <PageVideo videoId={pageVideoId} />
+
+        <HelpVideos help={help} />
 
         <div className="rounded-lg border border-border bg-card shadow-xs">
           <div className="px-5 pt-5 pb-3">

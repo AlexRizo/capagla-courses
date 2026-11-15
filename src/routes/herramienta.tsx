@@ -21,9 +21,9 @@ export const Route = createFileRoute('/herramienta')({
 })
 
 function Herramienta() {
-  const { tier, used } = Route.useLoaderData()
+  const { tier, used, help } = Route.useLoaderData()
   return (
-    <ToolLayout tier={tier} used={used}>
+    <ToolLayout tier={tier} used={used} help={help}>
       <Outlet />
     </ToolLayout>
   )

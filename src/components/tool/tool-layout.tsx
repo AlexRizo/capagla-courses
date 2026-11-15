@@ -4,6 +4,7 @@ import {
   BookOpen,
   Calculator,
   CalendarDays,
+  CircleHelp,
   Layers,
   ListChecks,
   Package,
@@ -38,7 +39,9 @@ import {
   SidebarSeparator,
   SidebarTrigger,
 } from '#/components/ui/sidebar'
+import { ToolHelpProvider } from '#/components/tool/tool-help'
 import { TooltipProvider } from '#/components/ui/tooltip'
+import type { HelpVideo } from '#/lib/tool-help-server'
 import { hasModule } from '#/lib/tool-tiers'
 import type { ToolModuleKey, ToolTierInfo } from '#/lib/tool-tiers'
 import type { FileRouteTypes } from '#/routeTree.gen'
@@ -109,6 +112,12 @@ const settings: Item = {
   icon: SlidersHorizontal,
   to: '/herramienta/ajustes',
 }
+// Videos de ayuda (tema 11).
+const help: Item = {
+  label: 'Ayuda',
+  icon: CircleHelp,
+  to: '/herramienta/ayuda',
+}
 
 const active =
   'data-[active=true]:bg-sidebar-active data-[active=true]:text-sidebar-accent-foreground'
@@ -162,10 +171,12 @@ export function ToolLayout({
   children,
   tier,
   used,
+  help: helpData,
 }: {
   children: React.ReactNode
   tier: ToolTierInfo
   used: number
+  help: { videos: HelpVideo[]; welcome: boolean }
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
 
@@ -178,6 +189,7 @@ export function ToolLayout({
   const places = [
     ...groups.flatMap((g) => g.items.map((item) => ({ group: g.label, item }))),
     { group: 'Costos', item: settings },
+    { group: 'Costos', item: help },
   ]
   const here = places.find((p) => p.item.to && pathname.startsWith(p.item.to))
   const group = here && { label: here.group }
@@ -229,6 +241,7 @@ export function ToolLayout({
                 <SidebarGroupContent>
                   <SidebarMenu>
                     <NavItem item={settings} pathname={pathname} />
+                    <NavItem item={help} pathname={pathname} />
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -266,7 +279,12 @@ export function ToolLayout({
                 </BreadcrumbList>
               </Breadcrumb>
             </header>
-            <div className="flex flex-col gap-6 p-6">{children}</div>
+            <ToolHelpProvider
+              videos={helpData.videos}
+              welcome={helpData.welcome}
+            >
+              <div className="flex flex-col gap-6 p-6">{children}</div>
+            </ToolHelpProvider>
           </SidebarInset>
         </SidebarProvider>
       </TooltipProvider>

@@ -35,6 +35,7 @@ import { toLocalInput } from '#/lib/promotions'
 import { savePurchase } from '#/lib/tool-purchases'
 import type { getPurchaseForm } from '#/lib/tool-purchases'
 import { cn } from '#/lib/utils'
+import { HelpButton } from '#/components/tool/tool-help'
 
 type Loaded = Awaited<ReturnType<typeof getPurchaseForm>>
 type Row = {
@@ -132,8 +133,9 @@ export function PurchaseForm({ data }: { data: Loaded }) {
   return (
     <>
       <div>
-        <h1 className="m-0 text-2xl font-semibold tracking-tight">
+        <h1 className="m-0 flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
           Registrar compra
+          <HelpButton />
         </h1>
         <p className="mt-1 max-w-2xl text-muted-foreground">
           Anota lo que pagaste. A la izquierda ves el último precio para

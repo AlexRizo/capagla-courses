@@ -42,6 +42,7 @@ import type { CostUnit } from '#/lib/costs'
 import { addManualItem, removeManualItem, saveListState } from '#/lib/tool-list'
 import type { getList } from '#/lib/tool-list'
 import { cn } from '#/lib/utils'
+import { HelpButton } from '#/components/tool/tool-help'
 
 type Loaded = Awaited<ReturnType<typeof getList>>
 type Row = Loaded['rows'][number]
@@ -358,8 +359,9 @@ export function ShoppingList({ data }: { data: Loaded }) {
   return (
     <>
       <div>
-        <h1 className="m-0 text-2xl font-semibold tracking-tight">
+        <h1 className="m-0 flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
           Lista de compra
+          <HelpButton />
         </h1>
         <p className="mt-1 max-w-2xl text-muted-foreground">
           Una sola lista con todo lo que necesitas. Marca “Ya lo tengo” y se

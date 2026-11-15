@@ -48,6 +48,7 @@ import { formatPrice, parseDecimal } from '#/lib/costs'
 import { deleteQuote, duplicateQuote, saveQuote } from '#/lib/tool-quotes'
 import type { getQuoteForm } from '#/lib/tool-quotes'
 import { cn } from '#/lib/utils'
+import { HelpButton } from '#/components/tool/tool-help'
 
 type Loaded = Awaited<ReturnType<typeof getQuoteForm>>
 type Extra = { key: string; name: string; cost: number }
@@ -230,8 +231,9 @@ export function QuoteForm({ data }: { data: Loaded }) {
       >
         <div>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h1 className="m-0 text-2xl font-semibold tracking-tight">
+            <h1 className="m-0 flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
               Cotizador
+              <HelpButton />
             </h1>
             <Button type="submit" disabled={busy || products.length === 0}>
               Guardar cotización

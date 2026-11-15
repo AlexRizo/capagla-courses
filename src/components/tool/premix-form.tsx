@@ -34,6 +34,7 @@ import { premixSchema } from '#/lib/cost-recipes'
 import { UNITS, formatPrice, formatQuantity, parseDecimal } from '#/lib/costs'
 import { savePremix, setPremixArchived } from '#/lib/tool-recipes'
 import type { getPremix } from '#/lib/tool-recipes'
+import { HelpButton } from '#/components/tool/tool-help'
 
 type Loaded = Awaited<ReturnType<typeof getPremix>>
 type YieldUnit = 'G' | 'KG' | 'ML' | 'L'
@@ -163,8 +164,9 @@ export function PremixForm({
       >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="m-0 text-2xl font-semibold tracking-tight">
+            <h1 className="m-0 flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
               {premix ? premix.name : 'Nueva premezcla'}
+              <HelpButton />
             </h1>
             <p className="mt-1 max-w-2xl text-muted-foreground">
               Premezcla: se cuesta por lo que realmente rinde.

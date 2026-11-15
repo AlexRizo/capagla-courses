@@ -33,6 +33,7 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { createTag, getTags, removeTag } from '#/lib/tool-recipes'
+import { HelpButton } from '#/components/tool/tool-help'
 
 export const Route = createFileRoute('/herramienta/etiquetas')({
   gcTime: 0,
@@ -83,7 +84,10 @@ function Etiquetas() {
   return (
     <>
       <div>
-        <h1 className="m-0 text-2xl font-semibold tracking-tight">Etiquetas</h1>
+        <h1 className="m-0 flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
+          Etiquetas
+          <HelpButton />
+        </h1>
         <p className="mt-1 max-w-2xl text-muted-foreground">
           Etiquetas para clasificar y filtrar tus recetas.
         </p>

@@ -153,6 +153,8 @@
   --sidebar-muted: oklch(0.76 0.04 310);
   --sidebar-active: oklch(0.45 0.19 303);
   --sidebar-card: oklch(0.29 0.08 306);
+  /* Fondo del video de ayuda a pantalla completa en el celular. */
+  --help-mobile: oklch(0.16 0.04 306);
   --page: #f3f1f3;
   --tabs: oklch(0.9 0.008 325);
   --success: oklch(0.448 0.119 151.328);
@@ -459,6 +461,7 @@
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-active: var(--sidebar-active);
   --color-sidebar-card: var(--sidebar-card);
+  --color-tool-help-mobile: var(--help-mobile);
   --color-page: var(--page);
   --color-tabs: var(--tabs);
   --color-success: var(--success);

@@ -25,6 +25,7 @@ import {
 import { KINDS, costLine, formatPrice, purchaseLabel } from '#/lib/costs'
 import { getIngredients } from '#/lib/tool-ingredients'
 import { getPlaces } from '#/lib/tool-places'
+import { HelpButton } from '#/components/tool/tool-help'
 
 export const Route = createFileRoute('/herramienta/ingredientes/')({
   // Sin caché: tras guardar, la lista y el formulario muestran siempre lo último (con caché, por
@@ -70,8 +71,9 @@ function Ingredientes() {
     <>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="m-0 text-2xl font-semibold tracking-tight">
+          <h1 className="m-0 flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
             Ingredientes
+            <HelpButton />
           </h1>
           <p className="mt-1 max-w-2xl text-muted-foreground">
             Todo lo que compras: ingredientes y empaques. Escribe cuánto pagaste

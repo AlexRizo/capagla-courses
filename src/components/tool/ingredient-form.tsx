@@ -61,6 +61,7 @@ import {
 import type { getIngredient } from '#/lib/tool-ingredients'
 import type { getPlaces } from '#/lib/tool-places'
 import { getIngredientUsage } from '#/lib/tool-recipes'
+import { HelpButton } from '#/components/tool/tool-help'
 
 type Ingredient = Awaited<ReturnType<typeof getIngredient>>
 type Place = Awaited<ReturnType<typeof getPlaces>>[number]
@@ -214,8 +215,9 @@ export function IngredientForm({
   return (
     <>
       <div>
-        <h1 className="m-0 text-2xl font-semibold tracking-tight">
+        <h1 className="m-0 flex items-center gap-2.5 text-2xl font-semibold tracking-tight">
           {ingredient ? ingredient.name : 'Nuevo ingrediente'}
+          <HelpButton />
         </h1>
         <p className="mt-1 max-w-2xl text-muted-foreground">
           {ingredient

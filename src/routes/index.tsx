@@ -3,6 +3,7 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { HomeTool } from '#/components/home-tool'
 import { MobileMenu } from '#/components/mobile-menu'
 import { getHomeProducts } from '#/lib/home'
+import { ABOUT_URL, SOCIAL_LINKS } from '#/lib/social'
 
 export const Route = createFileRoute('/')({
   loader: () => getHomeProducts(),
@@ -23,6 +24,7 @@ const link = (c: HomeCourse) => (c.hasPage ? `/cursos/${c.slug}` : '#')
 
 function Home() {
   const { courses, toolFromMxn } = Route.useLoaderData()
+  const socials = SOCIAL_LINKS.filter((l) => l.href)
   return (
     <div className="min-h-screen bg-landing-page font-sans text-landing-ink">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-landing-line bg-white px-4 py-3 md:px-8 md:py-3.5">
@@ -237,44 +239,52 @@ function Home() {
               </span>
               .
             </p>
-            <a
-              href="#"
-              className="inline-flex min-h-11 items-center justify-center rounded-full bg-landing-secondary px-7.5 text-15 text-white no-underline md:min-h-12 md:px-9 md:text-base"
-            >
-              Saber más
-            </a>
+            {ABOUT_URL && (
+              <a
+                href={ABOUT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center justify-center rounded-full bg-landing-secondary px-7.5 text-15 text-white no-underline md:min-h-12 md:px-9 md:text-base"
+              >
+                Saber más
+              </a>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="bg-linear-135 from-landing-grape to-landing-grape-dark text-white">
-        <div className="mx-auto flex max-w-190 flex-col items-center gap-3 px-5 py-9 text-center md:gap-4 md:px-8 md:py-16">
-          <h2 className="m-0 text-2xl leading-120 font-bold tracking-landing-title-3xs md:text-34 md:leading-normal md:font-medium md:tracking-landing-title-sm">
-            Únete a la comunidad de Capagla
-          </h2>
-          <p className="m-0 text-sm leading-155 md:text-base md:leading-170">
-            <span className="md:hidden">
-              Síguenos en redes para ver más contenido y enterarte de los
-              próximos lanzamientos.
-            </span>
-            <span className="hidden md:inline">
-              Síguenos en nuestras redes sociales para ver más contenido y estar
-              atento a los próximos lanzamientos.
-            </span>
-          </p>
-          <div className="flex gap-5 text-15 font-bold md:mt-2 md:gap-7 md:text-base">
-            <a href="#" className="text-white">
-              Instagram
-            </a>
-            <a href="#" className="text-white">
-              TikTok
-            </a>
-            <a href="#" className="text-white">
-              YouTube
-            </a>
+      {socials.length > 0 && (
+        <div className="bg-linear-135 from-landing-grape to-landing-grape-dark text-white">
+          <div className="mx-auto flex max-w-190 flex-col items-center gap-3 px-5 py-9 text-center md:gap-4 md:px-8 md:py-16">
+            <h2 className="m-0 text-2xl leading-120 font-bold tracking-landing-title-3xs md:text-34 md:leading-normal md:font-medium md:tracking-landing-title-sm">
+              Únete a la comunidad de Capagla
+            </h2>
+            <p className="m-0 text-sm leading-155 md:text-base md:leading-170">
+              <span className="md:hidden">
+                Síguenos en redes para ver más contenido y enterarte de los
+                próximos lanzamientos.
+              </span>
+              <span className="hidden md:inline">
+                Síguenos en nuestras redes sociales para ver más contenido y
+                estar atento a los próximos lanzamientos.
+              </span>
+            </p>
+            <div className="flex gap-5 text-15 font-bold md:mt-2 md:gap-7 md:text-base">
+              {socials.map((l) => (
+                <a
+                  key={l.label}
+                  href={l.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white"
+                >
+                  {l.label}
+                </a>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="mx-auto flex max-w-280 flex-col gap-2 px-4 pt-5 pb-7 text-13 text-landing-muted md:flex-row md:flex-wrap md:justify-between md:gap-x-7 md:gap-y-4 md:p-8 md:text-sm">
         <span>© Capagla</span>

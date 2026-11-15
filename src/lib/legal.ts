@@ -12,7 +12,7 @@ export const LEGAL = {
       string | null,
   // Correo para dudas y derechos ARCO (el mismo de soporte del checkout).
   email: 'soporte@capagla.com',
-  actualizado: '11 de noviembre de 2026',
+  actualizado: '15 de noviembre de 2026',
 }
 
 export type LegalSection = {
@@ -78,7 +78,7 @@ const privacy: LegalDoc = {
     {
       heading: 'Para qué más (puedes decir que no)',
       items: [
-        'Enviarte correos con recetas y ofertas, solo si marcaste la casilla al registrarte.',
+        'Enviarte novedades por correo (cursos nuevos y mejoras de la herramienta), solo si marcaste esa casilla al registrarte. Es opcional y puedes darte de baja cuando quieras.',
         'Medir y mejorar nuestros anuncios, solo si aceptas las cookies de medición.',
       ],
       paragraphs: [

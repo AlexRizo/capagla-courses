@@ -19,6 +19,8 @@ export const Route = createFileRoute('/clase-gratis')({
 function ClaseGratis() {
   const navigate = useNavigate()
   const [accepted, setAccepted] = useState(false)
+  // Opcional y sin marcar (H22): la lista de novedades, aparte del aviso de privacidad.
+  const [newsletter, setNewsletter] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -27,7 +29,9 @@ function ClaseGratis() {
     const email = form.correo.value
     setLoading(true)
     try {
-      const { next } = await joinFreeClass({ data: { email, consent: true } })
+      const { next } = await joinFreeClass({
+        data: { email, consent: true, newsletter },
+      })
       if (next === 'blocked') {
         form.correo.setCustomValidity(
           'Demasiados intentos. Espera unos minutos',
@@ -112,9 +116,25 @@ function ClaseGratis() {
                 className="text-landing-primary"
               >
                 aviso de privacidad
-              </Link>{' '}
-              y quiero recibir correos de Capagla con recetas y ofertas. Puedo
-              darme de baja cuando quiera.
+              </Link>
+              .
+            </label>
+          </div>
+
+          <div className="flex items-start gap-2.5">
+            <input
+              id="newsletter"
+              type="checkbox"
+              checked={newsletter}
+              onChange={(e) => setNewsletter(e.target.checked)}
+              className="mt-0.25 size-5.5 flex-none accent-landing-primary md:mt-0.5"
+            />
+            <label
+              htmlFor="newsletter"
+              className="text-13 leading-145 text-landing-muted md:text-sm md:leading-normal"
+            >
+              Quiero recibir novedades: cursos nuevos y mejoras de la
+              herramienta. Opcional; puedo darme de baja cuando quiera.
             </label>
           </div>
 
@@ -132,7 +152,7 @@ function ClaseGratis() {
           </button>
           {!accepted && (
             <div className="-mt-1 text-xs leading-140 text-landing-muted md:-mt-2 md:text-13">
-              Marca la casilla para continuar.
+              Acepta el aviso de privacidad para continuar.
             </div>
           )}
           <div

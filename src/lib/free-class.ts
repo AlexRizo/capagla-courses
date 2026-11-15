@@ -4,6 +4,7 @@ import { getCookie, getRequestHeaders } from '@tanstack/react-start/server'
 import { z } from 'zod'
 
 import { prisma } from '#/db'
+import { saveLead } from '#/lib/leads'
 import { placeholderName } from '#/lib/account-name'
 import {
   ATTRIBUTION_COOKIE,
@@ -42,7 +43,12 @@ export const requireFreeClass = createServerFn().handler(async () => {
 // y le manda un enlace para entrar directo a la clase. Responde igual aunque el correo ya exista.
 export const joinFreeClass = createServerFn({ method: 'POST' })
   .validator(
-    z.object({ email: z.string().trim().email(), consent: z.literal(true) }),
+    z.object({
+      email: z.string().trim().email(),
+      consent: z.literal(true),
+      // Casilla opcional de novedades (H22).
+      newsletter: z.boolean().default(false),
+    }),
   )
   .handler(async ({ data }) => {
     const headers = getRequestHeaders()
@@ -67,18 +73,12 @@ export const joinFreeClass = createServerFn({ method: 'POST' })
     // Si llegó por un anuncio, el lead guarda esa atribución (la primera, no se pisa después).
     const attribution = parseAttribution(getCookie(ATTRIBUTION_COOKIE))
     const consent = parseConsent(getCookie(CONSENT_COOKIE))
-    await prisma.lead.upsert({
-      where: { email },
-      create: {
-        email,
-        userId: user.id,
-        consentAt: new Date(),
-        // La casilla de hoy junta el aviso con «recibir correos» (H22 las separa).
-        newsletterAt: new Date(),
-        attribution: attributionJson(attribution),
-        marketingConsent: consent === null ? undefined : consent === 'accepted',
-      },
-      update: {},
+    await saveLead({
+      email,
+      userId: user.id,
+      newsletter: data.newsletter,
+      attribution: attributionJson(attribution),
+      marketingConsent: consent === null ? undefined : consent === 'accepted',
     })
 
     await withLinkPurpose({ kind: 'free-class' }, () =>

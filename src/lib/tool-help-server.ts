@@ -2,7 +2,7 @@ import { createServerFn, createServerOnlyFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
 import { prisma } from '#/db'
-import { getBunnyVideo, signedPlaybackUrl } from '#/lib/bunny'
+import { fetchCaption, getBunnyVideo, signedPlaybackUrl } from '#/lib/bunny'
 import { requireAdmin } from '#/lib/guards'
 import { requireTool } from '#/lib/tool-access'
 import { HELP_KEYS, HELP_TOPICS } from '#/lib/tool-help'
@@ -39,7 +39,42 @@ export const loadToolHelp = createServerOnlyFn(
   },
 )
 
-// La alumna vio o cerró la bienvenida: no vuelve a abrirse sola (sigue en Ayuda).
+export type HelpCaption = { srclang: string; label: string; vtt: string }
+
+// Subtítulos por video, guardados unos minutos para no preguntarle a Bunny en cada clic.
+const CAPTIONS_TTL_MS = 10 * 60 * 1000
+const captionsCache = new Map<string, { at: number; tracks: HelpCaption[] }>()
+
+async function captionsFor(videoId: string) {
+  const cached = captionsCache.get(videoId)
+  if (cached && Date.now() - cached.at < CAPTIONS_TTL_MS) return cached.tracks
+  const video = await getBunnyVideo(videoId)
+  const tracks: HelpCaption[] = []
+  for (const c of video?.captions ?? []) {
+    const vtt = await fetchCaption(videoId, c.srclang)
+    if (vtt) tracks.push({ srclang: c.srclang, label: c.label, vtt })
+  }
+  captionsCache.set(videoId, { at: Date.now(), tracks })
+  return tracks
+}
+
+// Los subtítulos (VTT de Bunny) del video de una sección, para el botón CC del reproductor.
+// Sin subtítulos, o si Bunny falla, el video se ve igual, sin CC.
+export const getToolHelpCaptions = createServerFn()
+  .middleware([requireTool])
+  .validator(z.object({ key: z.enum(HELP_KEYS as [HelpKey, ...HelpKey[]]) }))
+  .handler(async ({ data, context }) => {
+    const topic = HELP_TOPICS.find((t) => t.key === data.key)
+    if (topic?.module && !hasModule(context.tier, topic.module)) return []
+    const row = await prisma.toolHelpVideo.findUnique({
+      where: { key: data.key },
+    })
+    if (!row) return []
+    return captionsFor(row.videoId).catch(() => [])
+  })
+
+// La bienvenida se abrió: no vuelve a abrirse sola (sigue en Ayuda). Se marca al abrirla, no al
+// cerrarla, para que no vuelva a salir si la alumna cierra la pestaña o entra desde otro equipo.
 export const markToolWelcomeSeen = createServerFn({ method: 'POST' })
   .middleware([requireTool])
   .handler(async ({ context }) => {

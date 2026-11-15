@@ -5,7 +5,10 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { helpDuration, helpKeyForPath, helpTopic } from '#/lib/tool-help'
 import type { HelpKey } from '#/lib/tool-help'
 import type { HelpVideo } from '#/lib/tool-help-server'
-import { markToolWelcomeSeen } from '#/lib/tool-help-server'
+import {
+  getToolHelpCaptions,
+  markToolWelcomeSeen,
+} from '#/lib/tool-help-server'
 import { cn } from '#/lib/utils'
 
 // Ayuda de la herramienta (tema 11; prototipo, página «Ayuda (herramienta)»): el «?» junto al
@@ -34,11 +37,17 @@ export function ToolHelpProvider({
   const [welcomeOpen, setWelcomeOpen] = useState(welcome)
   const video = current ? videos.find((v) => v.key === current) : undefined
 
+  // La bienvenida se marca vista en cuanto se abre (plan 11.A): así no vuelve a salir aunque la
+  // alumna cierre la pestaña sin cerrar la ventana, ni al entrar desde otro equipo.
+  const marked = useRef(false)
+  useEffect(() => {
+    if (!welcome || marked.current) return
+    marked.current = true
+    void markToolWelcomeSeen().catch(() => {})
+  }, [welcome])
+
   function close() {
-    if (welcomeOpen) {
-      setWelcomeOpen(false)
-      void markToolWelcomeSeen().catch(() => {})
-    }
+    setWelcomeOpen(false)
     setCurrent(null)
   }
 
@@ -88,6 +97,7 @@ function HelpDialog({
   const subtitle = welcome
     ? 'Gladis te muestra el menú y por dónde empezar.'
     : `Video de ayuda · ${helpDuration(video.seconds)}`
+  const tracks = useCaptionTracks(video.key)
 
   useEffect(() => {
     const el = player.current
@@ -170,7 +180,17 @@ function HelpDialog({
             controls
             playsInline
             className="block aspect-video w-full bg-black md:rounded-lg"
-          />
+          >
+            {tracks.map((t) => (
+              <track
+                key={t.srclang}
+                kind="subtitles"
+                srcLang={t.srclang}
+                label={t.label}
+                src={t.src}
+              />
+            ))}
+          </video>
         </div>
         {welcome ? (
           <div className="flex flex-col gap-2 p-4 md:flex-row-reverse md:flex-wrap md:items-center md:p-0">
@@ -199,6 +219,11 @@ function HelpDialog({
               !allVideos && 'hidden md:flex',
             )}
           >
+            {tracks.length > 0 && (
+              <span className="hidden text-13 text-muted-foreground md:mr-auto md:inline">
+                Subtítulos con el botón CC.
+              </span>
+            )}
             {allVideos || (
               <button
                 type="button"
@@ -213,4 +238,37 @@ function HelpDialog({
       </div>
     </div>
   )
+}
+
+// Subtítulos del video (VTT de Bunny). La lista HLS no los trae, así que van como <track> con una
+// URL local (blob) para no depender del tipo de archivo ni del CORS del CDN. Apagados de inicio:
+// la alumna los prende con el botón CC del reproductor.
+function useCaptionTracks(key: HelpKey) {
+  const [tracks, setTracks] = useState<
+    { srclang: string; label: string; src: string }[]
+  >([])
+
+  useEffect(() => {
+    let cancelled = false
+    let urls: string[] = []
+    setTracks([])
+    void getToolHelpCaptions({ data: { key } })
+      .then((captions) => {
+        if (cancelled) return
+        const next = captions.map((c) => ({
+          srclang: c.srclang,
+          label: c.label,
+          src: URL.createObjectURL(new Blob([c.vtt], { type: 'text/vtt' })),
+        }))
+        urls = next.map((t) => t.src)
+        setTracks(next)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+      urls.forEach((u) => URL.revokeObjectURL(u))
+    }
+  }, [key])
+
+  return tracks
 }

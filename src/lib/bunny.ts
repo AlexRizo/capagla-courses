@@ -33,22 +33,57 @@ export function signedPlaybackUrl(videoId: string) {
   return `https://${host}/bcdn_token=${token}&expires=${expires}&token_path=${encodeURIComponent(dir)}/${videoId}/playlist.m3u8`
 }
 
+// Subtítulos subidos al video en Bunny (idioma y nombre que se muestra en el menú CC).
+export type BunnyCaption = { srclang: string; label: string }
+
 export type BunnyVideo = {
   id: string
   title: string
   durationSec: number
   // "terminado": ya se puede reproducir (los demás estados son subida o procesamiento).
   ready: boolean
+  captions: BunnyCaption[]
 }
 
-type ApiVideo = { guid: string; title: string; length: number; status: number }
+type ApiVideo = {
+  guid: string
+  title: string
+  length: number
+  status: number
+  captions?: BunnyCaption[] | null
+}
 
 const toVideo = (v: ApiVideo): BunnyVideo => ({
   id: v.guid,
   title: v.title,
   durationSec: Math.round(v.length),
   ready: v.status === 4,
+  captions: (v.captions ?? []).map(({ srclang, label }) => ({
+    srclang,
+    label,
+  })),
 })
+
+// Ruta del archivo VTT de unos subtítulos. La lista HLS de Bunny no los anuncia, así que el
+// reproductor los agrega aparte. Bunny los sirve sin token (no van con la protección del video).
+const LANG = /^[a-z]{2,3}(-[a-z0-9]{2,8})?$/i
+export function captionPath(videoId: string, srclang: string) {
+  if (!isBunnyId(videoId) || !LANG.test(srclang)) return null
+  return `/${videoId}/captions/${srclang}.vtt`
+}
+
+// El texto VTT de unos subtítulos, o null si Bunny no lo tiene.
+export async function fetchCaption(videoId: string, srclang: string) {
+  const host = env.BUNNY_CDN_HOSTNAME
+  const path = captionPath(videoId, srclang)
+  if (!host || !path) return null
+  const response = await fetch(`https://${host}${path}`, {
+    signal: AbortSignal.timeout(5000),
+  })
+  if (!response.ok) return null
+  const text = (await response.text()).replace(/^\uFEFF/, '')
+  return text.startsWith('WEBVTT') ? text : null
+}
 
 async function api(
   path: string,

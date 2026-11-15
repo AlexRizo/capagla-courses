@@ -121,9 +121,12 @@ export function LinesEditor({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
-        <Table className="min-w-130 tabular-nums">
-          <TableHeader>
+      {/* Si la caja mide menos de 36rem (celular, o la columna angosta de la ficha de producto),
+          cada renglón es una tarjeta: arriba qué es y abajo cantidad, costo y quitar. Más ancha,
+          la tabla de siempre (Ficha de producto en celular, doc 04). */}
+      <div className="@container overflow-x-auto rounded-xl border bg-card shadow-xs">
+        <Table className="tabular-nums @max-xl:block @xl:table-fixed">
+          <TableHeader className="@max-xl:hidden">
             <TableRow>
               <TableHead className="pl-4">
                 {labels?.column ??
@@ -134,7 +137,7 @@ export function LinesEditor({
               <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="@max-xl:block">
             {lines.map((line) => {
               const result = lineResult(line, ingById, premixById)
               const isPremix = line.kind === 'premix'
@@ -149,8 +152,11 @@ export function LinesEditor({
                   : (['G'] as CostUnit[])
               const bad = invalid?.has(line.key)
               return (
-                <TableRow key={line.key}>
-                  <TableCell className="py-2 pl-4 align-top">
+                <TableRow
+                  key={line.key}
+                  className="@max-xl:grid @max-xl:grid-cols-[1fr_auto_auto] @max-xl:items-center @max-xl:gap-x-2 @max-xl:p-3"
+                >
+                  <TableCell className="py-2 pl-4 align-top whitespace-normal @max-xl:col-span-3 @max-xl:p-0 @max-xl:pb-2">
                     <div className="flex items-center gap-2">
                       <Picker
                         aria-label={
@@ -212,7 +218,7 @@ export function LinesEditor({
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="py-2 align-top">
+                  <TableCell className="py-2 align-top @max-xl:p-0">
                     <div className="flex gap-2">
                       <Input
                         aria-label="Cantidad"
@@ -249,12 +255,12 @@ export function LinesEditor({
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="py-2 text-right align-top">
+                  <TableCell className="py-2 text-right align-top @max-xl:p-0">
                     <span className="flex h-9 items-center justify-end">
                       {result.cost === null ? '—' : formatPrice(result.cost)}
                     </span>
                   </TableCell>
-                  <TableCell className="py-2 pr-3 align-top">
+                  <TableCell className="py-2 pr-3 align-top @max-xl:p-0">
                     <Button
                       type="button"
                       variant="ghost"
@@ -271,10 +277,10 @@ export function LinesEditor({
               )
             })}
             {lines.length === 0 && (
-              <TableRow>
+              <TableRow className="@max-xl:block">
                 <TableCell
                   colSpan={4}
-                  className="px-4 py-6 text-center text-muted-foreground"
+                  className="px-4 py-6 text-center whitespace-normal text-muted-foreground @max-xl:block"
                 >
                   {labels?.empty ??
                     'Aún no hay nada. Agrega el primero con los botones de abajo.'}

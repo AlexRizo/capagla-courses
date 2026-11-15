@@ -386,8 +386,8 @@ export function ProductForm({ data }: { data: Loaded }) {
                     cuántas piezas te salieron para vender.
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-3">
-                    <div className="grid grid-cols-[1fr_9rem_6rem_2.5rem] items-center gap-3 px-1 text-sm font-medium text-muted-foreground">
+                  <div className="@container flex flex-col gap-3">
+                    <div className="hidden grid-cols-[1fr_9rem_6rem_2.5rem] items-center gap-3 px-1 text-sm font-medium text-muted-foreground @xl:grid">
                       <span>Receta</span>
                       <span>Piezas que vendes</span>
                       <span className="text-right">Costo</span>
@@ -398,8 +398,9 @@ export function ProductForm({ data }: { data: Loaded }) {
                       const bad = badRecipes.has(r.key)
                       return (
                         <div key={r.key} className="flex flex-col gap-1">
-                          <div className="grid grid-cols-[1fr_9rem_6rem_2.5rem] items-start gap-3">
-                            <div className="flex flex-col gap-1">
+                          {/* Caja angosta (celular o columna de la ficha): la receta arriba y abajo piezas, costo y quitar. */}
+                          <div className="grid grid-cols-[1fr_auto_auto] items-end gap-x-2 gap-y-3 @xl:grid-cols-[1fr_9rem_6rem_2.5rem] @xl:items-start @xl:gap-3">
+                            <div className="col-span-3 flex min-w-0 flex-col gap-1 @xl:col-span-1">
                               <Picker
                                 aria-label="Receta"
                                 items={recipes
@@ -441,30 +442,35 @@ export function ProductForm({ data }: { data: Loaded }) {
                                 </span>
                               )}
                             </div>
-                            <InputGroup>
-                              <InputGroupInput
-                                aria-label="Piezas que vendes"
-                                inputMode="numeric"
-                                value={r.piecesSold}
-                                onChange={(e) =>
-                                  setRecipeRows((rows) =>
-                                    rows.map((x) =>
-                                      x.key === r.key
-                                        ? { ...x, piecesSold: e.target.value }
-                                        : x,
-                                    ),
-                                  )
-                                }
-                                aria-invalid={bad}
-                              />
-                              {recipe?.yieldPieces && (
-                                <InputGroupAddon align="inline-end">
-                                  <InputGroupText>
-                                    de {recipe.yieldPieces}
-                                  </InputGroupText>
-                                </InputGroupAddon>
-                              )}
-                            </InputGroup>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-xs text-muted-foreground @xl:hidden">
+                                Piezas que vendes
+                              </span>
+                              <InputGroup>
+                                <InputGroupInput
+                                  aria-label="Piezas que vendes"
+                                  inputMode="numeric"
+                                  value={r.piecesSold}
+                                  onChange={(e) =>
+                                    setRecipeRows((rows) =>
+                                      rows.map((x) =>
+                                        x.key === r.key
+                                          ? { ...x, piecesSold: e.target.value }
+                                          : x,
+                                      ),
+                                    )
+                                  }
+                                  aria-invalid={bad}
+                                />
+                                {recipe?.yieldPieces && (
+                                  <InputGroupAddon align="inline-end">
+                                    <InputGroupText>
+                                      de {recipe.yieldPieces}
+                                    </InputGroupText>
+                                  </InputGroupAddon>
+                                )}
+                              </InputGroup>
+                            </div>
                             <span className="flex h-9 items-center justify-end tabular-nums">
                               {recipe?.total == null
                                 ? '—'

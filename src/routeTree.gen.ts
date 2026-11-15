@@ -75,6 +75,7 @@ import { Route as HerramientaRecetasIdRouteImport } from './routes/herramienta/r
 import { Route as HerramientaRecetasNuevaRouteImport } from './routes/herramienta/recetas/nueva'
 import { Route as MisCursosSlugIndexRouteImport } from './routes/mis-cursos/$slug/index'
 import { Route as MisCursosSlugLessonIdRouteImport } from './routes/mis-cursos/$slug/$lessonId'
+import { Route as HerramientaComprasIdEditarRouteImport } from './routes/herramienta/compras/$id_.editar'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -417,6 +418,12 @@ const MisCursosSlugLessonIdRoute = MisCursosSlugLessonIdRouteImport.update({
   path: '/$slug/$lessonId',
   getParentRoute: () => MisCursosRoute,
 } as any)
+const HerramientaComprasIdEditarRoute =
+  HerramientaComprasIdEditarRouteImport.update({
+    id: '/compras/$id_/editar',
+    path: '/compras/$id/editar',
+    getParentRoute: () => HerramientaRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -485,6 +492,7 @@ export interface FileRoutesByFullPath {
   '/herramienta/productos/': typeof HerramientaProductosIndexRoute
   '/herramienta/recetas/': typeof HerramientaRecetasIndexRoute
   '/mis-cursos/$slug/': typeof MisCursosSlugIndexRoute
+  '/herramienta/compras/$id/editar': typeof HerramientaComprasIdEditarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -551,6 +559,7 @@ export interface FileRoutesByTo {
   '/herramienta/productos': typeof HerramientaProductosIndexRoute
   '/herramienta/recetas': typeof HerramientaRecetasIndexRoute
   '/mis-cursos/$slug': typeof MisCursosSlugIndexRoute
+  '/herramienta/compras/$id/editar': typeof HerramientaComprasIdEditarRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -620,6 +629,7 @@ export interface FileRoutesById {
   '/herramienta/productos/': typeof HerramientaProductosIndexRoute
   '/herramienta/recetas/': typeof HerramientaRecetasIndexRoute
   '/mis-cursos/$slug/': typeof MisCursosSlugIndexRoute
+  '/herramienta/compras/$id_/editar': typeof HerramientaComprasIdEditarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -690,6 +700,7 @@ export interface FileRouteTypes {
     | '/herramienta/productos/'
     | '/herramienta/recetas/'
     | '/mis-cursos/$slug/'
+    | '/herramienta/compras/$id/editar'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -756,6 +767,7 @@ export interface FileRouteTypes {
     | '/herramienta/productos'
     | '/herramienta/recetas'
     | '/mis-cursos/$slug'
+    | '/herramienta/compras/$id/editar'
   id:
     | '__root__'
     | '/'
@@ -824,6 +836,7 @@ export interface FileRouteTypes {
     | '/herramienta/productos/'
     | '/herramienta/recetas/'
     | '/mis-cursos/$slug/'
+    | '/herramienta/compras/$id_/editar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1319,6 +1332,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MisCursosSlugLessonIdRouteImport
       parentRoute: typeof MisCursosRoute
     }
+    '/herramienta/compras/$id_/editar': {
+      id: '/herramienta/compras/$id_/editar'
+      path: '/compras/$id/editar'
+      fullPath: '/herramienta/compras/$id/editar'
+      preLoaderRoute: typeof HerramientaComprasIdEditarRouteImport
+      parentRoute: typeof HerramientaRoute
+    }
   }
 }
 
@@ -1379,6 +1399,7 @@ interface HerramientaRouteChildren {
   HerramientaProduccionesIndexRoute: typeof HerramientaProduccionesIndexRoute
   HerramientaProductosIndexRoute: typeof HerramientaProductosIndexRoute
   HerramientaRecetasIndexRoute: typeof HerramientaRecetasIndexRoute
+  HerramientaComprasIdEditarRoute: typeof HerramientaComprasIdEditarRoute
 }
 
 const HerramientaRouteChildren: HerramientaRouteChildren = {
@@ -1408,6 +1429,7 @@ const HerramientaRouteChildren: HerramientaRouteChildren = {
   HerramientaProduccionesIndexRoute: HerramientaProduccionesIndexRoute,
   HerramientaProductosIndexRoute: HerramientaProductosIndexRoute,
   HerramientaRecetasIndexRoute: HerramientaRecetasIndexRoute,
+  HerramientaComprasIdEditarRoute: HerramientaComprasIdEditarRoute,
 }
 
 const HerramientaRouteWithChildren = HerramientaRoute._addFileChildren(

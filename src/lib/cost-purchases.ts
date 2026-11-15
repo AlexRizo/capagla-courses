@@ -60,3 +60,61 @@ export const formatDay = (date: Date | string) =>
   })
     .format(new Date(date))
     .replace(/\./g, '')
+
+// ---------- Corregir o borrar una compra (H42) ----------
+// Al registrar una compra, el precio de cada ingrediente pasa al que se pagó. Para que borrar o
+// corregir una compra no deje mal los costos, el precio del ingrediente solo se toca si esa compra
+// es la que lo dejó como está: es la más reciente de ese ingrediente (`latest`) y nadie lo cambió
+// después a mano (sigue costando lo que se pagó). Si no, solo se corrige el historial.
+
+const same = (a: number, b: number) => Math.abs(a - b) < 0.005
+
+type Applied = {
+  // No hay una compra registrada después con ese ingrediente.
+  latest: boolean
+  // Lo que cuesta hoy el ingrediente.
+  current: number
+  // Lo que se pagó en esta compra.
+  paid: number
+}
+
+// Al borrar la compra (o quitarle el ingrediente): el precio al que vuelve, o null si no cambia.
+export function priceAfterRemoving(a: Applied & { previous: number }) {
+  if (!a.latest || !same(a.current, a.paid) || same(a.previous, a.paid)) {
+    return null
+  }
+  return a.previous
+}
+
+// Al corregir lo que se pagó: el nuevo precio del ingrediente, o null si no cambia.
+export function priceAfterEditing(a: Applied & { newPaid: number }) {
+  if (!a.latest || !same(a.current, a.paid) || same(a.newPaid, a.paid)) {
+    return null
+  }
+  return a.newPaid
+}
+
+// Lo que se manda al corregir una compra: la tienda, el día y los ingredientes que se quedan
+// (por id de renglón), con lo que se pagó. Los que no vienen se quitan de la compra.
+export const purchaseEditSchema = z.object({
+  placeId: z.string().nullable(),
+  date: z.string().regex(day, 'Escribe la fecha.'),
+  items: z
+    .array(
+      z.object({
+        itemId: z.string().min(1),
+        price: z
+          .number()
+          .min(0, 'El precio no puede ser negativo.')
+          .max(10_000_000, 'Es demasiado grande.'),
+        packGrams: z.number().positive().max(10_000_000).nullable(),
+      }),
+    )
+    .min(
+      1,
+      'Deja al menos un ingrediente. Para quitarlos todos, borra la compra.',
+    )
+    .max(100),
+})
+
+export type PurchaseEditInput = z.input<typeof purchaseEditSchema>

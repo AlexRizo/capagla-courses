@@ -1,5 +1,21 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import {
+  Link,
+  createFileRoute,
+  useNavigate,
+  useRouter,
+} from '@tanstack/react-router'
+import { useState } from 'react'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '#/components/ui/alert-dialog'
 import { Button } from '#/components/ui/button'
 import { Card, CardContent } from '#/components/ui/card'
 import {
@@ -13,7 +29,7 @@ import {
 import { requireToolPage } from '#/lib/tool-access'
 import { changeLabel, formatDay, priceChange } from '#/lib/cost-purchases'
 import { UNITS, formatPrice, formatQuantity } from '#/lib/costs'
-import { getPurchase } from '#/lib/tool-purchases'
+import { deletePurchase, getPurchase } from '#/lib/tool-purchases'
 import { cn } from '#/lib/utils'
 import { HelpButton } from '#/components/tool/tool-help'
 
@@ -32,10 +48,27 @@ const TONE = {
   NEW: 'text-muted-foreground',
 } as const
 
-// Una compra ya registrada, solo para consultarla: sus precios ya se aplicaron.
+// Una compra ya registrada: sus precios ya se aplicaron. Se puede corregir o borrar (H42).
 function Compra() {
   const purchase = Route.useLoaderData()
+  const navigate = useNavigate()
+  const router = useRouter()
+  const [confirm, setConfirm] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const total = purchase.items.reduce((sum, i) => sum + i.price, 0)
+  const reverts = purchase.items.filter((i) => i.revertTo !== null)
+
+  async function remove() {
+    setError(null)
+    try {
+      const result = await deletePurchase({ data: { id: purchase.id } })
+      if (result.error) return setError(result.error)
+      await router.invalidate()
+      await navigate({ to: '/herramienta/compras' })
+    } catch {
+      setError('No se pudo borrar. Inténtalo de nuevo.')
+    }
+  }
   return (
     <>
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -52,10 +85,24 @@ function Compra() {
             · Total pagado {formatPrice(total)}
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link to="/herramienta/compras">‹ Todas las compras</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/herramienta/compras">‹ Todas las compras</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link
+              to="/herramienta/compras/$id/editar"
+              params={{ id: purchase.id }}
+            >
+              Corregir
+            </Link>
+          </Button>
+          <Button variant="outline" onClick={() => setConfirm(true)}>
+            Borrar compra
+          </Button>
+        </div>
       </div>
+      {error && <p className="m-0 text-sm text-destructive">{error}</p>}
       <Card>
         <CardContent className="p-0">
           <Table className="min-w-160 tabular-nums">
@@ -99,6 +146,46 @@ function Compra() {
           </Table>
         </CardContent>
       </Card>
+      <AlertDialog open={confirm} onOpenChange={setConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              ¿Borrar la compra del {formatDay(purchase.date)}?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="flex flex-col gap-2">
+                {reverts.length === 0 ? (
+                  <p className="m-0">
+                    Se quita de tu historial. Los precios de tus ingredientes no
+                    cambian: ya no vienen de esta compra.
+                  </p>
+                ) : (
+                  <>
+                    <p className="m-0">
+                      Se quita de tu historial y estos precios vuelven a lo que
+                      costaban antes:
+                    </p>
+                    <ul className="m-0 flex flex-col gap-1 pl-5">
+                      {reverts.map((i) => (
+                        <li key={i.id}>
+                          {i.name}: {formatPrice(i.price)} →{' '}
+                          {formatPrice(i.revertTo!)}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void remove()}>
+              Borrar compra
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

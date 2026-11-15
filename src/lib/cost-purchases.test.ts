@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
   changeLabel,
+  priceAfterEditing,
+  priceAfterRemoving,
   formatDay,
   priceChange,
   purchaseSchema,
@@ -72,5 +74,61 @@ describe('purchaseSchema', () => {
     expect(bad({ packGrams: 0 })).toBe(false)
     expect(bad({ price: 0 })).toBe(true)
     expect(bad({ packGrams: 10260 })).toBe(true)
+  })
+})
+
+describe('borrar o corregir una compra (H42)', () => {
+  it('borrar la compra más reciente regresa el precio al anterior', () => {
+    expect(
+      priceAfterRemoving({
+        latest: true,
+        current: 110,
+        paid: 110,
+        previous: 90,
+      }),
+    ).toBe(90)
+  })
+
+  it('si después hubo otra compra del ingrediente, el precio no se toca', () => {
+    expect(
+      priceAfterRemoving({
+        latest: false,
+        current: 120,
+        paid: 110,
+        previous: 90,
+      }),
+    ).toBeNull()
+  })
+
+  it('si el precio se cambió a mano después, no se toca', () => {
+    expect(
+      priceAfterRemoving({
+        latest: true,
+        current: 100,
+        paid: 110,
+        previous: 90,
+      }),
+    ).toBeNull()
+  })
+
+  it('si la compra no cambió el precio, borrar no lo cambia', () => {
+    expect(
+      priceAfterRemoving({ latest: true, current: 90, paid: 90, previous: 90 }),
+    ).toBeNull()
+  })
+
+  it('corregir lo que se pagó en la compra más reciente cambia el precio', () => {
+    expect(
+      priceAfterEditing({ latest: true, current: 900, paid: 900, newPaid: 90 }),
+    ).toBe(90)
+  })
+
+  it('corregir una compra vieja o con el precio cambiado a mano solo corrige el historial', () => {
+    expect(
+      priceAfterEditing({ latest: false, current: 95, paid: 900, newPaid: 90 }),
+    ).toBeNull()
+    expect(
+      priceAfterEditing({ latest: true, current: 95, paid: 900, newPaid: 90 }),
+    ).toBeNull()
   })
 })

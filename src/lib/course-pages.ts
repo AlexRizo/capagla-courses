@@ -23,6 +23,7 @@ export type RecipesContent = {
   }[]
   teacherText: string
   teacherTextShort: string
+  // Cuántas tarjetas de opiniones; 0 = la sección no se muestra (H06: aún no hay opiniones reales).
   testimonials: number
   faq: { q: string; a: string; aShort: string }[]
 }
@@ -257,7 +258,7 @@ export const courseContents: Partial<Record<string, CourseContent>> = {
       'Soy Gladis y tengo años de experiencia en repostería. En este curso te comparto las técnicas que uso en mis postres, con gramos, temperaturas y tiempos exactos, para que te salgan igual cada vez.',
     teacherTextShort:
       'Soy Gladis y tengo años de experiencia en repostería. Te comparto mis técnicas con gramos, temperaturas y tiempos exactos.',
-    testimonials: 3,
+    testimonials: 0,
     faq: [
       {
         q: '¿Necesito conocimientos previos?',

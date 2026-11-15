@@ -202,24 +202,27 @@ function Desktop({
         </div>
       </div>
 
-      <div className="border-y border-landing-line bg-white">
-        <div className="mx-auto flex max-w-280 flex-col gap-6 px-8 py-14">
-          <h2 className={h2}>Lo que dicen las alumnas</h2>
-          <div className="grid grid-cols-2 gap-5 lg:grid-cols-3">
-            {Array.from({ length: page.testimonials }, (_, i) => (
-              <div
-                key={i}
-                className="flex flex-col gap-3 rounded-16 border border-dashed border-landing-field bg-landing-page p-6"
-              >
-                <div className="text-base leading-normal text-landing-muted">
-                  [Opinión real de una alumna, pendiente]
+      {/* Sin testimonios reales la sección no se muestra (H06). */}
+      {page.testimonials > 0 && (
+        <div className="border-y border-landing-line bg-white">
+          <div className="mx-auto flex max-w-280 flex-col gap-6 px-8 py-14">
+            <h2 className={h2}>Lo que dicen las alumnas</h2>
+            <div className="grid grid-cols-2 gap-5 lg:grid-cols-3">
+              {Array.from({ length: page.testimonials }, (_, i) => (
+                <div
+                  key={i}
+                  className="flex flex-col gap-3 rounded-16 border border-dashed border-landing-field bg-landing-page p-6"
+                >
+                  <div className="text-base leading-normal text-landing-muted">
+                    [Opinión real de una alumna, pendiente]
+                  </div>
+                  <div className="text-15 font-bold">[Nombre, ciudad]</div>
                 </div>
-                <div className="text-15 font-bold">[Nombre, ciudad]</div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div
         id="preguntas"
@@ -424,15 +427,17 @@ function Mobile({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2.5 px-4 pb-6">
-        <h2 className={`${h2} mb-1`}>Lo que dicen las alumnas</h2>
-        <div className="flex flex-col gap-2 rounded-xl border border-dashed border-landing-field bg-white p-4">
-          <div className="text-sm leading-145 text-landing-muted">
-            [Opinión real de una alumna, pendiente]
+      {page.testimonials > 0 && (
+        <div className="flex flex-col gap-2.5 px-4 pb-6">
+          <h2 className={`${h2} mb-1`}>Lo que dicen las alumnas</h2>
+          <div className="flex flex-col gap-2 rounded-xl border border-dashed border-landing-field bg-white p-4">
+            <div className="text-sm leading-145 text-landing-muted">
+              [Opinión real de una alumna, pendiente]
+            </div>
+            <div className="text-sm font-bold">[Nombre, ciudad]</div>
           </div>
-          <div className="text-sm font-bold">[Nombre, ciudad]</div>
         </div>
-      </div>
+      )}
 
       <div className="flex flex-col gap-2 px-4 pb-7">
         <h2 className={`${h2} mb-1`}>Preguntas frecuentes</h2>

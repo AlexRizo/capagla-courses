@@ -1,6 +1,7 @@
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 
 import { getSession } from '#/lib/session'
+import { seo, siteUrlFrom } from '#/lib/seo'
 
 // Vista de alumno: todo lo que cuelga de /mis-cursos requiere sesión.
 export const Route = createFileRoute('/mis-cursos')({
@@ -8,5 +9,12 @@ export const Route = createFileRoute('/mis-cursos')({
     const session = await getSession()
     if (!session) throw redirect({ to: '/entrar' })
   },
+  head: ({ matches }) => ({
+    meta: seo({
+      title: 'Mis accesos',
+      base: siteUrlFrom(matches),
+      noindex: true,
+    }),
+  }),
   component: Outlet,
 })

@@ -6,11 +6,15 @@ import { AuthShell } from '#/components/auth-shell'
 import { authClient } from '#/lib/auth-client'
 import { startLogin } from '#/lib/login'
 import { redirectIfSignedIn } from '#/lib/session'
+import { seo, siteUrlFrom } from '#/lib/seo'
 
 // `?correo=` precarga el correo (p. ej. desde el checkout, cuando ese correo ya tiene el curso).
 export const Route = createFileRoute('/entrar')({
   beforeLoad: () => redirectIfSignedIn(),
   validateSearch: z.object({ correo: z.string().optional().catch(undefined) }),
+  head: ({ matches }) => ({
+    meta: seo({ title: 'Entrar', base: siteUrlFrom(matches), noindex: true }),
+  }),
   component: Entrar,
 })
 

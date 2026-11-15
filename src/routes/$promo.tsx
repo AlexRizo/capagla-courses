@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { CourseLanding } from '#/components/course-landing'
 import { ToolLanding } from '#/components/tool-landing'
 import { getPromotionLanding } from '#/lib/course-landing'
+import { seo, siteUrlFrom } from '#/lib/seo'
 
 // Landing de una promoción (/navidad): el curso principal con los precios especiales del
 // anuncio mientras estén vigentes. Las rutas fijas (/entrar, /checkout...) tienen prioridad
@@ -18,6 +19,19 @@ export const Route = createFileRoute('/$promo')({
     getPromotionLanding({
       data: { promo: params.promo, prueba: deps.prueba },
     }),
+  // Vista previa del anuncio al compartirlo (H20).
+  head: ({ loaderData, matches, params }) => ({
+    meta: seo({
+      title:
+        loaderData?.layout === 'tool'
+          ? 'Herramienta de costos'
+          : (loaderData?.title ?? 'Capagla'),
+      description: loaderData?.intro,
+      image: loaderData?.layout === 'tool' ? null : loaderData?.heroImage,
+      path: `/${params.promo}`,
+      base: siteUrlFrom(matches),
+    }),
+  }),
   component: PromoPage,
 })
 

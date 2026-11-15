@@ -7,6 +7,7 @@ import { mxn } from '#/lib/catalog'
 import { getThanksOrder } from '#/lib/checkout'
 import { track } from '#/lib/track-client'
 import { purchaseEventId } from '#/lib/tracking-events'
+import { seo, siteUrlFrom } from '#/lib/seo'
 
 export const Route = createFileRoute('/gracias')({
   // Sin orden, con una que no existe o que no inició este navegador → inicio (sin error).
@@ -20,6 +21,13 @@ export const Route = createFileRoute('/gracias')({
     if (order.status !== 'PAID') throw redirect({ to: '/checkout' })
     return order
   },
+  head: ({ matches }) => ({
+    meta: seo({
+      title: 'Pago exitoso',
+      base: siteUrlFrom(matches),
+      noindex: true,
+    }),
+  }),
   component: Gracias,
 })
 

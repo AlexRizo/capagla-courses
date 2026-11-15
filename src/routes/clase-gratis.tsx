@@ -6,6 +6,7 @@ import { joinFreeClass, requireFreeClass } from '#/lib/free-class'
 import { track } from '#/lib/track-client'
 import { redirectIfSignedIn } from '#/lib/session'
 import { cn } from '#/lib/utils'
+import { seo, siteUrlFrom } from '#/lib/seo'
 
 // Captura de correo a cambio de la clase gratis. Solo existe si hay un bloque gratis que entregar.
 export const Route = createFileRoute('/clase-gratis')({
@@ -13,6 +14,16 @@ export const Route = createFileRoute('/clase-gratis')({
     await redirectIfSignedIn()
     await requireFreeClass()
   },
+  head: ({ matches }) => ({
+    meta: seo({
+      title: 'Clase gratis: enjambre de chocolate',
+      description:
+        'Aprende a hacer enjambre de chocolate con la chef Gladis: una receta económica y rendidora, sin tarjeta. Recibe la clase en tu correo.',
+      image: '/images/recetas/enjambre-chocolate.jpg',
+      path: '/clase-gratis',
+      base: siteUrlFrom(matches),
+    }),
+  }),
   component: ClaseGratis,
 })
 

@@ -6,9 +6,17 @@ import { getHomeProducts } from '#/lib/home'
 import { ABOUT_URL, SOCIAL_LINKS } from '#/lib/social'
 import { CONTACT_EMAIL } from '#/lib/contact'
 import { EnterLink } from '#/components/enter-link'
+import { seo, siteUrlFrom } from '#/lib/seo'
 
 export const Route = createFileRoute('/')({
   loader: () => getHomeProducts(),
+  head: ({ matches }) => ({
+    meta: seo({
+      title: 'Capagla · Cursos de repostería en línea con Gladis',
+      path: '/',
+      base: siteUrlFrom(matches),
+    }),
+  }),
   component: Home,
 })
 

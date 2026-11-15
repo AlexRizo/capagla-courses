@@ -24,6 +24,8 @@ import { Route as ListaDeTiendaRouteImport } from './routes/lista-de-tienda'
 import { Route as MisCursosRouteImport } from './routes/mis-cursos'
 import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as RevisaTuCorreoRouteImport } from './routes/revisa-tu-correo'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as AdminHerramientaRouteImport } from './routes/admin/herramienta'
 import { Route as AdminLeadsRouteImport } from './routes/admin/leads'
@@ -147,6 +149,16 @@ const PrivacidadRoute = PrivacidadRouteImport.update({
 const RevisaTuCorreoRoute = RevisaTuCorreoRouteImport.update({
   id: '/revisa-tu-correo',
   path: '/revisa-tu-correo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TerminosRoute = TerminosRouteImport.update({
@@ -422,6 +434,8 @@ export interface FileRoutesByFullPath {
   '/mis-cursos': typeof MisCursosRouteWithChildren
   '/privacidad': typeof PrivacidadRoute
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terminos': typeof TerminosRoute
   '/admin/herramienta': typeof AdminHerramientaRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -486,6 +500,8 @@ export interface FileRoutesByTo {
   '/lista-de-tienda': typeof ListaDeTiendaRoute
   '/privacidad': typeof PrivacidadRoute
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terminos': typeof TerminosRoute
   '/admin/herramienta': typeof AdminHerramientaRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -553,6 +569,8 @@ export interface FileRoutesById {
   '/mis-cursos': typeof MisCursosRouteWithChildren
   '/privacidad': typeof PrivacidadRoute
   '/revisa-tu-correo': typeof RevisaTuCorreoRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terminos': typeof TerminosRoute
   '/admin/herramienta': typeof AdminHerramientaRoute
   '/admin/leads': typeof AdminLeadsRoute
@@ -621,6 +639,8 @@ export interface FileRouteTypes {
     | '/mis-cursos'
     | '/privacidad'
     | '/revisa-tu-correo'
+    | '/robots.txt'
+    | '/sitemap.xml'
     | '/terminos'
     | '/admin/herramienta'
     | '/admin/leads'
@@ -685,6 +705,8 @@ export interface FileRouteTypes {
     | '/lista-de-tienda'
     | '/privacidad'
     | '/revisa-tu-correo'
+    | '/robots.txt'
+    | '/sitemap.xml'
     | '/terminos'
     | '/admin/herramienta'
     | '/admin/leads'
@@ -751,6 +773,8 @@ export interface FileRouteTypes {
     | '/mis-cursos'
     | '/privacidad'
     | '/revisa-tu-correo'
+    | '/robots.txt'
+    | '/sitemap.xml'
     | '/terminos'
     | '/admin/herramienta'
     | '/admin/leads'
@@ -818,6 +842,8 @@ export interface RootRouteChildren {
   MisCursosRoute: typeof MisCursosRouteWithChildren
   PrivacidadRoute: typeof PrivacidadRoute
   RevisaTuCorreoRoute: typeof RevisaTuCorreoRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TerminosRoute: typeof TerminosRoute
   ApiAdminLeadsRoute: typeof ApiAdminLeadsRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
@@ -934,6 +960,20 @@ declare module '@tanstack/react-router' {
       path: '/revisa-tu-correo'
       fullPath: '/revisa-tu-correo'
       preLoaderRoute: typeof RevisaTuCorreoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terminos': {
@@ -1406,6 +1446,8 @@ const rootRouteChildren: RootRouteChildren = {
   MisCursosRoute: MisCursosRouteWithChildren,
   PrivacidadRoute: PrivacidadRoute,
   RevisaTuCorreoRoute: RevisaTuCorreoRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TerminosRoute: TerminosRoute,
   ApiAdminLeadsRoute: ApiAdminLeadsRoute,
   ApiUploadsRoute: ApiUploadsRoute,

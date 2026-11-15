@@ -26,6 +26,7 @@ import {
 import { getCheckoutData, getThanksOrder, startCheckout } from '#/lib/checkout'
 import { track } from '#/lib/track-client'
 import { CONTACT_EMAIL } from '#/lib/contact'
+import { seo, siteUrlFrom } from '#/lib/seo'
 
 export const Route = createFileRoute('/checkout')({
   validateSearch: z.object({
@@ -45,6 +46,9 @@ export const Route = createFileRoute('/checkout')({
     producto: search.producto,
   }),
   loader: ({ deps }) => getCheckoutData({ data: deps }),
+  head: ({ matches }) => ({
+    meta: seo({ title: 'Pago', base: siteUrlFrom(matches), noindex: true }),
+  }),
   component: Checkout,
 })
 

@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { AuthShell } from '#/components/auth-shell'
 import { redirectIfSignedIn } from '#/lib/session'
+import { seo, siteUrlFrom } from '#/lib/seo'
 
 export const Route = createFileRoute('/revisa-tu-correo')({
   beforeLoad: () => redirectIfSignedIn(),
@@ -10,6 +11,13 @@ export const Route = createFileRoute('/revisa-tu-correo')({
     correo: z.string().optional(),
     // Desde Entrar con un correo sin contraseña o sin cuenta (no se distingue; H25).
     desde: z.enum(['entrar']).optional().catch(undefined),
+  }),
+  head: ({ matches }) => ({
+    meta: seo({
+      title: 'Revisa tu correo',
+      base: siteUrlFrom(matches),
+      noindex: true,
+    }),
   }),
   component: RevisaTuCorreo,
 })

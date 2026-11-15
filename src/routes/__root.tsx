@@ -8,6 +8,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import { CookieNotice } from '#/components/cookie-notice'
 import { Tracking } from '#/components/tracking'
+import { getSiteUrl } from '#/lib/seo-server'
 import { getSession } from '#/lib/session'
 import { getTrackingConfig } from '#/lib/track'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
@@ -26,6 +27,8 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   loader: async () => ({
     tracking: await getTrackingConfig(),
     signedIn: !!(await getSession()),
+    // Para las URL absolutas de las vistas previas al compartir (H20).
+    siteUrl: await getSiteUrl(),
   }),
   staleTime: 5 * 60_000,
   head: () => ({

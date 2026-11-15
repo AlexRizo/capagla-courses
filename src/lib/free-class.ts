@@ -19,7 +19,7 @@ import { tooManyAttempts } from '#/lib/rate-limit'
 
 // La clase gratis es el primer bloque gratis de un curso publicado: su primera lección es donde
 // aterriza quien se registra. Sin bloque gratis (o sin lecciones) no hay clase gratis.
-async function findFreeLesson() {
+export async function findFreeLesson() {
   const courses = await prisma.product.findMany({
     where: { kind: 'COURSE', status: 'PUBLISHED' },
     orderBy: { position: 'asc' },

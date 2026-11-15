@@ -328,7 +328,7 @@ export const courseContents: Partial<Record<string, CourseContent>> = {
         { kind: 'ingredients', label: 'Ingredientes', amount: 11 },
         { kind: 'packaging', label: 'Empaque', amount: 2 },
         { kind: 'time', label: 'Tu tiempo', amount: 6 },
-        { kind: 'gas', label: 'Gas y otros gastos', amount: 1 },
+        { kind: 'gas', label: 'Gastos fijos', amount: 1 },
       ],
       explain:
         'La parte rayada parecía utilidad. En el costeo completo, esa parte se va en costos.',

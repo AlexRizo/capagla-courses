@@ -211,7 +211,8 @@ export function ToolLayout({
                 </div>
               </div>
             </SidebarHeader>
-            <SidebarContent>
+            {/* Si el menú no cabe a lo alto se puede desplazar, pero sin barra visible. */}
+            <SidebarContent className="overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {groups.map((g, i) => (
                 <div key={g.label}>
                   {i > 0 && <SidebarSeparator className="my-2" />}

@@ -365,7 +365,12 @@ function SidebarSeparator({
     <Separator
       data-slot="sidebar-separator"
       data-sidebar="separator"
-      className={cn('mx-2 w-auto bg-sidebar-border', className)}
+      // `data-[orientation=horizontal]:w-auto`: el Separator base pone `w-full` con un selector más
+      // fuerte que `w-auto`, y con `mx-2` la línea medía 100% + 16 px y sacaba una barra de scroll.
+      className={cn(
+        'mx-2 w-auto bg-sidebar-border data-[orientation=horizontal]:w-auto',
+        className,
+      )}
       {...props}
     />
   )

@@ -1,6 +1,5 @@
 import {
   CardCvcElement,
-  CardElement,
   CardExpiryElement,
   CardNumberElement,
   Elements,
@@ -9,10 +8,7 @@ import {
   useStripe,
 } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
-import type {
-  StripeCardElement,
-  StripeCardNumberElement,
-} from '@stripe/stripe-js'
+import type { StripeCardNumberElement } from '@stripe/stripe-js'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
@@ -78,9 +74,9 @@ const cardStyle = (fontSize: string) => ({
   },
   invalid: { color: '#b42318' },
 })
-// Caja de cada campo de tarjeta en escritorio (la de móvil es `cardBox`).
+// Caja de cada campo de tarjeta; el borde cambia con el foco y con un error.
 const cardField =
-  'flex h-11 items-center rounded-lg bg-landing-soft px-3.5 [&>*]:w-full'
+  'box-border flex h-12 items-center rounded-12 border-1.5 bg-white px-3.5 transition-colors [&>*]:w-full'
 // Etapas del pago, para que la alumna vea qué está pasando después de dar clic.
 type Stage = 'idle' | 'preparing' | 'confirming' | 'activating'
 const stageText: Record<Exclude<Stage, 'idle'>, string> = {
@@ -121,9 +117,6 @@ function Spinner({ className }: { className: string }) {
     </svg>
   )
 }
-
-const cardBox =
-  'box-border flex h-12.5 items-center rounded-12 border-1.5 border-landing-field bg-white px-3.5 [&>*]:w-full'
 
 function LockIcon({ className }: { className: string }) {
   return (
@@ -374,31 +367,131 @@ function Wallets({
   )
 }
 
-type CardGetters = {
-  mobile: (() => StripeCardElement | null) | null
-  desktop: (() => StripeCardNumberElement | null) | null
+type CardField = 'number' | 'expiry' | 'cvc'
+type CardEvent = { complete: boolean; error?: { message: string } }
+// Lo que el formulario usa de los campos de tarjeta al pagar.
+type CardHandle = {
+  card: () => StripeCardNumberElement | null
+  focus: (field: CardField) => void
+}
+// Qué falta, si se intenta pagar con un campo vacío o a medias.
+const missingText: Record<CardField, string> = {
+  number: 'Escribe el número de tu tarjeta.',
+  expiry: 'Escribe el vencimiento de tu tarjeta (MM/AA).',
+  cvc: 'Escribe el CVC: 3 dígitos atrás de tu tarjeta (4 al frente en American Express).',
 }
 
-// Stripe no deja mezclar el campo único de tarjeta (móvil) con los campos separados
-// (escritorio) en un mismo grupo de Elements: cada versión va en el suyo y deja aquí un
-// getter para que el envío tome el campo de la versión visible.
-function CardGetter({
-  type,
-  getters,
+// Los datos de la tarjeta en tres campos de Stripe, iguales en celular y escritorio: número
+// arriba, vencimiento y CVC abajo, cada uno con su etiqueta y su error. Antes el celular usaba
+// un solo campo donde la fecha y el CVC aparecían hasta completar el número y luego todo se
+// recorría, y había dos copias montadas (celular y escritorio): al pagar se leía la del ancho
+// del momento, así que al girar el teléfono o cambiar el zoom se leía la vacía.
+function CardFields({
+  busy,
+  onChange,
+  getter,
 }: {
-  type: keyof CardGetters
-  getters: React.RefObject<CardGetters>
+  busy: boolean
+  onChange: (field: CardField, event: CardEvent) => void
+  getter: React.RefObject<CardHandle | null>
 }) {
   const elements = useElements()
+  const [errors, setErrors] = useState<Partial<Record<CardField, string>>>({})
+  const [focused, setFocused] = useState<CardField | null>(null)
+  const done = useRef<Record<CardField, boolean>>({
+    number: false,
+    expiry: false,
+    cvc: false,
+  })
+
   useEffect(() => {
-    if (type === 'mobile') {
-      getters.current.mobile = () => elements?.getElement(CardElement) ?? null
-    } else {
-      getters.current.desktop = () =>
-        elements?.getElement(CardNumberElement) ?? null
+    const element = (field: CardField) =>
+      field === 'number'
+        ? elements?.getElement(CardNumberElement)
+        : field === 'expiry'
+          ? elements?.getElement(CardExpiryElement)
+          : elements?.getElement(CardCvcElement)
+    getter.current = {
+      card: () => elements?.getElement(CardNumberElement) ?? null,
+      focus: (field) => element(field)?.focus(),
     }
-  }, [elements, type, getters])
-  return null
+  }, [elements, getter])
+
+  function change(field: CardField, event: CardEvent) {
+    const wasDone = done.current[field]
+    done.current[field] = event.complete
+    setErrors((prev) => ({ ...prev, [field]: event.error?.message }))
+    onChange(field, event)
+    // Al completar un campo, el cursor pasa al siguiente.
+    if (event.complete && !wasDone) {
+      if (field === 'number') elements?.getElement(CardExpiryElement)?.focus()
+      if (field === 'expiry') elements?.getElement(CardCvcElement)?.focus()
+    }
+  }
+
+  const box = (field: CardField) =>
+    `${cardField} ${
+      errors[field]
+        ? 'border-destructive'
+        : focused === field
+          ? 'border-landing-primary'
+          : 'border-landing-field'
+    }`
+  const fieldLabel = 'text-13 text-landing-muted'
+  const errorText = (field: CardField) =>
+    errors[field] && (
+      <div className="text-13 leading-snug text-destructive">
+        {errors[field]}
+      </div>
+    )
+  const common = (field: CardField) => ({
+    onChange: (e: CardEvent) => change(field, e),
+    onFocus: () => setFocused(field),
+    onBlur: () => setFocused((f) => (f === field ? null : f)),
+  })
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <div className={fieldLabel}>Número de tarjeta</div>
+        <div className={box('number')}>
+          <CardNumberElement
+            options={{
+              style: cardStyle('16px'),
+              showIcon: true,
+              // Sin el botón de Link dentro del campo (H44).
+              disableLink: true,
+              disabled: busy,
+            }}
+            {...common('number')}
+          />
+        </div>
+        {errorText('number')}
+      </div>
+      <div className="flex gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className={fieldLabel}>Vencimiento</div>
+          <div className={box('expiry')}>
+            <CardExpiryElement
+              options={{ style: cardStyle('16px'), disabled: busy }}
+              {...common('expiry')}
+            />
+          </div>
+          {errorText('expiry')}
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className={fieldLabel}>CVC (3 o 4 dígitos)</div>
+          <div className={box('cvc')}>
+            <CardCvcElement
+              options={{ style: cardStyle('16px'), disabled: busy }}
+              {...common('cvc')}
+            />
+          </div>
+          {errorText('cvc')}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function Checkout() {
@@ -435,7 +528,7 @@ function CheckoutForm({
     : `${course.accessDays} días${renewal ? ' más' : ''}`
   const navigate = useNavigate()
   const stripe = useStripe()
-  const cardGetters = useRef<CardGetters>({ mobile: null, desktop: null })
+  const cardGetter = useRef<CardHandle | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
   const errorRef = useRef<HTMLDivElement>(null)
   // La herramienta arranca marcada también con el curso gratis; quien solo quiere el curso la
@@ -451,8 +544,8 @@ function CheckoutForm({
   const [stage, setStage] = useState<Stage>('idle')
   const busy = stage !== 'idle'
   const [error, setErrorText] = useState<string | null>(null)
-  // Estado de cada campo de Stripe (escritorio: number/expiry/cvc; móvil: card) y el
-  // mensaje del que tenga un error mientras se escribe.
+  // Si cada campo de Stripe (número, vencimiento y CVC) está completo, y el error del que tenga
+  // uno (se muestra bajo su campo; aquí se usa al intentar pagar).
   const cardFields = useRef<Record<string, boolean>>({})
   const [fieldError, setFieldError] = useState<{
     field: string
@@ -500,12 +593,9 @@ function CheckoutForm({
         {stageLabel[stage]}
       </>
     )
-  const shownError = error ?? fieldError?.message ?? null
+  const shownError = error
 
-  function onCardChange(
-    field: string,
-    event: { complete: boolean; error?: { message: string } },
-  ) {
+  function onCardChange(field: CardField, event: CardEvent) {
     cardFields.current[field] = event.complete
     setErrorText(null)
     if (event.error) setFieldError({ field, message: event.error.message })
@@ -616,18 +706,18 @@ function CheckoutForm({
     }
     if (free) return getFree(buyer)
     if (!stripe) return
-    // Escritorio: tres campos; móvil: uno solo (la maqueta los muestra distinto). El corte es
-    // el `md` de Tailwind (48rem): con px no coincide si el navegador cambia el tamaño de letra.
-    const desktop = window.matchMedia('(min-width: 48rem)').matches
-    const card = desktop
-      ? cardGetters.current.desktop?.()
-      : cardGetters.current.mobile?.()
+    const card = cardGetter.current?.card()
     if (!card) return
-    // Sin la tarjeta completa no se crea la orden.
-    const fields = desktop ? ['number', 'expiry', 'cvc'] : ['card']
-    if (!fields.every((f) => cardFields.current[f])) {
-      setError(fieldError?.message ?? 'Completa los datos de tu tarjeta.')
-      card.focus()
+    // Sin la tarjeta completa no se crea la orden: se dice qué falta y el cursor va ahí.
+    const fields: CardField[] = ['number', 'expiry', 'cvc']
+    const missing = fields.find((f) => !cardFields.current[f])
+    if (missing) {
+      setError(
+        fieldError?.field === missing
+          ? fieldError.message
+          : missingText[missing],
+      )
+      cardGetter.current?.focus(missing)
       return
     }
 
@@ -809,52 +899,14 @@ function CheckoutForm({
 
           <div className={free ? 'hidden' : 'flex flex-col gap-1.5 md:gap-2.5'}>
             <div className={label}>Tarjeta de crédito o débito</div>
-            {/* Móvil: un solo campo de Stripe */}
             <Elements stripe={stripePromise} options={stripeOptions}>
-              <div className={`${cardBox} md:hidden`}>
-                <CardElement
-                  options={{
-                    style: cardStyle('16px'),
-                    hidePostalCode: true,
-                    // Sin «Guardar con Link» dentro del campo (H44): tapaba el CVC en el celular.
-                    disableLink: true,
-                    disabled: busy,
-                  }}
-                  onChange={(e) => onCardChange('card', e)}
+              <div className="rounded-12 border-1.5 border-landing-field bg-landing-soft p-3.5 md:p-4.5">
+                <CardFields
+                  busy={busy}
+                  onChange={onCardChange}
+                  getter={cardGetter}
                 />
               </div>
-              <CardGetter type="mobile" getters={cardGetters} />
-            </Elements>
-            {/* Escritorio: número, MM / AA y CVC */}
-            <Elements stripe={stripePromise} options={stripeOptions}>
-              <div className="hidden flex-col gap-3.5 rounded-12 border-1.5 border-landing-field bg-white p-4.5 md:flex">
-                <div className={cardField}>
-                  <CardNumberElement
-                    options={{
-                      style: cardStyle('14px'),
-                      // Sin el botón de Link dentro del campo (H44).
-                      disableLink: true,
-                      disabled: busy,
-                    }}
-                    onChange={(e) => onCardChange('number', e)}
-                  />
-                </div>
-                <div className="flex gap-3">
-                  <div className={`${cardField} flex-1`}>
-                    <CardExpiryElement
-                      options={{ style: cardStyle('14px'), disabled: busy }}
-                      onChange={(e) => onCardChange('expiry', e)}
-                    />
-                  </div>
-                  <div className={`${cardField} flex-1`}>
-                    <CardCvcElement
-                      options={{ style: cardStyle('14px'), disabled: busy }}
-                      onChange={(e) => onCardChange('cvc', e)}
-                    />
-                  </div>
-                </div>
-              </div>
-              <CardGetter type="desktop" getters={cardGetters} />
             </Elements>
             {shownError && (
               <div

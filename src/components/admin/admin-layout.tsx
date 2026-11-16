@@ -1,8 +1,14 @@
-import { Link, useRouterState } from '@tanstack/react-router'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { createContext, useContext, useState } from 'react'
 
 import type { FileRouteTypes } from '#/routeTree.gen'
 import { Switch } from '#/components/admin/switch'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '#/components/ui/popover'
+import { authClient } from '#/lib/auth-client'
 import { PRO_MODE_COOKIE } from '#/lib/pro-mode'
 import { cn } from '#/lib/utils'
 
@@ -118,14 +124,7 @@ export function AdminLayout({
           </nav>
 
           <div className="flex-1" />
-          {userName && (
-            <div className="flex items-center gap-2.5 border-t border-border p-2">
-              <div className="flex size-7 items-center justify-center rounded-full bg-border text-xs font-semibold">
-                {userName.charAt(0).toUpperCase()}
-              </div>
-              <span className="text-13 font-medium">{userName}</span>
-            </div>
-          )}
+          <AccountMenu name={userName || 'Mi cuenta'} />
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
@@ -159,5 +158,63 @@ export function AdminLayout({
         </div>
       </div>
     </AdminContext.Provider>
+  )
+}
+
+// El nombre de abajo a la izquierda abre «Ir al sitio» y «Cerrar sesión» (H45).
+function AccountMenu({ name }: { name: string }) {
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const option =
+    'flex w-full cursor-pointer items-center rounded-md border-0 bg-transparent px-2 py-2 text-left font-admin text-13 font-medium text-foreground no-underline hover:bg-accent'
+
+  async function logout() {
+    setBusy(true)
+    try {
+      await authClient.signOut()
+    } finally {
+      setBusy(false)
+    }
+    await navigate({ to: '/entrar' })
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={`Menú de mi cuenta: ${name}`}
+          className="flex w-full cursor-pointer items-center gap-2.5 rounded-md border-0 border-t border-border bg-transparent p-2 text-left font-admin text-foreground hover:bg-accent"
+        >
+          <span className="flex size-7 flex-none items-center justify-center rounded-full bg-border text-xs font-semibold">
+            {name.charAt(0).toUpperCase()}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-13 font-medium">
+            {name}
+          </span>
+          <span aria-hidden="true" className="text-xs text-muted-foreground">
+            ▴
+          </span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="top"
+        align="start"
+        className="admin w-52 p-1 font-admin"
+      >
+        <Link to="/" className={option} onClick={() => setOpen(false)}>
+          Ir al sitio
+        </Link>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void logout()}
+          className={option}
+        >
+          Cerrar sesión
+        </button>
+      </PopoverContent>
+    </Popover>
   )
 }

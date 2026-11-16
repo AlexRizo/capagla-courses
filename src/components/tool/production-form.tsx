@@ -97,7 +97,6 @@ export function ProductionForm({ data }: { data: Loaded }) {
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [target, setTarget] = useState<'list' | 'direct'>('list')
 
   const byId = new Map(products.map((p) => [p.id, p]))
 
@@ -139,14 +138,12 @@ export function ProductionForm({ data }: { data: Loaded }) {
         })
         if (!result.id) return setError(result.error ?? 'No se pudo guardar.')
         await router.invalidate()
-        await navigate(
-          target === 'list'
-            ? {
-                to: '/herramienta/lista',
-                search: { produccion: result.id },
-              }
-            : { to: '/herramienta/lista', search: { directa: true } },
-        )
+        // Los dos botones abren la lista de compra de esta producción (H43); antes «Ir directo»
+        // abría la lista directa, que no tiene nada que ver con la producción, y salía vacía.
+        await navigate({
+          to: '/herramienta/lista',
+          search: { produccion: result.id },
+        })
       } catch {
         setError('No se pudo guardar. Revisa los datos e inténtalo de nuevo.')
       }
@@ -393,19 +390,10 @@ export function ProductionForm({ data }: { data: Loaded }) {
           <form.Subscribe selector={(s) => s.isSubmitting}>
             {(submitting) => (
               <>
-                <Button
-                  type="submit"
-                  disabled={submitting}
-                  onClick={() => setTarget('list')}
-                >
+                <Button type="submit" disabled={submitting}>
                   Proyectar producción →
                 </Button>
-                <Button
-                  type="submit"
-                  variant="outline"
-                  disabled={submitting}
-                  onClick={() => setTarget('direct')}
-                >
+                <Button type="submit" variant="outline" disabled={submitting}>
                   Ir directo a la lista de compra
                 </Button>
               </>

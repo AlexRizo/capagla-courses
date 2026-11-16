@@ -816,6 +816,8 @@ function CheckoutForm({
                   options={{
                     style: cardStyle('16px'),
                     hidePostalCode: true,
+                    // Sin «Guardar con Link» dentro del campo (H44): tapaba el CVC en el celular.
+                    disableLink: true,
                     disabled: busy,
                   }}
                   onChange={(e) => onCardChange('card', e)}
@@ -828,7 +830,12 @@ function CheckoutForm({
               <div className="hidden flex-col gap-3.5 rounded-12 border-1.5 border-landing-field bg-white p-4.5 md:flex">
                 <div className={cardField}>
                   <CardNumberElement
-                    options={{ style: cardStyle('14px'), disabled: busy }}
+                    options={{
+                      style: cardStyle('14px'),
+                      // Sin el botón de Link dentro del campo (H44).
+                      disableLink: true,
+                      disabled: busy,
+                    }}
                     onChange={(e) => onCardChange('number', e)}
                   />
                 </div>

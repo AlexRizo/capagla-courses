@@ -44,9 +44,10 @@ export function setConsent(choice: Consent) {
   window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: choice }))
 }
 
-// Cookies que dejan los píxeles de Meta (_fbp, _fbc), TikTok (_ttp, ttcsid) y Google Analytics
-// (_ga, _ga_<ID>, _gid). Al rechazar se borran; las de funcionamiento (sesión, carrito, pago) no.
-const TRACKING_COOKIE = /^(_fbp|_fbc|_ttp|ttcsid|_ga|_gid)/
+// Cookies que dejan los píxeles de Meta (_fbp, _fbc), TikTok (_ttp, _tt_enable_cookie, ttcsid) y
+// Google Analytics (_ga, _ga_<ID>, _gid). Al rechazar se borran; las de funcionamiento (sesión,
+// carrito, pago) no.
+const TRACKING_COOKIE = /^(_fbp|_fbc|_ttp|_tt_|ttcsid|_ga|_gid)/
 
 export function clearTrackingCookies() {
   try {

@@ -83,6 +83,9 @@ export function CookieNotice() {
         {' · '}
         <button
           type="button"
+          // Se apaga al presionar, antes del clic: si no, los píxeles alcanzan a registrar el
+          // propio clic en «Rechazar» (Meta lo manda como SubscribedButtonClick).
+          onPointerDown={() => setConsent('rejected')}
           onClick={reject}
           className="cursor-pointer border-0 bg-transparent p-0 font-bold text-landing-primary underline"
         >

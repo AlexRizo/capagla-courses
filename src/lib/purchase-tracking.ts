@@ -50,8 +50,10 @@ export function buildPurchaseEvent(order: PaidOrder): ServerEvent {
   }
 }
 
-// Manda el Purchase de una orden pagada. No manda nada si la persona no aceptó las cookies al
-// pagar, si es una renovación (no viene de un anuncio), si es gratis o si compró una admin probando.
+// Manda el Purchase de una orden pagada (lo llama `completeOrder` cuando Stripe confirma el pago,
+// haya o no navegador delante). No manda nada si la persona rechazó las cookies de medición, si
+// es una renovación (no viene de un anuncio), si es gratis o si compró una admin probando.
+// Una orden sin elección guardada (`null`, anterior al cambio del 2026-11-17) sí se manda.
 // Nunca lanza: medir no debe romper una compra.
 export async function trackPurchase(orderId: string) {
   try {
@@ -63,7 +65,7 @@ export async function trackPurchase(orderId: string) {
     if (order?.status !== 'PAID' || order.renewal || order.amountMxn === 0) {
       return false
     }
-    if (order.marketingConsent !== true) return false
+    if (order.marketingConsent === false) return false
     if (order.user?.role === 'ADMIN') return false
     const platforms = await loadPlatforms()
     if (!platforms.meta && !platforms.tiktok) return false

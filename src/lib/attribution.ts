@@ -4,7 +4,7 @@ import { z } from 'zod'
 // (utm_*), el clic de Meta (fbclid) o el de TikTok (ttclid) se guardan en una cookie propia
 // del sitio y viajan hasta la compra y hasta el registro de la clase gratis. Sirve para
 // atribuir las ventas (no depende de los píxeles); lo que se manda a Meta, TikTok o GA4 solo
-// sale si la persona aceptó las cookies (ver `lib/consent.ts`).
+// sale si la persona no rechazó las cookies (ver `lib/consent.ts`).
 export const ATTRIBUTION_COOKIE = 'capagla_attr'
 const ATTRIBUTION_DAYS = 90
 

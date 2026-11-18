@@ -1,12 +1,17 @@
-import { CONSENT_EVENT, getConsent } from '#/lib/consent'
+import {
+  CONSENT_EVENT,
+  clearTrackingCookies,
+  getConsent,
+  trackingAllowed,
+} from '#/lib/consent'
 import { trackServerEvent } from '#/lib/track'
 import { GA4_EVENT, ga4Params } from '#/lib/ga4'
 import { SERVER_EVENTS, TIKTOK_EVENT } from '#/lib/tracking-events'
 import type { EventName, TrackParams } from '#/lib/tracking-events'
 
-// Eventos de marketing en el navegador. Los píxeles solo se cargan si la persona aceptó las
-// cookies (ver `lib/consent.ts`); sin elección todavía, los eventos esperan en una cola corta
-// que se envía si acepta y se descarta si rechaza.
+// Eventos de marketing en el navegador. Los píxeles se cargan desde que entra la persona y se
+// apagan si rechaza las cookies de medición (ver `lib/consent.ts`). Mientras cargan, los eventos
+// esperan en una cola corta.
 type Fbq = ((...args: unknown[]) => void) & {
   queue?: unknown[]
   loaded?: boolean
@@ -21,6 +26,8 @@ declare global {
     _fbq?: Fbq
     ttq?: Ttq
     TiktokAnalyticsObject?: string
+    // Interruptor oficial de GA4 para dejar de medir (`ga-disable-<ID>`).
+    [gaDisable: `ga-disable-${string}`]: boolean | undefined
   }
 }
 
@@ -163,6 +170,7 @@ const customData = (p?: TrackParams) => ({
 })
 
 function send(ev: Pending) {
+  if (!trackingAllowed(getConsent())) return
   if (metaReady && window.fbq) {
     // El mismo `eventID` que recibe el servidor: Meta cuenta una sola vez el evento.
     window.fbq('track', ev.name, customData(ev.params), {
@@ -200,9 +208,9 @@ function send(ev: Pending) {
   }
 }
 
-// Con las cookies aceptadas y el píxel listo se envía lo que esperaba.
+// Sin rechazo y con el píxel listo se envía lo que esperaba.
 function flush() {
-  if (getConsent() !== 'accepted' || !ready()) return
+  if (!trackingAllowed(getConsent()) || !ready()) return
   const queued = pending
   pending = []
   queued.forEach(send)
@@ -214,28 +222,46 @@ export function initTracking(config: {
   tiktokPixelId: string | null
   ga4MeasurementId: string | null
 }) {
-  const consent = getConsent()
-  if (consent === 'rejected') {
+  if (!trackingAllowed(getConsent())) {
     pending = []
+    revoke()
     return
   }
-  if (consent !== 'accepted') return
-  if (config.metaPixelId && metaId !== config.metaPixelId) {
-    metaId = config.metaPixelId
-    loadMeta(config.metaPixelId)
+  // Si ya estaban cargados (rechazó y luego volvió a activar en /cookies), se les devuelve el permiso.
+  if (config.metaPixelId) {
+    if (metaId !== config.metaPixelId) {
+      metaId = config.metaPixelId
+      loadMeta(config.metaPixelId)
+    } else if (!metaReady) window.fbq?.('consent', 'grant')
     metaReady = true
   }
-  if (config.tiktokPixelId && tiktokId !== config.tiktokPixelId) {
-    tiktokId = config.tiktokPixelId
-    loadTikTok(config.tiktokPixelId)
+  if (config.tiktokPixelId) {
+    if (tiktokId !== config.tiktokPixelId) {
+      tiktokId = config.tiktokPixelId
+      loadTikTok(config.tiktokPixelId)
+    } else if (!tiktokReady) window.ttq?.grantConsent?.()
     tiktokReady = true
   }
-  if (config.ga4MeasurementId && ga4Id !== config.ga4MeasurementId) {
-    ga4Id = config.ga4MeasurementId
-    loadGA4(config.ga4MeasurementId)
+  if (config.ga4MeasurementId) {
+    if (ga4Id !== config.ga4MeasurementId) {
+      ga4Id = config.ga4MeasurementId
+      loadGA4(config.ga4MeasurementId)
+    } else if (!ga4Ready) window[`ga-disable-${ga4Id}`] = false
     ga4Ready = true
   }
   flush()
+}
+
+// «Rechazar»: los píxeles ya cargados dejan de enviar y se borran sus cookies. Lo que no se cargó
+// ya no se carga.
+function revoke() {
+  if (metaReady) window.fbq?.('consent', 'revoke')
+  if (tiktokReady) window.ttq?.revokeConsent?.()
+  if (ga4Id) window[`ga-disable-${ga4Id}`] = true
+  metaReady = false
+  tiktokReady = false
+  ga4Ready = false
+  clearTrackingCookies()
 }
 
 export function onConsentChange(handler: () => void) {
@@ -264,8 +290,7 @@ export function track(
   const last = recent.get(key)
   if (last && Date.now() - last.at < DUPLICATE_MS) return last.eventId
   recent.set(key, { at: Date.now(), eventId })
-  const consent = getConsent()
-  if (consent === 'rejected') return eventId
+  if (!trackingAllowed(getConsent())) return eventId
   const ev: Pending = {
     name,
     eventId,
@@ -274,8 +299,8 @@ export function track(
     params: opts.params,
     url: window.location.href.slice(0, 500),
   }
-  if (consent === 'accepted' && ready()) return (send(ev), eventId)
-  // Sin elección (o con el píxel aún sin cargar): espera.
+  if (ready()) return (send(ev), eventId)
+  // Con el píxel aún sin cargar: espera.
   pending = [...pending, ev].slice(-MAX_PENDING)
   return eventId
 }

@@ -254,9 +254,10 @@ function Marketing() {
             lead guarda esa misma atribución.
           </div>
           <div className="rounded-md border border-border bg-muted px-3 py-2.5 text-13 leading-normal text-chart-3">
-            Aviso de cookies: los píxeles del navegador se cargan solo si la
-            persona los acepta. Los eventos del servidor se envían con lo que la
-            persona aceptó al comprar.
+            Aviso de cookies: los píxeles del navegador se cargan desde que
+            entra la persona y se apagan si los rechaza. Los eventos del
+            servidor (incluida la compra al confirmar Stripe) se envían salvo
+            que la persona los haya rechazado.
           </div>
         </div>
       </div>

@@ -18,7 +18,7 @@ import {
   stripeMetadata,
 } from '#/lib/attribution'
 import { readSession } from '#/lib/auth'
-import { CONSENT_COOKIE, parseConsent } from '#/lib/consent'
+import { CONSENT_COOKIE, parseConsent, trackingAllowed } from '#/lib/consent'
 import { courseContents } from '#/lib/course-pages'
 import {
   canRenew,
@@ -215,28 +215,27 @@ export const startCheckout = createServerFn({ method: 'POST' })
       throw new Error('Faltan el correo y el nombre.')
     }
     const buyer = { email: buyerEmail, name: buyerName }
-    // Marketing: de dónde llegó y si aceptó las cookies de medición (cookies del navegador).
+    // Marketing: de dónde llegó y si rechazó las cookies de medición (cookies del navegador).
     const attribution = parseAttribution(getCookie(ATTRIBUTION_COOKIE))
-    const consent = parseConsent(getCookie(CONSENT_COOKIE))
-    // Con las cookies aceptadas se guarda lo que el servidor necesita para mandar la compra a
-    // las plataformas aunque la confirme el webhook de Stripe (sin navegador delante).
-    const trackingContext: TrackingContext | null =
-      consent === 'accepted'
-        ? {
-            ip: clientIp(getRequestHeader('x-forwarded-for')),
-            userAgent: getRequestHeader('user-agent')?.slice(0, 500),
-            fbp: getCookie('_fbp')?.slice(0, 200),
-            fbc: getCookie('_fbc')?.slice(0, 300),
-            ttp: getCookie('_ttp')?.slice(0, 200),
-          }
-        : null
+    const allowed = trackingAllowed(parseConsent(getCookie(CONSENT_COOKIE)))
+    // Si no rechazó, se guarda lo que el servidor necesita para mandar la compra a las
+    // plataformas aunque la confirme el webhook de Stripe (sin navegador delante).
+    const trackingContext: TrackingContext | null = allowed
+      ? {
+          ip: clientIp(getRequestHeader('x-forwarded-for')),
+          userAgent: getRequestHeader('user-agent')?.slice(0, 500),
+          fbp: getCookie('_fbp')?.slice(0, 200),
+          fbc: getCookie('_fbc')?.slice(0, 300),
+          ttp: getCookie('_ttp')?.slice(0, 200),
+        }
+      : null
     const input = {
       ...rest,
       ...buyer,
       renew: renovar,
       product: producto,
       attribution,
-      marketingConsent: consent === null ? null : consent === 'accepted',
+      marketingConsent: allowed,
       trackingContext,
     }
     const stripe = getStripe()

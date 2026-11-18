@@ -12,7 +12,7 @@ import {
   parseAttribution,
 } from '#/lib/attribution'
 import { auth } from '#/lib/auth'
-import { CONSENT_COOKIE, parseConsent } from '#/lib/consent'
+import { CONSENT_COOKIE, parseConsent, trackingAllowed } from '#/lib/consent'
 import { withLinkPurpose } from '#/lib/mailer'
 import { tooManyAttempts } from '#/lib/rate-limit'
 import { clientIp } from '#/lib/track-core'
@@ -64,13 +64,14 @@ export const joinFreeClass = createServerFn({ method: 'POST' })
       ))
     // Si llegó por un anuncio, el lead guarda esa atribución (la primera, no se pisa después).
     const attribution = parseAttribution(getCookie(ATTRIBUTION_COOKIE))
-    const consent = parseConsent(getCookie(CONSENT_COOKIE))
     await saveLead({
       email,
       userId: user.id,
       newsletter: data.newsletter,
       attribution: attributionJson(attribution),
-      marketingConsent: consent === null ? undefined : consent === 'accepted',
+      marketingConsent: trackingAllowed(
+        parseConsent(getCookie(CONSENT_COOKIE)),
+      ),
     })
 
     await withLinkPurpose({ kind: 'free-class' }, () =>

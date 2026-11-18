@@ -2,62 +2,67 @@ import { Link, useRouterState } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 
 import { captureAttribution } from '#/lib/attribution'
-import { getConsent, setConsent } from '#/lib/consent'
+import { CONSENT_EVENT, getConsent, setConsent } from '#/lib/consent'
+import type { Consent } from '#/lib/consent'
 
-// Aviso de cookies. La maqueta del panel solo dice que los píxeles se cargan si la persona los
-// acepta; no trae diseño del aviso, así que este es mínimo, con los colores de la landing.
-// Tampoco guarda ni manda nada hasta que elige. No sale en el panel (`/admin`) ni en la herramienta de costos (`/herramienta` y su vista de tienda).
-// Vuelve a abrir el aviso para cambiar la elección (H21; botón de la página /cookies).
-const REOPEN_EVENT = 'capagla:cookies'
-export const openCookieNotice = () =>
-  window.dispatchEvent(new Event(REOPEN_EVENT))
+// Aviso de cookies (decidido por Cheko, 2026-11-17): una barra delgada abajo, sin botón de
+// aceptar. La medición ya está activa al entrar. La barra sale una sola vez: al mostrarse se
+// guarda `si`, así que cerrarla con la ×, seguir a otra página o no hacer nada deja todo activo y
+// no vuelve a salir. «Rechazar» apaga Meta, TikTok y GA4 y guarda `no`. Las cookies de
+// funcionamiento (sesión, carrito, pago) no dependen de esto.
+// No sale en el panel (`/admin`) ni en la herramienta de costos (`/herramienta/…` y su vista de
+// tienda); la página pública `/herramienta-de-costos` sí la lleva.
+export const isPrivateArea = (pathname: string) =>
+  pathname.startsWith('/admin') ||
+  pathname === '/herramienta' ||
+  pathname.startsWith('/herramienta/') ||
+  pathname.startsWith('/lista-de-tienda')
 
 export function CookieNotice() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  // Sin elección guardada se muestra; se decide ya montado para no chocar con el HTML del servidor.
-  const [visible, setVisible] = useState(false)
+  // Página donde se mostró (se decide ya montado para no chocar con el HTML del servidor).
+  const [shownAt, setShownAt] = useState<string | null>(null)
+  const [closed, setClosed] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     captureAttribution()
-    setVisible(getConsent() === null)
-    const reopen = () => setVisible(true)
-    window.addEventListener(REOPEN_EVENT, reopen)
-    return () => window.removeEventListener(REOPEN_EVENT, reopen)
   }, [])
 
-  const hidden =
-    !visible ||
-    pathname.startsWith('/admin') ||
-    pathname.startsWith('/herramienta') ||
-    pathname.startsWith('/lista-de-tienda')
+  useEffect(() => {
+    if (shownAt !== null || isPrivateArea(pathname)) return
+    if (getConsent() !== null) return
+    // Mostrarla cuenta como aviso dado: no vuelve a salir y la medición sigue activa.
+    setConsent('accepted')
+    setShownAt(pathname)
+  }, [pathname, shownAt])
 
-  // Mientras se ve, el aviso (fijo abajo) tapaba el final de la página: en móvil, el botón
-  // «Pagar» del checkout. Se deja abajo un espacio del alto del aviso para poder pasar de él.
+  // Al pasar a otra página (seguir navegando) se quita.
+  const visible = shownAt !== null && shownAt === pathname && !closed
+
+  // Mientras se ve, la barra (fija abajo) taparía el final de la página: en móvil, el botón
+  // «Pagar» del checkout. Se deja abajo un espacio de su alto para poder pasar de ella.
   useEffect(() => {
     const el = ref.current
-    if (hidden || !el) return
+    if (!visible || !el) return
     const body = document.body
     const reserve = () => {
-      const gap = window.innerHeight - el.getBoundingClientRect().top
-      body.style.paddingBottom = `${Math.ceil(gap)}px`
+      body.style.paddingBottom = `${Math.ceil(el.getBoundingClientRect().height)}px`
     }
     reserve()
     const observer = new ResizeObserver(reserve)
     observer.observe(el)
-    window.addEventListener('resize', reserve)
     return () => {
       observer.disconnect()
-      window.removeEventListener('resize', reserve)
       body.style.paddingBottom = ''
     }
-  }, [hidden])
+  }, [visible])
 
-  if (hidden) return null
+  if (!visible) return null
 
-  function choose(choice: 'accepted' | 'rejected') {
-    setConsent(choice)
-    setVisible(false)
+  function reject() {
+    setConsent('rejected')
+    setClosed(true)
   }
 
   return (
@@ -65,35 +70,68 @@ export function CookieNotice() {
       ref={ref}
       role="region"
       aria-label="Aviso de cookies"
-      className="fixed inset-x-3 bottom-3 z-60 mx-auto flex max-w-160 flex-col gap-3 rounded-16 border border-landing-line bg-white p-4 text-landing-ink shadow-landing-card md:inset-x-auto md:right-6 md:bottom-6 md:mx-0 md:w-100"
+      className="fixed inset-x-0 bottom-0 z-60 flex items-center gap-3 border-t border-landing-line bg-white py-2 pr-2 pl-4 text-landing-ink md:justify-center md:pl-6"
     >
-      <p className="m-0 text-13 leading-normal text-landing-muted md:text-sm">
-        Usamos cookies para medir qué anuncios funcionan y mejorar tu
-        experiencia. Puedes aceptarlas o quedarte solo con las necesarias para
-        que el sitio funcione.{' '}
+      <p className="m-0 flex-1 text-13 leading-snug text-landing-muted md:flex-none">
+        Usamos cookies para medir y mejorar nuestros anuncios.{' '}
         <Link
-          to="/cookies"
-          className="font-bold text-landing-primary underline"
+          to="/privacidad"
+          className="font-bold whitespace-nowrap text-landing-primary underline"
         >
-          Más información
+          Aviso de privacidad
         </Link>
+        {' · '}
+        <button
+          type="button"
+          onClick={reject}
+          className="cursor-pointer border-0 bg-transparent p-0 font-bold text-landing-primary underline"
+        >
+          Rechazar
+        </button>
       </p>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => choose('accepted')}
-          className="min-h-10 cursor-pointer rounded-12 border-0 bg-landing-primary px-5 text-sm font-black text-white"
-        >
-          Aceptar
-        </button>
-        <button
-          type="button"
-          onClick={() => choose('rejected')}
-          className="min-h-10 cursor-pointer rounded-12 border-1.5 border-landing-field bg-white px-4 text-sm font-bold text-landing-primary"
-        >
-          Solo las necesarias
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => setClosed(true)}
+        aria-label="Cerrar aviso de cookies"
+        className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-xl leading-none text-landing-muted"
+      >
+        ×
+      </button>
+    </div>
+  )
+}
+
+// Página /cookies (H21): muestra si la medición está activa y deja apagarla o volver a activarla.
+export function CookiePreference() {
+  // Se lee ya montado (la cookie no existe en el HTML del servidor).
+  const [consent, setLocal] = useState<Consent | null | undefined>(undefined)
+
+  useEffect(() => {
+    const sync = () => setLocal(getConsent())
+    sync()
+    window.addEventListener(CONSENT_EVENT, sync)
+    return () => window.removeEventListener(CONSENT_EVENT, sync)
+  }, [])
+
+  if (consent === undefined) return null
+  const rejected = consent === 'rejected'
+
+  return (
+    <div className="mt-5 flex flex-col items-start gap-3">
+      <p className="m-0 text-15 leading-normal text-landing-muted">
+        {rejected
+          ? 'Rechazaste las cookies de medición: Meta, TikTok y Google Analytics están apagados.'
+          : 'Las cookies de medición están activas.'}
+      </p>
+      <button
+        type="button"
+        onClick={() => setConsent(rejected ? 'accepted' : 'rejected')}
+        className="min-h-11 cursor-pointer rounded-12 border-1.5 border-landing-primary bg-white px-5 text-15 font-bold text-landing-primary"
+      >
+        {rejected
+          ? 'Activar las cookies de medición'
+          : 'Rechazar las cookies de medición'}
+      </button>
     </div>
   )
 }

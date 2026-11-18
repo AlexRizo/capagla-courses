@@ -161,11 +161,15 @@ describe('compra confirmada → Meta y TikTok', () => {
     expect(calls).toHaveLength(2)
   })
 
-  it('sin consentimiento (rechazó o no eligió) no se manda nada', async () => {
+  it('si rechazó las cookies de medición no se manda nada', async () => {
     await buy('a@test.com', { marketingConsent: false, trackingContext: null })
-    await buy('b@test.com', { marketingConsent: null, trackingContext: null })
     await sleep(250)
     expect(calls).toHaveLength(0)
+  })
+
+  it('sin elección guardada (orden anterior al aviso nuevo) sí se manda', async () => {
+    await buy('b@test.com', { marketingConsent: null, trackingContext: null })
+    await vi.waitFor(() => expect(calls).toHaveLength(2))
   })
 
   it('una renovación no se manda', async () => {

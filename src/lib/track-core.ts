@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '#/db'
 import { env } from '#/env'
 import type { Attribution } from '#/lib/attribution'
+import { trackingAllowed } from '#/lib/consent'
 import type { Consent } from '#/lib/consent'
 import { sendMetaEvent } from '#/lib/meta-capi'
 import type { MetaConfig, ServerEvent } from '#/lib/meta-capi'
@@ -45,12 +46,13 @@ export async function loadPlatforms(): Promise<Platforms> {
 
 const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|headless/i
 
-// Solo se manda con las cookies de medición aceptadas; ni la admin probando ni los robots cuentan.
+// Se manda salvo que la persona haya rechazado las cookies de medición; ni la admin probando ni
+// los robots cuentan.
 export const shouldTrack = (c: {
   consent: Consent | null
   isAdmin: boolean
   userAgent?: string
-}) => c.consent === 'accepted' && !c.isAdmin && !BOT.test(c.userAgent ?? '')
+}) => trackingAllowed(c.consent) && !c.isAdmin && !BOT.test(c.userAgent ?? '')
 
 // Lo que se guarda del navegador al pagar para el evento Purchase (ver `Order.trackingContext`).
 export const trackingContextSchema = z.object({

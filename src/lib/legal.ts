@@ -14,7 +14,7 @@ export const LEGAL = {
       string | null,
   // Correo para dudas y derechos ARCO (el mismo de soporte del checkout).
   email: CONTACT_EMAIL,
-  actualizado: '15 de noviembre de 2026',
+  actualizado: '17 de noviembre de 2026',
 }
 
 export type LegalSection = {
@@ -56,7 +56,7 @@ const privacy: LegalDoc = {
         'Lo que capturas en la herramienta de costos: lugares de compra, ingredientes, recetas, productos, precios y cotizaciones.',
         'Datos técnicos: dirección IP y navegador, que usamos para la seguridad y para limitar intentos repetidos de entrar.',
         'Origen de tu visita: si llegas desde un anuncio o un enlace con etiquetas, guardamos de dónde vino (por ejemplo, la campaña) para saber qué promociones funcionan.',
-        'Solo si aceptas las cookies de medición: al comprar o registrarte, enviamos a Meta y a TikTok el evento de la compra o del registro, con tu correo (y a Meta también tu nombre) cifrados, tu IP, tu navegador y los identificadores de sus cookies, para medir nuestros anuncios. Google Analytics recibe la actividad de tu navegador, sin tu correo.',
+        'Medición de anuncios: usamos el píxel de Meta, el píxel de TikTok y Google Analytics. Están activos desde que entras y se apagan si eliges «Rechazar» en el aviso de cookies. Mientras no los rechaces, al comprar o registrarte enviamos a Meta y a TikTok el evento de la compra o del registro, con tu correo (y a Meta también tu nombre) cifrados, tu IP, tu navegador y los identificadores de sus cookies. Google Analytics recibe la actividad de tu navegador, sin tu correo.',
       ],
     },
     {
@@ -81,7 +81,7 @@ const privacy: LegalDoc = {
       heading: 'Para qué más (puedes decir que no)',
       items: [
         'Enviarte novedades por correo (cursos nuevos y mejoras de la herramienta), solo si marcaste esa casilla al registrarte. Es opcional y puedes darte de baja cuando quieras.',
-        'Medir y mejorar nuestros anuncios, solo si aceptas las cookies de medición.',
+        'Medir y mejorar nuestros anuncios con el píxel de Meta, el píxel de TikTok y Google Analytics. Puedes apagarlo con «Rechazar» en el aviso de cookies o en la política de cookies; igual puedes ver todo el sitio y la clase gratis.',
       ],
       paragraphs: [
         'Si no quieres alguno de estos usos, dínoslo en cualquier momento y dejaremos de hacerlo, sin afectar tu acceso a lo que compraste.',
@@ -98,7 +98,7 @@ const privacy: LegalDoc = {
         'Brevo: envía nuestros correos.',
         'Railway: aloja el sitio y la base de datos.',
         'Anthropic (Claude): es el asistente de inteligencia artificial de las preguntas. Cuando le preguntas algo, enviamos el texto de tu pregunta y el contenido de la lección relacionada para generar la respuesta. No le enviamos tu correo.',
-        'Meta, TikTok y Google (Analytics): solo si aceptas las cookies de medición.',
+        'Meta (píxel de Meta), TikTok (píxel de TikTok) y Google (Google Analytics): miden nuestros anuncios, salvo que rechaces las cookies de medición.',
       ],
     },
     {
@@ -123,7 +123,7 @@ const privacy: LegalDoc = {
     {
       heading: 'Cookies',
       paragraphs: [
-        'Usamos cookies propias y, si las aceptas, de medición. Su detalle está en la política de cookies.',
+        'Usamos cookies propias y cookies de medición (píxel de Meta, píxel de TikTok y Google Analytics), que puedes rechazar. Su detalle está en la política de cookies.',
       ],
     },
     {
@@ -291,8 +291,9 @@ const cookies: LegalDoc = {
     {
       heading: 'Tu elección',
       paragraphs: [
-        'La primera vez que entras te preguntamos si aceptas las cookies de medición o prefieres quedarte solo con las necesarias. Los píxeles de Meta, TikTok y Google Analytics se cargan únicamente si aceptas.',
-        'Para cambiar tu elección, borra las cookies de este sitio en tu navegador: el aviso volverá a aparecer.',
+        'El píxel de Meta, el píxel de TikTok y Google Analytics están activos desde que entras. La primera vez te mostramos un aviso en una barra abajo: si lo cierras, sigues navegando o no haces nada, siguen activos y el aviso no vuelve a salir.',
+        'Si eliges «Rechazar», se apagan los tres y guardamos tu elección. Igual puedes ver todo el sitio, incluida la clase gratis.',
+        'Puedes cambiar tu elección cuando quieras con el botón de abajo.',
       ],
     },
     {
@@ -302,7 +303,7 @@ const cookies: LegalDoc = {
       ],
       items: [
         'Sesión: mantiene tu sesión iniciada.',
-        'capagla_cookies: guarda tu elección sobre las cookies. Dura 1 año.',
+        'capagla_cookies: guarda que ya viste el aviso o que rechazaste las cookies de medición. Dura 1 año.',
         'capagla_orden: reconoce tu compra para mostrarte la página de confirmación. Dura 1 día.',
         'Stripe: al pagar, Stripe guarda cookies para prevenir fraudes y procesar el pago.',
       ],
@@ -318,14 +319,15 @@ const cookies: LegalDoc = {
       ],
     },
     {
-      heading: 'Cookies de medición de terceros (solo si aceptas)',
+      heading:
+        'Cookies de medición de terceros (activas salvo que las rechaces)',
       items: [
-        'Meta (Facebook e Instagram): su píxel mide visitas y compras de nuestros anuncios.',
-        'TikTok: su píxel mide visitas y compras de nuestros anuncios.',
+        'Píxel de Meta (Facebook e Instagram): mide visitas y compras de nuestros anuncios.',
+        'Píxel de TikTok: mide visitas y compras de nuestros anuncios.',
         'Google Analytics: mide cómo se usa el sitio.',
       ],
       paragraphs: [
-        'Estas empresas tienen sus propias políticas sobre las cookies que guardan. Si aceptas, al comprar o registrarte también enviamos el evento a sus servidores, como explica el aviso de privacidad.',
+        'Estas empresas tienen sus propias políticas sobre las cookies que guardan. Mientras no las rechaces, al comprar o registrarte también enviamos el evento a los servidores de Meta y de TikTok, como explica el aviso de privacidad. Si las rechazas, dejan de cargarse, borramos sus cookies de este sitio y no enviamos esos eventos.',
       ],
     },
     {

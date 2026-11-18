@@ -166,7 +166,7 @@ describe('sendMetaEvent', () => {
 })
 
 describe('shouldTrack', () => {
-  it('solo con las cookies aceptadas, sin admin ni robots', () => {
+  it('salvo que haya rechazado las cookies, sin admin ni robots', () => {
     expect(
       shouldTrack({
         consent: 'accepted',
@@ -175,7 +175,7 @@ describe('shouldTrack', () => {
       }),
     ).toBe(true)
     expect(shouldTrack({ consent: 'rejected', isAdmin: false })).toBe(false)
-    expect(shouldTrack({ consent: null, isAdmin: false })).toBe(false)
+    expect(shouldTrack({ consent: null, isAdmin: false })).toBe(true)
     expect(shouldTrack({ consent: 'accepted', isAdmin: true })).toBe(false)
     expect(
       shouldTrack({

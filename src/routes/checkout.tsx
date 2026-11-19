@@ -146,12 +146,15 @@ function ToolBump({
   tool,
   checked,
   noneChosen,
+  optIn,
   disabled,
   onToggle,
 }: {
   tool: { slug: string; name: string; normalMxn: number; priceMxn: number }
   checked: boolean
   noneChosen: boolean
+  // La casilla llega sin marcar (el curso se cobra): se ofrece sin insistir (Cheko, 2026-11-19).
+  optIn: boolean
   disabled: boolean
   onToggle: () => void
 }) {
@@ -161,7 +164,8 @@ function ToolBump({
   const deal = toolDiscount > 0
   // «Herramienta de costos · Completo» → «Completo» (nombre del nivel, como la maqueta).
   const toolTier = tool.name.split(' · ')[1] ?? ''
-  const warn = deal && !checked && noneChosen
+  const offer = deal && optIn
+  const warn = deal && !optIn && !checked && noneChosen
   return (
     <div
       className={`flex items-start gap-3 rounded-xl border-1.5 p-3.5 md:gap-3.5 md:p-4.5 ${
@@ -183,13 +187,17 @@ function ToolBump({
         className="flex flex-col gap-1 text-sm leading-145 md:gap-1.5 md:text-15 md:leading-normal"
       >
         <span className="text-15 font-black md:text-base">
-          {!warn
-            ? `Agrega la herramienta de costos${toolTier ? ` ${toolTier}` : ''}${deal ? ` con ${toolDiscount}% de descuento` : ''}`
-            : '¿Seguro que no la quieres?'}
+          {offer
+            ? `Agrégala y ahorra ${toolDiscount} %`
+            : !warn
+              ? `Agrega la herramienta de costos${toolTier ? ` ${toolTier}` : ''}${deal ? ` con ${toolDiscount}% de descuento` : ''}`
+              : '¿Seguro que no la quieres?'}
         </span>
         <span className="text-landing-muted">
           {!deal ? (
             'Es opcional y se suma a tu compra.'
+          ) : offer ? (
+            `Solo en tu compra de hoy: la herramienta de costos${toolTier ? ` ${toolTier}` : ''}, que te dice cuánto te cuesta cada postre y en cuánto venderlo.`
           ) : !warn ? (
             <>
               <span className="md:hidden">
@@ -531,15 +539,19 @@ function CheckoutForm({
   const cardGetter = useRef<CardHandle | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
   const errorRef = useRef<HTMLDivElement>(null)
-  // La herramienta arranca marcada también con el curso gratis; quien solo quiere el curso la
-  // quita aquí. Si la promoción trae varios niveles (Básico y Completo) se elige uno o ninguno,
-  // nunca los dos: arranca marcado el más caro (decisión del usuario, 2026-11-11).
-  const [chosen, setChosen] = useState<string | null>(
-    () =>
-      tools.reduce<(typeof tools)[number] | null>(
-        (best, t) => (!best || t.normalMxn > best.normalMxn ? t : best),
-        null,
-      )?.slug ?? null,
+  // Con el curso gratis (promoción de costeo) la herramienta es lo que se vende: arranca marcada y
+  // quien solo quiere el curso la quita aquí. Si la promoción trae varios niveles (Básico y
+  // Completo) se elige uno o ninguno, nunca los dos: arranca marcado el más caro (decisión del
+  // usuario, 2026-11-11). Si el curso se cobra (/navidad), la herramienta llega sin marcar y el
+  // total arranca en el precio del curso (Cheko, 2026-11-19: 20 al carrito y 0 pagos iniciados).
+  const toolOptIn = course.priceMxn > 0
+  const [chosen, setChosen] = useState<string | null>(() =>
+    toolOptIn
+      ? null
+      : (tools.reduce<(typeof tools)[number] | null>(
+          (best, t) => (!best || t.normalMxn > best.normalMxn ? t : best),
+          null,
+        )?.slug ?? null),
   )
   const [stage, setStage] = useState<Stage>('idle')
   const busy = stage !== 'idle'
@@ -576,12 +588,15 @@ function CheckoutForm({
     contentName: course.name,
     contentIds: [course.slug],
   }
-  // Marketing: llegar al pago es "agregar al carrito" (navegador y servidor), una vez por visita.
+  // Marketing: llegar al pago es "agregar al carrito" e "iniciar pago" (navegador y servidor), una
+  // vez por visita. InitiateCheckout salía solo al dar «Pagar» con la tarjeta completa, así que
+  // Meta no veía a quien abría el checkout y no pagaba (Cheko, 2026-11-19).
   const cartTracked = useRef(false)
   useEffect(() => {
     if (cartTracked.current) return
     cartTracked.current = true
     track('AddToCart', { email: account?.email, params: cartParams })
+    track('InitiateCheckout', { email: account?.email, params: cartParams })
   }, [])
   const stageLabel = free ? freeStageText : stageText
   const payLabel =
@@ -670,13 +685,6 @@ function CheckoutForm({
 
   // Orden gratis: el servidor la completa sin cobro y se va directo a "Listo".
   async function getFree(buyer: Buyer) {
-    if (!attempt.current) {
-      track('InitiateCheckout', {
-        email: buyer.email,
-        fullName: buyer.name,
-        params: cartParams,
-      })
-    }
     setStage('preparing')
     setError(null)
     try {
@@ -721,14 +729,6 @@ function CheckoutForm({
       return
     }
 
-    // Marketing: inicia el pago (solo en el primer intento; reintentar con otra tarjeta no repite).
-    if (!attempt.current) {
-      track('InitiateCheckout', {
-        email: buyer.email,
-        fullName: buyer.name,
-        params: cartParams,
-      })
-    }
     setStage('preparing')
     setError(null)
     try {
@@ -926,6 +926,7 @@ function CheckoutForm({
               checked={chosen === t.slug}
               // Nada elegido: cada nivel con descuento insiste («¿Seguro que no la quieres?»).
               noneChosen={chosen === null}
+              optIn={toolOptIn}
               disabled={busy}
               onToggle={() => setChosen(chosen === t.slug ? null : t.slug)}
             />

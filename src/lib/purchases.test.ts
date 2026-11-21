@@ -4,8 +4,10 @@ import { prisma } from '#/db'
 import { RENEWAL_DISCOUNT_PCT } from '#/lib/catalog'
 import {
   canRenew,
+  checkoutTools,
   renewalPrice,
   resolveOffer,
+  resolveThanksTool,
   withoutOwnedExtras,
 } from '#/lib/offers'
 import {
@@ -108,14 +110,18 @@ describe('createOrder', () => {
     expect(withTool.amountMxn).toBe(200)
   })
 
-  it('la herramienta solo se cobra si se marcó la casilla', async () => {
+  it('con el curso cobrado la herramienta no se vende en el checkout (va en /gracias)', async () => {
     await seedPromotion()
     const order = await createOrder({
       ...buyer,
       withTool: true,
       promo: 'navidad',
     })
-    expect(order.amountMxn).toBe(497)
+    expect(order.amountMxn).toBe(397)
+    const items = await prisma.orderItem.findMany({
+      where: { orderId: order.id },
+    })
+    expect(items.map((i) => i.productId)).not.toContain(catalog.tool.id)
   })
 
   it('con la promoción pausada o terminada cobra el precio normal, pero la atribuye', async () => {
@@ -260,7 +266,7 @@ describe('createOrder', () => {
     await seedPromotion()
     const first = await createOrder({
       ...buyer,
-      withTool: true,
+      withTool: false,
       promo: 'navidad',
     })
     await completeOrder(first.id)
@@ -268,29 +274,18 @@ describe('createOrder', () => {
       where: { productId: catalog.course.id },
     })
     await prisma.enrollment.updateMany({
-      where: { productId: catalog.tool.id },
+      where: { productId: catalog.extra.id },
       data: { expiresAt: new Date(Date.now() - DAY) },
     })
     const second = await createOrder({
       ...buyer,
-      withTool: true,
-      promo: 'navidad',
-    })
-    expect(second.amountMxn).toBe(497)
-  })
-
-  it('la herramienta sigue vendiéndose como casilla de la promoción', async () => {
-    await seedPromotion()
-    const order = await createOrder({
-      ...buyer,
-      withTool: true,
+      withTool: false,
       promo: 'navidad',
     })
     const items = await prisma.orderItem.findMany({
-      where: { orderId: order.id },
+      where: { orderId: second.id },
     })
-    expect(items.map((i) => i.productId)).toContain(catalog.tool.id)
-    expect(order.amountMxn).toBe(497)
+    expect(items.map((i) => i.productId)).toContain(catalog.extra.id)
   })
 
   it('no vende un curso en borrador', async () => {
@@ -400,7 +395,8 @@ describe('completeOrder', () => {
     const enrollments = await prisma.enrollment.findMany({
       where: { userId: user.id },
     })
-    expect(enrollments).toHaveLength(3)
+    // El curso y el adicional (la herramienta ya no va en esta orden: se ofrece en /gracias).
+    expect(enrollments).toHaveLength(2)
     for (const e of enrollments) {
       expect(
         Math.abs(e.expiresAt.getTime() - (Date.now() + 365 * DAY)),
@@ -586,7 +582,7 @@ describe('refundOrder', () => {
       promo: 'navidad',
     })
     await completeOrder(order.id)
-    expect(await prisma.enrollment.count()).toBe(3)
+    expect(await prisma.enrollment.count()).toBe(2)
     await refundOrder(order.id)
     expect(await prisma.enrollment.count()).toBe(0)
     const refunded = await prisma.order.findUniqueOrThrow({
@@ -873,5 +869,58 @@ describe('promoción con los dos niveles de la herramienta', () => {
       buyer.email,
     )
     expect(offer.extras.map((e) => e.slug)).toEqual(['herramienta-costos'])
+  })
+})
+
+describe('herramienta en la página de gracias (Fase 2)', () => {
+  it('con el curso cobrado la herramienta sale del checkout y se ofrece en /gracias a precio de la promoción', async () => {
+    const promo = await seedPromotion()
+    const offer = await resolveOffer('navidad', true)
+    expect(checkoutTools(offer)).toEqual([])
+    const tool = await resolveThanksTool(promo.id, 'ana@test.com')
+    expect(tool?.productId).toBe(catalog.tool.id)
+    expect(tool?.priceMxn).toBe(100)
+    expect(tool?.normalMxn).toBe(catalog.tool.priceMxn)
+  })
+
+  it('vale igual aunque la promoción ya terminó (la oferta es de esa compra)', async () => {
+    const promo = await seedPromotion({
+      endsAt: new Date(Date.now() - 3 * DAY),
+    })
+    const tool = await resolveThanksTool(promo.id, 'ana@test.com')
+    expect(tool?.priceMxn).toBe(100)
+  })
+
+  it('no se ofrece si ya tiene la herramienta vigente', async () => {
+    const promo = await seedPromotion()
+    const standalone = await createOrder({
+      ...buyer,
+      withTool: false,
+      product: 'herramienta-costos',
+    })
+    await completeOrder(standalone.id)
+    expect(await resolveThanksTool(promo.id, 'ana@test.com')).toBeNull()
+  })
+
+  it('con el principal gratis la herramienta sigue en el checkout y no va a /gracias', async () => {
+    const promo = await prisma.promotion.create({
+      data: {
+        slug: 'costeo-gratis',
+        name: 'Costeo',
+        startsAt: new Date(Date.now() - DAY),
+        endsAt: new Date(Date.now() + DAY),
+        products: {
+          create: [
+            { productId: catalog.extra.id, priceMxn: 0, position: 0 },
+            { productId: catalog.tool.id, priceMxn: 200, position: 1 },
+          ],
+        },
+      },
+    })
+    const offer = await resolveOffer('costeo-gratis', true)
+    expect(checkoutTools(offer).map((t) => t.productId)).toEqual([
+      catalog.tool.id,
+    ])
+    expect(await resolveThanksTool(promo.id, 'ana@test.com')).toBeNull()
   })
 })

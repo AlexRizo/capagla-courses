@@ -7,6 +7,7 @@ import { withLinkPurpose } from '#/lib/mailer'
 import { trackPurchase } from '#/lib/purchase-tracking'
 import type { TrackingContext } from '#/lib/track-core'
 import {
+  checkoutTools,
   resolveOffer,
   resolveRenewal,
   resolveStandalone,
@@ -85,7 +86,8 @@ export async function createOrder(input: {
   if (!renewal && (await hasActiveAccess(input.email, offer.main.productId))) {
     throw new AlreadyOwnedError()
   }
-  const tools = offer.extras.filter((e) => !e.isCourse)
+  // Con el principal cobrado la herramienta no se vende aquí sino en /gracias (`checkoutTools`).
+  const tools = checkoutTools(offer)
   const tool = input.withTool
     ? input.toolSlug
       ? tools.find((t) => t.slug === input.toolSlug)

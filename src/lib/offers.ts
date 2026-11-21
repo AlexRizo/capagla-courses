@@ -289,3 +289,51 @@ export async function resolveOffer(
     extras: applied ? rest.map((r) => asProduct(r.product, r.priceMxn)) : [],
   }
 }
+
+// Herramienta en la página de gracias (Cheko, 2026-11-19, Fase 2): cuando la promoción cobra el
+// producto principal (/navidad), la herramienta ya no va en el checkout. Se ofrece después de
+// pagar, en /gracias, con un clic y con la tarjeta de la compra. Con el principal gratis
+// (/costear) la herramienta es lo que se vende y sigue en el checkout como casilla.
+export const sellsToolAfterPayment = (offer: Offer) =>
+  offer.main.priceMxn > 0 && offer.extras.some((e) => !e.isCourse)
+
+// Niveles de la herramienta que se ofrecen como casilla en el checkout.
+export const checkoutTools = (offer: Offer) =>
+  sellsToolAfterPayment(offer) ? [] : offer.extras.filter((e) => !e.isCourse)
+
+// Nivel que se ofrece en /gracias: el más caro de la promoción (como la casilla, que arrancaba
+// marcada con el más caro), al precio de la promoción aunque ya no esté vigente: vale igual con el
+// curso a $397 o a $497. null si la promoción no trae herramienta, si el principal fue gratis o si
+// el correo ya tiene ese nivel (o uno más alto) vigente.
+export async function resolveThanksTool(
+  promotionId: string,
+  email: string,
+): Promise<OfferProduct | null> {
+  const promotion = await prisma.promotion.findUnique({
+    where: { id: promotionId },
+    include: {
+      products: {
+        orderBy: { position: 'asc' },
+        include: { product: { include: { tier: true } } },
+      },
+    },
+  })
+  if (!promotion || promotion.products.length === 0) return null
+  const [main, ...rest] = promotion.products
+  const offer: Offer = {
+    promotion: null,
+    applied: true,
+    main: asProduct(main.product, main.priceMxn),
+    extras: rest.map((r) => asProduct(r.product, r.priceMxn)),
+  }
+  if (!sellsToolAfterPayment(offer)) return null
+  const { extras } = await withoutOwnedExtras(offer, email)
+  return (
+    extras
+      .filter((e) => !e.isCourse && e.published)
+      .reduce<OfferProduct | null>(
+        (best, t) => (!best || t.normalMxn > best.normalMxn ? t : best),
+        null,
+      ) ?? null
+  )
+}

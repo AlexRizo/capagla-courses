@@ -366,6 +366,8 @@ model SiteSettings {
   id              Int     @id @default(1)
   // Video de la página pública de la herramienta (/herramienta-de-costos), id en Bunny (H15).
   toolPageVideoId String?
+  // Video de la página de gracias (/gracias), id en Bunny. Sin él no se muestra el espacio del video.
+  thanksVideoId   String?
 }
 
 model MarketingSettings {
@@ -496,9 +498,17 @@ model Order {
   // el evento Purchase aunque la compra la confirme el webhook de Stripe. Solo si aceptó las
   // cookies de medición. Ver lib/track-core.ts.
   trackingContext       Json?
+  // Cliente de Stripe con la tarjeta guardada (solo «on_session»): se crea cuando la orden ofrece
+  // la herramienta en la página de gracias, para cobrarla con un clic sin volver a capturarla.
+  stripeCustomerId      String?
+  // Oferta de la página de gracias: la orden (ya pagada) desde la que se agregó esta compra.
+  upsellOfId            String?
+  upsellOf              Order?      @relation("Upsell", fields: [upsellOfId], references: [id], onDelete: SetNull)
+  upsells               Order[]     @relation("Upsell")
 
   @@index([email])
   @@index([promotionId])
+  @@index([upsellOfId])
 }
 
 model OrderItem {

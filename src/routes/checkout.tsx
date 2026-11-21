@@ -146,15 +146,12 @@ function ToolBump({
   tool,
   checked,
   noneChosen,
-  optIn,
   disabled,
   onToggle,
 }: {
   tool: { slug: string; name: string; normalMxn: number; priceMxn: number }
   checked: boolean
   noneChosen: boolean
-  // La casilla llega sin marcar (el curso se cobra): se ofrece sin insistir (Cheko, 2026-11-19).
-  optIn: boolean
   disabled: boolean
   onToggle: () => void
 }) {
@@ -164,8 +161,7 @@ function ToolBump({
   const deal = toolDiscount > 0
   // «Herramienta de costos · Completo» → «Completo» (nombre del nivel, como la maqueta).
   const toolTier = tool.name.split(' · ')[1] ?? ''
-  const offer = deal && optIn
-  const warn = deal && !optIn && !checked && noneChosen
+  const warn = deal && !checked && noneChosen
   return (
     <div
       className={`flex items-start gap-3 rounded-xl border-1.5 p-3.5 md:gap-3.5 md:p-4.5 ${
@@ -187,17 +183,13 @@ function ToolBump({
         className="flex flex-col gap-1 text-sm leading-145 md:gap-1.5 md:text-15 md:leading-normal"
       >
         <span className="text-15 font-black md:text-base">
-          {offer
-            ? `Agrégala y ahorra ${toolDiscount} %`
-            : !warn
-              ? `Agrega la herramienta de costos${toolTier ? ` ${toolTier}` : ''}${deal ? ` con ${toolDiscount}% de descuento` : ''}`
-              : '¿Seguro que no la quieres?'}
+          {!warn
+            ? `Agrega la herramienta de costos${toolTier ? ` ${toolTier}` : ''}${deal ? ` con ${toolDiscount}% de descuento` : ''}`
+            : '¿Seguro que no la quieres?'}
         </span>
         <span className="text-landing-muted">
           {!deal ? (
             'Es opcional y se suma a tu compra.'
-          ) : offer ? (
-            `Solo en tu compra de hoy: la herramienta de costos${toolTier ? ` ${toolTier}` : ''}, que te dice cuánto te cuesta cada postre y en cuánto venderlo.`
           ) : !warn ? (
             <>
               <span className="md:hidden">
@@ -529,6 +521,7 @@ function CheckoutForm({
     account,
     renewal,
     upgradeUntil,
+    saveCard,
   } = Route.useLoaderData()
   const { promo, prueba, desde, renovar, producto } = Route.useSearch()
   const days = upgradeUntil
@@ -542,16 +535,14 @@ function CheckoutForm({
   // Con el curso gratis (promoción de costeo) la herramienta es lo que se vende: arranca marcada y
   // quien solo quiere el curso la quita aquí. Si la promoción trae varios niveles (Básico y
   // Completo) se elige uno o ninguno, nunca los dos: arranca marcado el más caro (decisión del
-  // usuario, 2026-11-11). Si el curso se cobra (/navidad), la herramienta llega sin marcar y el
-  // total arranca en el precio del curso (Cheko, 2026-11-19: 20 al carrito y 0 pagos iniciados).
-  const toolOptIn = course.priceMxn > 0
-  const [chosen, setChosen] = useState<string | null>(() =>
-    toolOptIn
-      ? null
-      : (tools.reduce<(typeof tools)[number] | null>(
-          (best, t) => (!best || t.normalMxn > best.normalMxn ? t : best),
-          null,
-        )?.slug ?? null),
+  // usuario, 2026-11-11). Si el curso se cobra (/navidad) la herramienta no llega aquí: se ofrece
+  // en /gracias después de pagar (Cheko, 2026-11-19, Fase 2).
+  const [chosen, setChosen] = useState<string | null>(
+    () =>
+      tools.reduce<(typeof tools)[number] | null>(
+        (best, t) => (!best || t.normalMxn > best.normalMxn ? t : best),
+        null,
+      )?.slug ?? null,
   )
   const [stage, setStage] = useState<Stage>('idle')
   const busy = stage !== 'idle'
@@ -648,6 +639,7 @@ function CheckoutForm({
         renovar,
         producto,
         replaces: attempt.current?.orderId,
+        saveCard,
       },
     })
     if ('error' in result) throw new AlreadyOwned()
@@ -832,6 +824,8 @@ function CheckoutForm({
                 amount: total * 100,
                 currency: 'mxn',
                 allowedPaymentMethodTypes: ['card'],
+                // Igual que el cobro del servidor: la tarjeta se guarda para la oferta de /gracias.
+                ...(saveCard && { setupFutureUsage: 'on_session' as const }),
                 locale: 'es-419',
                 fonts: stripeFonts,
                 appearance: { variables: { borderRadius: '12px' } },
@@ -926,7 +920,6 @@ function CheckoutForm({
               checked={chosen === t.slug}
               // Nada elegido: cada nivel con descuento insiste («¿Seguro que no la quieres?»).
               noneChosen={chosen === null}
-              optIn={toolOptIn}
               disabled={busy}
               onToggle={() => setChosen(chosen === t.slug ? null : t.slug)}
             />

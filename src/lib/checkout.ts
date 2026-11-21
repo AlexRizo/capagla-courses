@@ -14,6 +14,7 @@ import { prisma } from '#/db'
 import { hasPlaceholderName } from '#/lib/account-name'
 import {
   ATTRIBUTION_COOKIE,
+  attributionSchema,
   parseAttribution,
   stripeMetadata,
 } from '#/lib/attribution'
@@ -22,11 +23,15 @@ import { CONSENT_COOKIE, parseConsent, trackingAllowed } from '#/lib/consent'
 import { courseContents } from '#/lib/course-pages'
 import {
   canRenew,
+  checkoutTools,
   resolveOffer,
   resolveRenewal,
   resolveStandalone,
+  resolveThanksTool,
+  sellsToolAfterPayment,
   withoutOwnedExtras,
 } from '#/lib/offers'
+import { signedPlaybackUrl } from '#/lib/bunny'
 import { clientIp } from '#/lib/track-core'
 import type { TrackingContext } from '#/lib/track-core'
 import { recordPromotionEvent } from '#/lib/promo-stats'
@@ -141,8 +146,11 @@ export const getCheckoutData = createServerFn()
         })(),
       },
       bonuses: offer.extras.filter((e) => e.isCourse).map(line),
-      // Niveles de la herramienta que trae la promoción (se elige uno o ninguno).
-      tools: offer.extras.filter((e) => !e.isCourse).map(line),
+      // Niveles de la herramienta que trae la promoción (se elige uno o ninguno). Con el curso
+      // cobrado no van aquí: se ofrecen en /gracias (ver `sellsToolAfterPayment`).
+      tools: checkoutTools(offer).map(line),
+      // Se guarda la tarjeta (solo para usarla con la alumna presente) para la oferta de /gracias.
+      saveCard: sellsToolAfterPayment(offer),
       // Clave publicable de Stripe (es pública): la usa el navegador para los campos de pago.
       stripeKey: env.STRIPE_PUBLISH_KEY ?? null,
       account,
@@ -182,6 +190,22 @@ function isOwnOrder(cookie: string | undefined, orderId: string) {
   return given.length === expected.length && timingSafeEqual(given, expected)
 }
 
+// Si no rechazó las cookies de medición, lo que el servidor necesita para mandar la compra a las
+// plataformas aunque la confirme el webhook de Stripe (sin navegador delante).
+function requestTracking() {
+  const allowed = trackingAllowed(parseConsent(getCookie(CONSENT_COOKIE)))
+  const trackingContext: TrackingContext | null = allowed
+    ? {
+        ip: clientIp(getRequestHeader('x-forwarded-for')),
+        userAgent: getRequestHeader('user-agent')?.slice(0, 500),
+        fbp: getCookie('_fbp')?.slice(0, 200),
+        fbc: getCookie('_fbc')?.slice(0, 300),
+        ttp: getCookie('_ttp')?.slice(0, 200),
+      }
+    : null
+  return { allowed, trackingContext }
+}
+
 // Crea la orden (precios del servidor) y su PaymentIntent de Stripe, y devuelve el
 // `clientSecret` con el que el navegador confirma el pago. Si el correo ya tiene el curso
 // vigente no se cobra: devuelve `{ error: 'already-owned' }`. `replaces` es la orden de un
@@ -201,10 +225,12 @@ export const startCheckout = createServerFn({ method: 'POST' })
       renovar: z.string().optional(),
       producto: z.string().optional(),
       replaces: z.string().optional(),
+      // La compra trae la oferta de /gracias: se guarda la tarjeta para cobrarla con un clic.
+      saveCard: z.boolean().optional(),
     }),
   )
   .handler(async ({ data }) => {
-    const { replaces, email, name, renovar, producto, ...rest } = data
+    const { replaces, email, name, renovar, producto, saveCard, ...rest } = data
     const session = await readSession(getRequestHeaders())
     if (renovar && !session) throw new Error('Entra para renovar tu acceso.')
     // Con sesión, el nombre del navegador solo cuenta si la cuenta aún no tiene uno real.
@@ -217,18 +243,7 @@ export const startCheckout = createServerFn({ method: 'POST' })
     const buyer = { email: buyerEmail, name: buyerName }
     // Marketing: de dónde llegó y si rechazó las cookies de medición (cookies del navegador).
     const attribution = parseAttribution(getCookie(ATTRIBUTION_COOKIE))
-    const allowed = trackingAllowed(parseConsent(getCookie(CONSENT_COOKIE)))
-    // Si no rechazó, se guarda lo que el servidor necesita para mandar la compra a las
-    // plataformas aunque la confirme el webhook de Stripe (sin navegador delante).
-    const trackingContext: TrackingContext | null = allowed
-      ? {
-          ip: clientIp(getRequestHeader('x-forwarded-for')),
-          userAgent: getRequestHeader('user-agent')?.slice(0, 500),
-          fbp: getCookie('_fbp')?.slice(0, 200),
-          fbc: getCookie('_fbc')?.slice(0, 300),
-          ttp: getCookie('_ttp')?.slice(0, 200),
-        }
-      : null
+    const { allowed, trackingContext } = requestTracking()
     const input = {
       ...rest,
       ...buyer,
@@ -290,10 +305,27 @@ export const startCheckout = createServerFn({ method: 'POST' })
           select: { slug: true },
         })
       : null
+    // Para la oferta de /gracias la tarjeta queda guardada en un cliente de Stripe, solo para
+    // usarla con la alumna presente («on_session»: ella da el clic). El navegador manda
+    // `saveCard` igual que en sus campos de pago (Apple Pay y Google Pay exigen que coincida).
+    const customer = saveCard
+      ? await stripe.customers.create(
+          {
+            email: order.email,
+            name: order.name,
+            metadata: { orderId: order.id },
+          },
+          { idempotencyKey: `customer-${order.id}` },
+        )
+      : null
     const intent = await stripe.paymentIntents.create(
       {
         amount: order.amountMxn * 100,
         currency: 'mxn',
+        ...(customer && {
+          customer: customer.id,
+          setup_future_usage: 'on_session' as const,
+        }),
         // Solo tarjeta (Apple Pay y Google Pay también pasan por aquí).
         allowed_payment_method_types: ['card'],
         receipt_email: order.email,
@@ -308,16 +340,63 @@ export const startCheckout = createServerFn({ method: 'POST' })
     )
     await prisma.order.update({
       where: { id: order.id },
-      data: { stripePaymentIntentId: intent.id },
+      data: {
+        stripePaymentIntentId: intent.id,
+        stripeCustomerId: customer?.id,
+      },
     })
     rememberOrder(order.id)
     return { orderId: order.id, clientSecret: intent.client_secret }
+  })
+
+// La oferta de /gracias vale mientras la alumna sigue en esa página tras pagar (la cookie de la
+// orden dura lo mismo).
+const THANKS_OFFER_MS = 24 * 60 * 60 * 1000
+
+type ThanksParent = {
+  id: string
+  email: string
+  status: string
+  renewal: boolean
+  paidAt: Date | null
+  promotionId: string | null
+  stripeCustomerId: string | null
+  stripePaymentIntentId: string | null
+  upsellOfId: string | null
+}
+
+// La herramienta que se ofrece en /gracias para esta orden, o null. Solo una orden pagada en las
+// últimas 24 h, que guardó la tarjeta y de una promoción con el curso cobrado (ver
+// `resolveThanksTool`). Una orden que ya es de esta oferta no ofrece otra.
+async function thanksTool(order: ThanksParent) {
+  if (
+    order.status !== 'PAID' ||
+    order.renewal ||
+    order.upsellOfId ||
+    !order.promotionId ||
+    !order.stripeCustomerId ||
+    !order.stripePaymentIntentId ||
+    !order.paidAt ||
+    Date.now() - order.paidAt.getTime() > THANKS_OFFER_MS
+  ) {
+    return null
+  }
+  return resolveThanksTool(order.promotionId, order.email)
+}
+
+// La compra de la oferta de /gracias que ya se pagó (o sigue en curso) para esta orden.
+const latestUpsell = (orderId: string) =>
+  prisma.order.findFirst({
+    where: { upsellOfId: orderId, status: { in: ['PENDING', 'PAID'] } },
+    orderBy: { createdAt: 'desc' },
+    include: { items: { include: { product: true } } },
   })
 
 // Orden de la página "Pago exitoso", solo para el navegador que la pagó (cookie
 // `ORDER_COOKIE`): así nadie ve el correo y la compra de otra persona con solo el id.
 // Si sigue pendiente se consulta a Stripe: la alumna llega a /gracias apenas paga y
 // puede que el webhook aún no haya llegado. Devuelve null si no existe o no es suya.
+// Trae también la oferta de la herramienta (si aplica) y el video de gracias.
 export const getThanksOrder = createServerFn()
   .validator(z.object({ orderId: z.string() }))
   .handler(async ({ data }) => {
@@ -335,7 +414,14 @@ export const getThanksOrder = createServerFn()
         },
       },
     })
-    if (order?.status !== 'PAID') return order && { ...order, signedIn: false }
+    const empty = {
+      signedIn: false,
+      tool: null,
+      toolAdded: null,
+      video: null,
+      stripeKey: null,
+    }
+    if (order?.status !== 'PAID') return order && { ...order, ...empty }
     // Quien acaba de pagar queda con la sesión abierta (ver `signInAfterPurchase`).
     const headers = getRequestHeaders()
     let signedIn = !!(await readSession(headers))
@@ -350,5 +436,171 @@ export const getThanksOrder = createServerFn()
         },
       )
     }
-    return { ...order, signedIn }
+    // Si ya la agregó (p. ej. al recargar la página) se muestra como agregada, no otra vez.
+    const upsell = await latestUpsell(order.id)
+    const added = upsell?.status === 'PAID' ? upsell : null
+    const tool = added ? null : await thanksTool(order)
+    const site = await prisma.siteSettings.findUnique({ where: { id: 1 } })
+    return {
+      ...order,
+      signedIn,
+      tool: tool && {
+        slug: tool.slug,
+        name: tool.name,
+        normalMxn: tool.normalMxn,
+        priceMxn: tool.priceMxn,
+      },
+      toolAdded: added && {
+        orderId: added.id,
+        name: added.items[0]?.product.name ?? '',
+      },
+      video: site?.thanksVideoId ? signedPlaybackUrl(site.thanksVideoId) : null,
+      // Clave publicable de Stripe: por si el banco pide autenticar el segundo cobro.
+      stripeKey: tool ? (env.STRIPE_PUBLISH_KEY ?? null) : null,
+    }
+  })
+
+// «Agregar con un clic» en /gracias: nueva orden con la herramienta al precio de la promoción,
+// cobrada con la tarjeta guardada de la compra (la alumna está presente: da el clic). Si el banco
+// pide autenticarla, devuelve `clientSecret` y el navegador la muestra ahí mismo; luego llama a
+// `confirmThanksTool`. La orden se completa como cualquier otra (acceso, correo y Purchase).
+export const addThanksTool = createServerFn({ method: 'POST' })
+  .validator(z.object({ orderId: z.string() }))
+  .handler(async ({ data }) => {
+    if (!isOwnOrder(getCookie(ORDER_COOKIE), data.orderId)) {
+      throw new Error('Esta oferta ya no está disponible.')
+    }
+    const parent = await prisma.order.findUnique({
+      where: { id: data.orderId },
+    })
+    if (!parent) throw new Error('Esta oferta ya no está disponible.')
+    const stripe = getStripe()
+
+    // Un clic anterior (doble clic, recarga a media autenticación): se retoma, no se cobra dos veces.
+    const previous = await latestUpsell(parent.id)
+    if (previous?.status === 'PAID') {
+      return { upsellId: previous.id, amountMxn: previous.amountMxn }
+    }
+    if (previous?.stripePaymentIntentId) {
+      const intent = await stripe.paymentIntents.retrieve(
+        previous.stripePaymentIntentId,
+      )
+      if (intent.status === 'requires_action' && intent.client_secret) {
+        return {
+          upsellId: previous.id,
+          amountMxn: previous.amountMxn,
+          clientSecret: intent.client_secret,
+        }
+      }
+      if (intent.status === 'succeeded' || intent.status === 'processing') {
+        await settleOrder(previous.id)
+        return { upsellId: previous.id, amountMxn: previous.amountMxn }
+      }
+      await failOrder(previous.id)
+    } else if (previous) {
+      await failOrder(previous.id)
+    }
+
+    const tool = await thanksTool(parent)
+    if (!tool || !parent.stripeCustomerId || !parent.stripePaymentIntentId) {
+      throw new Error('Esta oferta ya no está disponible.')
+    }
+    const first = await stripe.paymentIntents.retrieve(
+      parent.stripePaymentIntentId,
+    )
+    const paymentMethod =
+      typeof first.payment_method === 'string'
+        ? first.payment_method
+        : first.payment_method?.id
+    if (!paymentMethod) throw new Error('Esta oferta ya no está disponible.')
+
+    const { trackingContext, allowed } = requestTracking()
+    const order = await prisma.order.create({
+      data: {
+        email: parent.email,
+        name: parent.name,
+        amountMxn: tool.priceMxn,
+        promotionId: parent.promotionId,
+        upsellOfId: parent.id,
+        stripeCustomerId: parent.stripeCustomerId,
+        attribution: parent.attribution ?? undefined,
+        marketingConsent: allowed,
+        trackingContext: trackingContext ?? undefined,
+        items: {
+          create: [{ productId: tool.productId, amountMxn: tool.priceMxn }],
+        },
+      },
+    })
+    const promotion = parent.promotionId
+      ? await prisma.promotion.findUnique({
+          where: { id: parent.promotionId },
+          select: { slug: true },
+        })
+      : null
+    let intent
+    try {
+      intent = await stripe.paymentIntents.create(
+        {
+          amount: order.amountMxn * 100,
+          currency: 'mxn',
+          customer: parent.stripeCustomerId,
+          payment_method: paymentMethod,
+          allowed_payment_method_types: ['card'],
+          confirm: true,
+          // Si el banco pide autenticar, el navegador lo resuelve con Stripe.js (`handleNextAction`).
+          use_stripe_sdk: true,
+          receipt_email: order.email,
+          description: `Capagla · orden ${order.id} (oferta de gracias de ${parent.id})`,
+          metadata: {
+            orderId: order.id,
+            upsellOf: parent.id,
+            ...stripeMetadata(
+              attributionSchema.safeParse(parent.attribution).data ?? null,
+              promotion?.slug ?? null,
+            ),
+          },
+        },
+        { idempotencyKey: `order-${order.id}` },
+      )
+    } catch (error) {
+      // Tarjeta rechazada: la orden queda fallida y se dice por qué (sin cobrar).
+      await failOrder(order.id)
+      const card = error as { type?: string; message?: string }
+      const message = card.type === 'StripeCardError' ? card.message : null
+      console.error('[stripe] No se pudo cobrar la oferta de gracias:', error)
+      return {
+        error: message ?? 'No se pudo cobrar con tu tarjeta. Intenta de nuevo.',
+      }
+    }
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { stripePaymentIntentId: intent.id },
+    })
+    if (intent.status === 'succeeded') {
+      await settleOrder(order.id)
+      return { upsellId: order.id, amountMxn: order.amountMxn }
+    }
+    if (intent.status === 'requires_action' && intent.client_secret) {
+      return {
+        upsellId: order.id,
+        amountMxn: order.amountMxn,
+        clientSecret: intent.client_secret,
+      }
+    }
+    await failOrder(order.id)
+    return { error: 'No se pudo cobrar con tu tarjeta. Intenta de nuevo.' }
+  })
+
+// Tras autenticar el segundo cobro en el navegador: confirma con Stripe y completa la orden.
+export const confirmThanksTool = createServerFn({ method: 'POST' })
+  .validator(z.object({ orderId: z.string(), upsellId: z.string() }))
+  .handler(async ({ data }) => {
+    if (!isOwnOrder(getCookie(ORDER_COOKIE), data.orderId))
+      return { paid: false }
+    const upsell = await prisma.order.findUnique({
+      where: { id: data.upsellId },
+    })
+    if (upsell?.upsellOfId !== data.orderId) return { paid: false }
+    const settled = await settleOrder(upsell.id)
+    return { paid: settled?.status === 'PAID' }
   })

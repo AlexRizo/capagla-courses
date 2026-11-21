@@ -5,6 +5,7 @@ import { LEAD_FILTERS, leadsWhere } from '#/lib/admin-sales'
 import type { LeadFilter } from '#/lib/admin-sales'
 import { readSession } from '#/lib/auth'
 import { leadsCsv } from '#/lib/sales-rules'
+import { isPanelRole } from '#/lib/roles'
 
 // «Exportar CSV» de Leads (H34; solo admin): los leads del filtro y la búsqueda de la pantalla,
 // listos para importarlos en Brevo (Contactos › Importar contactos).
@@ -13,7 +14,7 @@ export const Route = createFileRoute('/api/admin-leads')({
     handlers: {
       GET: async ({ request }) => {
         const session = await readSession(request.headers)
-        if (session?.user.role !== 'ADMIN') {
+        if (!isPanelRole(session?.user.role)) {
           return new Response('Not Found', { status: 404 })
         }
         const params = new URL(request.url).searchParams

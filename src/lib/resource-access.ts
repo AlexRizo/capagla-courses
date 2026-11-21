@@ -1,5 +1,6 @@
 import { prisma } from '#/db'
 import { onlyFreeItems } from '#/lib/player-tree'
+import { isPanelRole } from '#/lib/roles'
 
 // ¿Puede esta sesión bajar un recurso de capítulo o lección? Lo mismo que comprueba el
 // reproductor: la admin entra siempre; una alumna, con el curso publicado y su acceso vigente
@@ -8,7 +9,7 @@ export async function canReadResource(
   session: { user: { id: string; role?: string | null } },
   resource: { itemId: string; item: { productId: string } },
 ) {
-  if (session.user.role === 'ADMIN') return true
+  if (isPanelRole(session.user.role)) return true
 
   const { productId } = resource.item
   const course = await prisma.product.findUnique({ where: { id: productId } })

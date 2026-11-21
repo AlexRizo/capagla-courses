@@ -12,7 +12,10 @@ model Todo {
   createdAt DateTime @default(now())
 }
 
+// SUPERADMIN: entra al panel como ADMIN y además es el único que crea o cambia cuentas de
+// administrador y superadministrador. ADMIN solo administra alumnas (ver lib/user-rules.ts).
 enum Role {
+  SUPERADMIN
   ADMIN
   STUDENT
 }

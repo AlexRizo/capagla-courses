@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { prisma } from '#/db'
 import { readSession } from '#/lib/auth'
 import { readRecipeBook } from '#/lib/recipe-books'
+import { isPanelRole } from '#/lib/roles'
 
 const notFound = () => new Response('Not Found', { status: 404 })
 
@@ -22,7 +23,7 @@ export const Route = createFileRoute('/api/recetarios/$slug')({
         })
         if (course?.kind !== 'COURSE') return notFound()
 
-        if (session.user.role !== 'ADMIN') {
+        if (!isPanelRole(session.user.role)) {
           if (course.status !== 'PUBLISHED') return notFound()
           const enrollment = await prisma.enrollment.findUnique({
             where: {

@@ -7,6 +7,13 @@ import { auth } from '#/lib/auth'
 import { requireAdmin } from '#/lib/guards'
 import { withLinkPurpose } from '#/lib/mailer'
 import { fromLocalInput } from '#/lib/promotions'
+import {
+  ROLES,
+  STAFF_ONLY_MESSAGE,
+  assignableRoles,
+  canManage,
+  isPanelRole,
+} from '#/lib/roles'
 import { TOOL_INCLUDED_COURSE_SLUG } from '#/lib/tool-tiers'
 import {
   filterWhere,
@@ -20,6 +27,8 @@ import {
 // Módulo de usuarios del panel. Toda función lleva `requireAdmin`: el `beforeLoad` de /admin
 // solo protege la pantalla, no los datos. Los errores que la administradora debe leer se
 // devuelven como `{ error }`; lo inesperado lanza.
+// Roles (ver lib/roles.ts): solo el superadministrador crea o cambia cuentas de administrador y
+// superadministrador; el administrador solo administra alumnas.
 
 const DAY_MS = 24 * 60 * 60 * 1000
 export const USERS_PAGE_SIZE = 20
@@ -37,7 +46,7 @@ export const getAdminUsers = createServerFn()
       page: z.number().int().min(1).default(1),
     }),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const where = { ...filterWhere(data.filter), ...searchWhere(data.q) }
     const [users, total, all, admins, suspended] = await Promise.all([
       prisma.user.findMany({
@@ -49,7 +58,7 @@ export const getAdminUsers = createServerFn()
       }),
       prisma.user.count({ where }),
       prisma.user.count(),
-      prisma.user.count({ where: { role: 'ADMIN' } }),
+      prisma.user.count({ where: filterWhere('admin') }),
       prisma.user.count({ where: { suspendedAt: { not: null } } }),
     ])
     return {
@@ -57,13 +66,15 @@ export const getAdminUsers = createServerFn()
         id: u.id,
         name: u.name,
         email: u.email,
-        admin: u.role === 'ADMIN',
+        role: u.role,
         suspended: !!u.suspendedAt,
         createdAt: u.createdAt,
         courses: u._count.enrollments,
       })),
       total,
       pages: Math.max(1, Math.ceil(total / USERS_PAGE_SIZE)),
+      // Roles que puede dar quien mira (el diálogo «Crear usuario»).
+      assignable: assignableRoles(context.session.user.role),
       counts: {
         todos: all,
         admin: admins,
@@ -104,9 +115,12 @@ export const getAdminUser = createServerFn()
       id: user.id,
       name: user.name,
       email: user.email,
-      admin: user.role === 'ADMIN',
+      role: user.role,
       suspended: !!user.suspendedAt,
       self: user.id === context.session.user.id,
+      // Quien mira puede cambiar sus datos, rol y cuenta (ver `canManage`), y a qué roles.
+      manageable: canManage(context.session.user.role, user.role),
+      assignable: assignableRoles(context.session.user.role),
       createdAt: user.createdAt,
       hasPassword: user.accounts.length > 0,
       lessonsSeen: user._count.lessonProgress,
@@ -142,10 +156,14 @@ export const createUser = createServerFn({ method: 'POST' })
     z.object({
       name: z.string().trim().min(1).max(80),
       email: z.string().trim().email().max(200),
-      admin: z.boolean(),
+      role: z.enum(ROLES),
     }),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    if (!assignableRoles(context.session.user.role).includes(data.role)) {
+      return { error: STAFF_ONLY_MESSAGE }
+    }
+    const admin = isPanelRole(data.role)
     const email = normalizeEmail(data.email)
     const ctx = await auth.$context
     if (await ctx.internalAdapter.findUserByEmail(email)) {
@@ -156,15 +174,15 @@ export const createUser = createServerFn({ method: 'POST' })
         email,
         name: data.name,
         emailVerified: false,
-        role: data.admin ? 'ADMIN' : 'STUDENT',
+        role: data.role,
       },
       { method: 'admin' },
     )
-    await withLinkPurpose({ kind: 'invite', admin: data.admin }, () =>
+    await withLinkPurpose({ kind: 'invite', admin }, () =>
       auth.api.signInMagicLink({
         body: {
           email,
-          callbackURL: data.admin ? '/admin' : '/mis-cursos',
+          callbackURL: admin ? '/admin' : '/mis-cursos',
         },
         headers: new Headers(),
       }),
@@ -178,14 +196,19 @@ export const updateUser = createServerFn({ method: 'POST' })
     z.object({
       id: z.string(),
       name: z.string().trim().min(1).max(80),
-      admin: z.boolean(),
+      role: z.enum(ROLES),
     }),
   )
   .handler(async ({ data, context }) => {
     const target = await prisma.user.findUnique({ where: { id: data.id } })
     if (!target) throw notFound()
-    const role = data.admin ? 'ADMIN' : 'STUDENT'
+    const actor = context.session.user.role
+    if (!canManage(actor, target.role)) return { error: STAFF_ONLY_MESSAGE }
+    const role = data.role
     if (role !== target.role) {
+      if (!assignableRoles(actor).includes(role)) {
+        return { error: STAFF_ONLY_MESSAGE }
+      }
       const blocked = forbiddenOnSelf(
         context.session.user.id,
         target.id,
@@ -216,6 +239,9 @@ export const setUserSuspended = createServerFn({ method: 'POST' })
     }
     const exists = await prisma.user.findUnique({ where: { id: data.id } })
     if (!exists) throw notFound()
+    if (!canManage(context.session.user.role, exists.role)) {
+      return { error: STAFF_ONLY_MESSAGE }
+    }
     await prisma.$transaction([
       prisma.user.update({
         where: { id: data.id },
@@ -238,6 +264,9 @@ export const deleteUser = createServerFn({ method: 'POST' })
     if (blocked) return { error: blocked }
     const target = await prisma.user.findUnique({ where: { id: data.id } })
     if (!target) throw notFound()
+    if (!canManage(context.session.user.role, target.role)) {
+      return { error: STAFF_ONLY_MESSAGE }
+    }
     if (normalizeEmail(data.confirmEmail) !== target.email) {
       return { error: 'El correo escrito no coincide.' }
     }
@@ -249,9 +278,12 @@ export const deleteUser = createServerFn({ method: 'POST' })
 export const sendAccessLink = createServerFn({ method: 'POST' })
   .middleware([requireAdmin])
   .validator(z.object({ id: z.string() }))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const target = await prisma.user.findUnique({ where: { id: data.id } })
     if (!target) throw notFound()
+    if (!canManage(context.session.user.role, target.role)) {
+      return { error: STAFF_ONLY_MESSAGE }
+    }
     if (target.suspendedAt) {
       return { error: 'La cuenta está suspendida: reactívala primero.' }
     }
@@ -259,7 +291,7 @@ export const sendAccessLink = createServerFn({ method: 'POST' })
       auth.api.signInMagicLink({
         body: {
           email: target.email,
-          callbackURL: target.role === 'ADMIN' ? '/admin' : '/mis-cursos',
+          callbackURL: isPanelRole(target.role) ? '/admin' : '/mis-cursos',
         },
         headers: new Headers(),
       }),

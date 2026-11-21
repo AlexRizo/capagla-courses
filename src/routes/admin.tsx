@@ -8,6 +8,7 @@ import {
 import { AdminLayout } from '#/components/admin/admin-layout'
 import { getPendingQuestions, getProMode } from '#/lib/admin-questions'
 import { getSession } from '#/lib/session'
+import { isPanelRole } from '#/lib/roles'
 
 // Panel de la chef: todo lo que cuelga de /admin comparte este layout y esta guarda.
 // Sin sesión va a /entrar; con sesión sin rol ADMIN responde 404 (no revela el panel).
@@ -23,7 +24,7 @@ export const Route = createFileRoute('/admin')({
   beforeLoad: async () => {
     const session = await getSession()
     if (!session) throw redirect({ to: '/entrar' })
-    if (session.user.role !== 'ADMIN') throw notFound()
+    if (!isPanelRole(session.user.role)) throw notFound()
     return { userName: session.user.name }
   },
   loader: async () => ({

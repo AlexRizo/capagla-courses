@@ -127,20 +127,21 @@ async function seedTiers() {
   }
 }
 
-// Administradora: ver `admin-credentials.ts` (en producción exige ADMIN_EMAIL y ADMIN_PASSWORD).
+// Administradora (superadministrador: crea a las demás): ver `admin-credentials.ts` (en producción
+// exige ADMIN_EMAIL y ADMIN_PASSWORD).
 const admin = adminCredentials(process.env)
 const localDatabase = admin.local
 
 async function seedAdmin() {
   const user = await prisma.user.upsert({
     where: { email: admin.email },
-    update: { role: 'ADMIN' },
+    update: { role: 'SUPERADMIN' },
     create: {
       id: crypto.randomUUID(),
       email: admin.email,
       name: admin.name,
       emailVerified: true,
-      role: 'ADMIN',
+      role: 'SUPERADMIN',
     },
   })
   const password = await hashPassword(admin.password)

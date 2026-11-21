@@ -18,6 +18,8 @@ import {
   updateUser,
 } from '#/lib/admin-users'
 import { toLocalInput } from '#/lib/promotions'
+import { ROLE_LABEL, ROLE_OPTION, STAFF_ONLY_MESSAGE } from '#/lib/roles'
+import type { Role } from '#/lib/roles'
 import { cn } from '#/lib/utils'
 
 type User = Awaited<ReturnType<typeof getAdminUser>>
@@ -127,7 +129,7 @@ export function UserEditor({ user }: { user: User }) {
             <h1 className="m-0 text-2xl font-semibold tracking-landing-title-sm">
               {user.name}
             </h1>
-            <span className={pill}>{user.admin ? 'Admin' : 'Alumna'}</span>
+            <span className={pill}>{ROLE_LABEL[user.role]}</span>
             {user.suspended && (
               <span className={cn(pill, 'border-destructive text-destructive')}>
                 Suspendida
@@ -158,14 +160,20 @@ export function UserEditor({ user }: { user: User }) {
 function DataCard({ user }: { user: User }) {
   const { busy, message, run } = useAction()
   const [name, setName] = useState(user.name)
-  const [admin, setAdmin] = useState(user.admin)
+  const [role, setRole] = useState<Role>(user.role)
+  // Un administrador ve las cuentas de administrador y super, pero no las cambia.
+  const locked = !user.manageable
+  // Su rol actual siempre aparece, aunque quien mira no pueda darlo.
+  const roles = user.assignable.includes(user.role)
+    ? user.assignable
+    : [user.role, ...user.assignable]
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault()
         void run(
-          () => updateUser({ data: { id: user.id, name, admin } }),
+          () => updateUser({ data: { id: user.id, name, role } }),
           'Guardado',
         )
       }}
@@ -182,7 +190,8 @@ function DataCard({ user }: { user: User }) {
           onChange={(e) => setName(e.target.value)}
           maxLength={80}
           required
-          className={input}
+          disabled={locked}
+          className={cn(input, locked && 'opacity-60')}
         />
       </div>
       <div className={field}>
@@ -205,15 +214,25 @@ function DataCard({ user }: { user: User }) {
         </label>
         <select
           id="user-role"
-          value={admin ? 'admin' : 'alumna'}
-          onChange={(e) => setAdmin(e.target.value === 'admin')}
-          disabled={user.self}
-          className={cn(input, user.self && 'opacity-60')}
+          value={role}
+          onChange={(e) => setRole(e.target.value as Role)}
+          disabled={user.self || locked || roles.length < 2}
+          className={cn(
+            input,
+            (user.self || locked || roles.length < 2) && 'opacity-60',
+          )}
         >
-          <option value="alumna">Alumna: entra a sus cursos</option>
-          <option value="admin">Administrador: entra al panel</option>
+          {roles.map((r) => (
+            <option key={r} value={r}>
+              {ROLE_OPTION[r]}
+            </option>
+          ))}
         </select>
-        {user.self ? (
+        {locked ? (
+          <span className="text-xs text-muted-foreground">
+            {STAFF_ONLY_MESSAGE}
+          </span>
+        ) : user.self ? (
           <span className="text-xs text-muted-foreground">
             No puedes cambiar tu propio rol.
           </span>
@@ -225,7 +244,11 @@ function DataCard({ user }: { user: User }) {
         )}
       </div>
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={busy} className={primaryButton}>
+        <button
+          type="submit"
+          disabled={busy || locked}
+          className={primaryButton}
+        >
           Guardar
         </button>
         <Message message={message} />
@@ -473,7 +496,7 @@ function AccountCard({ user }: { user: User }) {
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          disabled={busy || user.suspended}
+          disabled={busy || user.suspended || !user.manageable}
           onClick={() =>
             void run(
               () => sendAccessLink({ data: { id: user.id } }),
@@ -488,7 +511,7 @@ function AccountCard({ user }: { user: User }) {
         {user.suspended ? (
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || !user.manageable}
             onClick={() =>
               void run(
                 () =>
@@ -504,7 +527,7 @@ function AccountCard({ user }: { user: User }) {
           !confirmSuspend && (
             <button
               type="button"
-              disabled={busy || user.self}
+              disabled={busy || user.self || !user.manageable}
               onClick={() => setConfirmSuspend(true)}
               className={dangerButton}
             >
@@ -543,10 +566,16 @@ function AccountCard({ user }: { user: User }) {
           </button>
         </div>
       )}
-      {user.self && (
+      {user.self ? (
         <span className="text-xs text-muted-foreground">
           Es tu cuenta: no puedes suspenderla ni eliminarla.
         </span>
+      ) : (
+        !user.manageable && (
+          <span className="text-xs text-muted-foreground">
+            {STAFF_ONLY_MESSAGE}
+          </span>
+        )
       )}
       <Message message={message} />
 
@@ -554,7 +583,7 @@ function AccountCard({ user }: { user: User }) {
         {!confirmDelete ? (
           <button
             type="button"
-            disabled={user.self}
+            disabled={user.self || !user.manageable}
             onClick={() => setConfirmDelete(true)}
             className={cn(dangerButton, 'self-start')}
           >

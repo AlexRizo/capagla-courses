@@ -11,6 +11,7 @@ import { sendMail } from '#/lib/mailer'
 import { canRenew, renewalPrice } from '#/lib/offers'
 import { onlyFreeItems } from '#/lib/player-tree'
 import { hasRecipeBook } from '#/lib/recipe-books'
+import { isPanelRole } from '#/lib/roles'
 
 export const getSession = createServerFn().handler(() =>
   readSession(getRequestHeaders()),
@@ -38,7 +39,7 @@ export const getMyCourses = createServerFn().handler(async () => {
   ])
 
   // Solo cursos publicados: el reproductor no abre un borrador.
-  const isAdmin = session.user.role === 'ADMIN'
+  const isAdmin = isPanelRole(session.user.role)
   // La admin ve todos los cursos publicados aunque no los haya comprado (sin vencimiento ni
   // renovación). Si compró alguno, se le muestra como a una alumna.
   const adminOnly = isAdmin

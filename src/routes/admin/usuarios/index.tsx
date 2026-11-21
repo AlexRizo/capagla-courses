@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { CreateUserDialog } from '#/components/admin/create-user-dialog'
 import { input } from '#/components/admin/form-styles'
 import { getAdminUsers } from '#/lib/admin-users'
+import { ROLE_LABEL } from '#/lib/roles'
 import { cn } from '#/lib/utils'
 
 const search = z.object({
@@ -35,7 +36,7 @@ const date = new Intl.DateTimeFormat('es-MX', {
 })
 
 function Usuarios() {
-  const { users, total, pages, counts } = Route.useLoaderData()
+  const { users, total, pages, counts, assignable } = Route.useLoaderData()
   const { q, filtro, pagina } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const [creating, setCreating] = useState(false)
@@ -137,7 +138,7 @@ function Usuarios() {
               <span className="truncate text-13 text-chart-3">{u.email}</span>
             </div>
             <div className="flex-1">
-              <span className={pill}>{u.admin ? 'Admin' : 'Alumna'}</span>
+              <span className={pill}>{ROLE_LABEL[u.role]}</span>
             </div>
             <div className="flex-1 text-chart-3">{u.courses}</div>
             <div className="flex-2 text-chart-3">
@@ -190,7 +191,12 @@ function Usuarios() {
         </div>
       )}
 
-      {creating && <CreateUserDialog onClose={() => setCreating(false)} />}
+      {creating && (
+        <CreateUserDialog
+          roles={assignable}
+          onClose={() => setCreating(false)}
+        />
+      )}
     </div>
   )
 }

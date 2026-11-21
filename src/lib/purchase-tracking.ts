@@ -9,6 +9,7 @@ import {
   resolveFbc,
 } from '#/lib/track-core'
 import { purchaseEventId } from '#/lib/tracking-events'
+import { isPanelRole } from '#/lib/roles'
 
 // Evento Purchase del servidor (Meta). Lo dispara `completeOrder` al confirmarse el pago, con el
 // `event_id` que también usa el píxel de la página de gracias. Solo servidor.
@@ -66,7 +67,7 @@ export async function trackPurchase(orderId: string) {
       return false
     }
     if (order.marketingConsent === false) return false
-    if (order.user?.role === 'ADMIN') return false
+    if (isPanelRole(order.user?.role)) return false
     const platforms = await loadPlatforms()
     if (!platforms.meta && !platforms.tiktok) return false
     return await dispatchServerEvent(platforms, buildPurchaseEvent(order))

@@ -29,6 +29,7 @@ import {
   onlyFreeItems,
   resumeLessonId,
 } from '#/lib/player-tree'
+import { isPanelRole } from '#/lib/roles'
 
 // Entra al curso quien tiene sesión y está inscrita sin que se le haya vencido el acceso (`full`).
 // Con sesión pero sin acceso completo (una lead de "Clase gratis" o con el acceso vencido) solo
@@ -40,7 +41,7 @@ import {
 async function requireAccess(slug: string, preview = false) {
   const session = await readSession(getRequestHeaders())
   if (!session) throw redirect({ to: '/entrar' })
-  const asAdmin = preview && session.user.role === 'ADMIN'
+  const asAdmin = preview && isPanelRole(session.user.role)
 
   const course = await prisma.product.findUnique({ where: { slug } })
   if (
@@ -50,7 +51,7 @@ async function requireAccess(slug: string, preview = false) {
     throw notFound()
   }
   if (asAdmin) return { session, course, full: true, preview: true }
-  if (session.user.role === 'ADMIN') {
+  if (isPanelRole(session.user.role)) {
     return { session, course, full: true, preview: false }
   }
   const enrollment = await prisma.enrollment.findUnique({
@@ -194,7 +195,7 @@ export const getPlayer = createServerFn()
       user: {
         name: session.user.name,
         email: session.user.email,
-        isAdmin: session.user.role === 'ADMIN',
+        isAdmin: isPanelRole(session.user.role),
       },
       progress: {
         seen: seenCount,

@@ -25,7 +25,7 @@ export type UserFilter = 'todos' | 'admin' | 'alumnas' | 'suspendidas'
 export function filterWhere(filter: UserFilter) {
   switch (filter) {
     case 'admin':
-      return { role: 'ADMIN' as const }
+      return { role: { in: ['ADMIN' as const, 'SUPERADMIN' as const] } }
     case 'alumnas':
       return { role: 'STUDENT' as const }
     case 'suspendidas':

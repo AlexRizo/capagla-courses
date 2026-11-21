@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { assignableRoles, canManage, isPanelRole } from '#/lib/roles'
+
 import {
   SECOND_TIER_MESSAGE,
   filterWhere,
@@ -27,7 +29,10 @@ describe('forbiddenOnSelf', () => {
 describe('filterWhere', () => {
   it('cada filtro arma su condición', () => {
     expect(filterWhere('todos')).toEqual({})
-    expect(filterWhere('admin')).toEqual({ role: 'ADMIN' })
+    // Administradores y superadministradores.
+    expect(filterWhere('admin')).toEqual({
+      role: { in: ['ADMIN', 'SUPERADMIN'] },
+    })
     expect(filterWhere('alumnas')).toEqual({ role: 'STUDENT' })
     expect(filterWhere('suspendidas')).toEqual({ suspendedAt: { not: null } })
   })
@@ -98,5 +103,32 @@ describe('includedCourseExpiry', () => {
       includedCourseExpiry(tool, new Date('2028-01-01T00:00:00Z')),
     ).toBeNull()
     expect(includedCourseExpiry(tool, tool)).toBeNull()
+  })
+})
+
+describe('roles: superadministrador y administrador', () => {
+  it('los dos entran al panel; la alumna no', () => {
+    expect(isPanelRole('SUPERADMIN')).toBe(true)
+    expect(isPanelRole('ADMIN')).toBe(true)
+    expect(isPanelRole('STUDENT')).toBe(false)
+    expect(isPanelRole(undefined)).toBe(false)
+  })
+
+  it('solo el superadministrador da los roles de administrador y superadministrador', () => {
+    expect(assignableRoles('SUPERADMIN')).toEqual([
+      'STUDENT',
+      'ADMIN',
+      'SUPERADMIN',
+    ])
+    expect(assignableRoles('ADMIN')).toEqual(['STUDENT'])
+  })
+
+  it('el administrador solo administra alumnas; el superadministrador, a todos', () => {
+    expect(canManage('ADMIN', 'STUDENT')).toBe(true)
+    expect(canManage('ADMIN', 'ADMIN')).toBe(false)
+    expect(canManage('ADMIN', 'SUPERADMIN')).toBe(false)
+    expect(canManage('SUPERADMIN', 'ADMIN')).toBe(true)
+    expect(canManage('SUPERADMIN', 'SUPERADMIN')).toBe(true)
+    expect(canManage('STUDENT', 'STUDENT')).toBe(false)
   })
 })

@@ -9,6 +9,7 @@ import {
   storeUpload,
   uploadsAvailable,
 } from '#/lib/uploads'
+import { isPanelRole } from '#/lib/roles'
 
 const MAX_RESOURCES_PER_ITEM = 20
 
@@ -25,7 +26,7 @@ export const Route = createFileRoute('/api/uploads')({
     handlers: {
       POST: async ({ request }) => {
         const session = await readSession(request.headers)
-        if (session?.user.role !== 'ADMIN') {
+        if (!isPanelRole(session?.user.role)) {
           return new Response('Not Found', { status: 404 })
         }
         if (!uploadsAvailable()) {

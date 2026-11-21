@@ -2,12 +2,13 @@ import { createMiddleware, createServerOnlyFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
 
 import { readSession } from '#/lib/auth'
+import { isPanelRole } from '#/lib/roles'
 
 // ¿La petición viene de una admin? (por ejemplo, para que vea sus borradores).
 // `createServerOnlyFn` evita que el import del servidor llegue al bundle del navegador.
 export const isAdminRequest = createServerOnlyFn(async () => {
   const session = await readSession(getRequestHeaders())
-  return session?.user.role === 'ADMIN'
+  return isPanelRole(session?.user.role)
 })
 
 // Para las server functions del panel: `.middleware([requireAdmin])`.
@@ -15,7 +16,7 @@ export const isAdminRequest = createServerOnlyFn(async () => {
 export const requireAdmin = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
     const session = await readSession(getRequestHeaders())
-    if (session?.user.role !== 'ADMIN') {
+    if (!isPanelRole(session?.user.role)) {
       throw new Response('Not Found', { status: 404 })
     }
     return next({ context: { session } })

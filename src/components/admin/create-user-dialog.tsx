@@ -8,17 +8,26 @@ import {
   primaryButton,
 } from '#/components/admin/form-styles'
 import { createUser } from '#/lib/admin-users'
+import { ROLE_OPTION } from '#/lib/roles'
+import type { Role } from '#/lib/roles'
 
 const secondaryButton =
   'inline-flex h-9 cursor-pointer items-center rounded-md border border-border bg-card px-3.5 font-medium text-foreground disabled:opacity-60'
 
 // "+ Crear usuario": nombre, correo y rol. La cuenta nace sin contraseña y recibe el enlace de
-// acceso por correo; al crearla se abre su ficha para darle acceso a cursos.
-export function CreateUserDialog({ onClose }: { onClose: () => void }) {
+// acceso por correo; al crearla se abre su ficha para darle acceso a cursos. `roles`: los que
+// puede dar quien la crea (un administrador solo crea alumnas; ver lib/roles.ts).
+export function CreateUserDialog({
+  roles,
+  onClose,
+}: {
+  roles: Role[]
+  onClose: () => void
+}) {
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [admin, setAdmin] = useState(false)
+  const [role, setRole] = useState<Role>('STUDENT')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -33,7 +42,7 @@ export function CreateUserDialog({ onClose }: { onClose: () => void }) {
     setBusy(true)
     setError(null)
     try {
-      const result = await createUser({ data: { name, email, admin } })
+      const result = await createUser({ data: { name, email, role } })
       if (!result.id)
         return setError(result.error ?? 'No se pudo crear el usuario.')
       await navigate({ to: '/admin/usuarios/$id', params: { id: result.id } })
@@ -94,13 +103,22 @@ export function CreateUserDialog({ onClose }: { onClose: () => void }) {
             </label>
             <select
               id="new-role"
-              value={admin ? 'admin' : 'alumna'}
-              onChange={(e) => setAdmin(e.target.value === 'admin')}
+              value={role}
+              onChange={(e) => setRole(e.target.value as Role)}
+              disabled={roles.length < 2}
               className={input}
             >
-              <option value="alumna">Alumna: entra a sus cursos</option>
-              <option value="admin">Administrador: entra al panel</option>
+              {roles.map((r) => (
+                <option key={r} value={r}>
+                  {ROLE_OPTION[r]}
+                </option>
+              ))}
             </select>
+            {roles.length < 2 && (
+              <span className="text-xs text-muted-foreground">
+                Solo un superadministrador puede crear administradores.
+              </span>
+            )}
           </div>
           {error && <span className="text-13 text-destructive">{error}</span>}
         </div>

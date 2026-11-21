@@ -17,6 +17,7 @@ import {
   hasModule,
 } from '#/lib/tool-tiers'
 import type { ToolModuleKey, ToolTierInfo } from '#/lib/tool-tiers'
+import { isPanelRole } from '#/lib/roles'
 
 // Acceso a la herramienta de costos: una administradora siempre; una alumna solo con la
 // inscripción vigente a un producto de tipo herramienta (la que da su compra). Cada producto tiene
@@ -28,7 +29,7 @@ export const loadTier = createServerOnlyFn(
     userId: string,
     role: string | null | undefined,
   ): Promise<ToolTierInfo | null> => {
-    if (role === 'ADMIN') return ADMIN_TIER
+    if (isPanelRole(role)) return ADMIN_TIER
     const enrollments = await prisma.enrollment.findMany({
       where: {
         userId,
